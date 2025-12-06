@@ -118,15 +118,15 @@ await Deno.writeFile("output.webp", output);
 
 ## Supported Formats
 
-| Format | Read | Write | Notes                                    |
-| ------ | ---- | ----- | ---------------------------------------- |
-| PNG    | ✅   | ✅    | Full pure-JS implementation              |
-| JPEG   | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
-| WebP   | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
-| GIF    | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
-| TIFF   | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
-| BMP    | ✅   | ✅    | Full pure-JS implementation              |
-| RAW    | ✅   | ✅    | Uncompressed RGBA (pure-JS, no metadata) |
+| Format | Read | Write | Notes                                                             |
+| ------ | ---- | ----- | ----------------------------------------------------------------- |
+| PNG    | ✅   | ✅    | Full pure-JS implementation                                       |
+| JPEG   | ✅   | ✅    | ImageDecoder API preferred, pure-JS fallback for baseline JPEGs   |
+| WebP   | ✅   | ✅    | ImageDecoder API preferred, limited pure-JS fallback for lossless |
+| GIF    | ✅   | ✅    | Requires ImageDecoder API or equivalent runtime support           |
+| TIFF   | ✅   | ✅    | Requires ImageDecoder API or equivalent runtime support           |
+| BMP    | ✅   | ✅    | Full pure-JS implementation                                       |
+| RAW    | ✅   | ✅    | Uncompressed RGBA (pure-JS, no metadata)                          |
 
 ## Extending with Custom Formats
 
@@ -233,9 +233,20 @@ interface ImageFormat {
 - **Node.js 18+** - Full support (requires built-in Web APIs)
 - **Bun** - Full support
 
-Note: JPEG and WebP encoding/decoding use runtime APIs (`ImageDecoder`,
-`OffscreenCanvas`) which are available in modern runtimes. PNG has a full
-pure-JS implementation and works everywhere.
+### Format Support by Runtime
+
+The library provides multiple decoding strategies:
+
+1. **Pure JavaScript**: PNG, BMP, and RAW formats work in all environments
+2. **ImageDecoder API**: JPEG, WebP, GIF, and TIFF use `ImageDecoder` when
+   available (Deno, modern browsers, Node.js 20+)
+3. **Fallback Decoders**: JPEG and WebP include pure-JS fallback decoders for
+   environments without ImageDecoder
+   - JPEG: Supports baseline DCT format (most common JPEGs)
+   - WebP: Limited support for lossless format
+
+**Note**: For best compatibility and performance, use PNG or BMP formats which
+have complete pure-JS implementations.
 
 ## Development
 
