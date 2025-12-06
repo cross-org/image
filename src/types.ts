@@ -55,6 +55,20 @@ export interface ResizeOptions {
 }
 
 /**
+ * Options for ASCII art encoding
+ */
+export interface ASCIIOptions {
+  /** Target width in characters (default: 80) */
+  width?: number;
+  /** Character set to use (default: "simple") */
+  charset?: "simple" | "extended" | "blocks" | "detailed";
+  /** Aspect ratio correction factor for terminal display (default: 0.5) */
+  aspectRatio?: number;
+  /** Whether to invert brightness (default: false) */
+  invert?: boolean;
+}
+
+/**
  * Image format handler interface
  */
 export interface ImageFormat {
@@ -73,9 +87,10 @@ export interface ImageFormat {
   /**
    * Encode image data to bytes
    * @param imageData Image data to encode
+   * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
-  encode(imageData: ImageData): Promise<Uint8Array>;
+  encode(imageData: ImageData, options?: unknown): Promise<Uint8Array>;
 
   /**
    * Check if the given data is in this format
