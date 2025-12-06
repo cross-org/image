@@ -23,6 +23,7 @@
 
 export { Image } from "./src/image.ts";
 export type {
+  ASCIIOptions,
   ImageData,
   ImageFormat,
   ImageMetadata,
@@ -35,3 +36,4 @@ export { GIFFormat } from "./src/formats/gif.ts";
 export { TIFFFormat } from "./src/formats/tiff.ts";
 export { BMPFormat } from "./src/formats/bmp.ts";
 export { RAWFormat } from "./src/formats/raw.ts";
+export { ASCIIFormat } from "./src/formats/ascii.ts";

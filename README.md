@@ -99,6 +99,30 @@ const png = await image.save("png");
 await Deno.writeFile("red-square.png", png);
 ```
 
+### Converting to ASCII Art
+
+```ts
+import { type ASCIIOptions, Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.read(data);
+
+// Convert to ASCII art with simple characters
+const ascii = await image.save("ascii", { width: 80, charset: "simple" });
+console.log(new TextDecoder().decode(ascii));
+
+// Or use block characters for better gradients
+const blocks = await image.save("ascii", {
+  width: 60,
+  charset: "blocks",
+  aspectRatio: 0.5,
+});
+console.log(new TextDecoder().decode(blocks));
+
+// Save ASCII art to file
+await Deno.writeFile("output.txt", ascii);
+```
+
 ### Chaining Operations
 
 ```ts
@@ -128,9 +152,9 @@ status:
 | PNG    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
 | BMP    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
 | RAW    | ✅   | ✅    | ✅ Full         | ✅ Full         | N/A               | N/A                | Uncompressed RGBA (no metadata)        |
+| ASCII  | ✅   | ✅    | ✅ Full         | ✅ Full         | N/A               | N/A                | Text-based ASCII art representation    |
 | JPEG   | ✅   | ✅    | ⚠️ Baseline     | ⚠️ Baseline     | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only          |
 | GIF    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline     | ❌              | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only          |
 | WebP   | ✅   | ✅    | ⚠️ Lossless     | ❌              | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for lossless (VP8L) only       |
 | TIFF   | ✅   | ✅    | ⚠️ Uncompressed | ✅ Uncompressed | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed RGB/RGBA only |
 
@@ -180,6 +204,10 @@ This table shows which format standards and variants are supported:
 |        | - Animation (first frame only)      | ✅ Full        | Pure-JS        |
 |        | - Comment extensions, XMP           | ✅ Full        | Pure-JS        |
 | RAW    | Uncompressed RGBA                   | ✅ Full        | Pure-JS        |
+| ASCII  | Text-based ASCII art                | ✅ Full        | Pure-JS        |
+|        | - Multiple character sets           | ✅ Full        | Pure-JS        |
+|        | - Configurable width & aspect ratio | ✅ Full        | Pure-JS        |
+|        | - Brightness inversion              | ✅ Full        | Pure-JS        |
 
 ### Runtime Compatibility by Format
 
@@ -188,13 +216,14 @@ This table shows which format standards and variants are supported:
 | PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
 | BMP    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
 | RAW    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
+| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
 | GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
 | JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full     |
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full     |
 | TIFF   | ✅       | ⚠️ Basic    | ✅          | ✅  | Node 18: pure-JS uncompressed only, 20+: full |
 
-**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF, or
-RAW formats which have complete pure-JS implementations.
+**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
+ASCII or RAW formats which have complete pure-JS implementations.
 
 ## Extending with Custom Formats
 
@@ -257,8 +286,8 @@ The main class for working with images.
 #### Instance Methods
 
 - `resize(options: ResizeOptions): this` - Resize the image (chainable)
-- `save(format: string): Promise<Uint8Array>` - Save to bytes in specified
-  format
+- `save(format: string, options?: unknown): Promise<Uint8Array>` - Save to bytes
+  in specified format with optional format-specific options
 - `clone(): Image` - Create a copy of the image
 
 ### Types
@@ -271,6 +300,35 @@ interface ResizeOptions {
   height: number; // Target height
   method?: "nearest" | "bilinear"; // Resize algorithm (default: "bilinear")
 }
+```
+
+#### `ASCIIOptions`
+
+```ts
+interface ASCIIOptions {
+  width?: number; // Target width in characters (default: 80)
+  charset?: "simple" | "extended" | "blocks" | "detailed"; // Character set (default: "simple")
+  aspectRatio?: number; // Aspect ratio correction for terminal (default: 0.5)
+  invert?: boolean; // Invert brightness (default: false)
+}
+```
+
+**Character sets:**
+
+- `simple`: 10 characters (`.:-=+*#%@`) - good for basic art
+- `extended`: 70 characters - detailed gradients
+- `blocks`: 5 block characters (`░▒▓█`) - smooth gradients
+- `detailed`: 92 characters - maximum detail
+
+**Usage:**
+
+```ts
+const ascii = await image.save("ascii", {
+  width: 60,
+  charset: "blocks",
+  aspectRatio: 0.5,
+  invert: false,
+});
 ```
 
 #### `ImageData`

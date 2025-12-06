@@ -12,6 +12,7 @@ import { GIFFormat } from "./formats/gif.ts";
 import { TIFFFormat } from "./formats/tiff.ts";
 import { BMPFormat } from "./formats/bmp.ts";
 import { RAWFormat } from "./formats/raw.ts";
+import { ASCIIFormat } from "./formats/ascii.ts";
 
 /**
  * Main Image class for reading, manipulating, and saving images
@@ -26,6 +27,7 @@ export class Image {
     new TIFFFormat(),
     new BMPFormat(),
     new RAWFormat(),
+    new ASCIIFormat(),
   ];
 
   /**
@@ -274,10 +276,11 @@ export class Image {
 
   /**
    * Save the image to bytes in the specified format
-   * @param format Format name (e.g., "png", "jpeg", "webp")
+   * @param format Format name (e.g., "png", "jpeg", "webp", "ascii")
+   * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
-  async save(format: string): Promise<Uint8Array> {
+  async save(format: string, options?: unknown): Promise<Uint8Array> {
     if (!this.imageData) throw new Error("No image loaded");
 
     const handler = Image.formats.find((f) => f.name === format);
@@ -285,7 +288,7 @@ export class Image {
       throw new Error(`Unsupported format: ${format}`);
     }
 
-    return await handler.encode(this.imageData);
+    return await handler.encode(this.imageData, options);
   }
 
   /**
