@@ -46,18 +46,51 @@ test("WebP: properties", () => {
   assertEquals(webpFormat.mimeType, "image/webp");
 });
 
-test("WebP: encode - requires runtime support", async () => {
-  const data = new Uint8Array(1 * 1 * 4);
-  data[0] = 255; // R
-  data[1] = 0; // G
-  data[2] = 0; // B
-  data[3] = 255; // A
+test("WebP: encode - pure-JS fallback works", async () => {
+  // Hide OffscreenCanvas to force pure-JS path
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // @ts-ignore: Testing purposes - temporarily hiding OffscreenCanvas
+    globalThis.OffscreenCanvas = undefined;
 
-  await assertRejects(
-    async () => await webpFormat.encode({ width: 1, height: 1, data }),
-    Error,
-    "WebP encoding requires OffscreenCanvas",
-  );
+    const data = new Uint8Array(2 * 2 * 4);
+    // Red pixel
+    data[0] = 255;
+    data[1] = 0;
+    data[2] = 0;
+    data[3] = 255;
+    // Green pixel
+    data[4] = 0;
+    data[5] = 255;
+    data[6] = 0;
+    data[7] = 255;
+    // Blue pixel
+    data[8] = 0;
+    data[9] = 0;
+    data[10] = 255;
+    data[11] = 255;
+    // Yellow pixel
+    data[12] = 255;
+    data[13] = 255;
+    data[14] = 0;
+    data[15] = 255;
+
+    const encoded = await webpFormat.encode({ width: 2, height: 2, data });
+
+    // Verify it's a valid WebP
+    assertEquals(encoded[0], 0x52); // 'R'
+    assertEquals(encoded[1], 0x49); // 'I'
+    assertEquals(encoded[2], 0x46); // 'F'
+    assertEquals(encoded[3], 0x46); // 'F'
+    assertEquals(encoded[8], 0x57); // 'W'
+    assertEquals(encoded[9], 0x45); // 'E'
+    assertEquals(encoded[10], 0x42); // 'B'
+    assertEquals(encoded[11], 0x50); // 'P'
+  } finally {
+    // Restore
+    // @ts-ignore: Testing purposes - restoring OffscreenCanvas
+    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+  }
 });
 
 // Test basic VP8L decoding with a simple solid color lossless WebP

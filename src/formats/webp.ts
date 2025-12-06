@@ -103,40 +103,48 @@ export class WebPFormat implements ImageFormat {
   async encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 
-    // Try to use runtime encoding if available
+    // Try to use runtime encoding if available (better quality and compression)
     if (typeof OffscreenCanvas !== "undefined") {
       try {
         const canvas = new OffscreenCanvas(width, height);
         const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Could not get canvas context");
+        if (ctx) {
+          const imgData = ctx.createImageData(width, height);
+          const imgDataData = new Uint8ClampedArray(data);
+          imgData.data.set(imgDataData);
+          ctx.putImageData(imgData, 0, 0);
 
-        const imgData = ctx.createImageData(width, height);
-        const imgDataData = new Uint8ClampedArray(data);
-        imgData.data.set(imgDataData);
-        ctx.putImageData(imgData, 0, 0);
+          const blob = await canvas.convertToBlob({
+            type: "image/webp",
+            quality: 0.9,
+          });
+          const arrayBuffer = await blob.arrayBuffer();
+          const encoded = new Uint8Array(arrayBuffer);
 
-        const blob = await canvas.convertToBlob({
-          type: "image/webp",
-          quality: 0.9,
-        });
-        const arrayBuffer = await blob.arrayBuffer();
-        const encoded = new Uint8Array(arrayBuffer);
+          // Inject metadata if present
+          if (metadata && Object.keys(metadata).length > 0) {
+            const injected = this.injectMetadata(encoded, metadata);
+            return injected;
+          }
 
-        // Inject metadata if present
-        if (metadata && Object.keys(metadata).length > 0) {
-          const injected = this.injectMetadata(encoded, metadata);
-          return injected;
+          return encoded;
         }
-
-        return encoded;
-      } catch (error) {
-        throw new Error(`WebP encoding failed: ${error}`);
+      } catch (_error) {
+        // Fall through to pure JS encoder
       }
     }
 
-    throw new Error(
-      "WebP encoding requires OffscreenCanvas API or equivalent runtime support",
-    );
+    // Fallback to pure JavaScript VP8L (lossless) encoder
+    const { WebPEncoder } = await import("../utils/webp_encoder.ts");
+    const encoder = new WebPEncoder(width, height, data);
+    const encoded = encoder.encode();
+
+    // Inject metadata if present
+    if (metadata && Object.keys(metadata).length > 0) {
+      return this.injectMetadata(encoded, metadata);
+    }
+
+    return encoded;
   }
 
   private readUint32LE(data: Uint8Array, offset: number): number {

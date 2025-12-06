@@ -128,10 +128,9 @@ status:
 | PNG    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
 | BMP    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
 | RAW    | ✅   | ✅    | ✅ Full         | ✅ Full         | N/A               | N/A                | Uncompressed RGBA (no metadata)        |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline     | ⚠️ Baseline     | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only          |
 | GIF    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline     | ❌              | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only          |
-| WebP   | ✅   | ✅    | ⚠️ Lossless     | ❌              | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for lossless (VP8L) only       |
+| JPEG   | ✅   | ✅    | ⚠️ Baseline     | ⚠️ Baseline     | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only          |
+| WebP   | ✅   | ✅    | ⚠️ Lossless     | ⚠️ Basic        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for lossless (VP8L) only       |
 | TIFF   | ✅   | ✅    | ⚠️ Uncompressed | ✅ Uncompressed | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed RGB/RGBA only |
 
 **Legend:**
