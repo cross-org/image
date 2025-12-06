@@ -46,9 +46,6 @@ export class LZWDecoder {
   private readCode(): number | null {
     let code = 0;
     for (let i = 0; i < this.codeSize; i++) {
-      if (this.pos >= this.data.length) {
-        return null;
-      }
       if (this.bitPos === 0) {
         // Need to read a new byte
         if (this.pos >= this.data.length) {

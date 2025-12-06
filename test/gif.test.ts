@@ -3,6 +3,10 @@ import { test } from "../test/test_runner.ts";
 import { GIFFormat } from "../src/formats/gif.ts";
 import type { ImageData } from "../src/types.ts";
 
+// Color validation thresholds for GIF quantization tests
+const MIN_RED_THRESHOLD = 200;
+const MAX_GREEN_BLUE_THRESHOLD = 50;
+
 test("GIF: canDecode - valid GIF89a signature", () => {
   const validGIF = new Uint8Array([
     0x47,
@@ -111,19 +115,23 @@ test("GIF: encode and decode - simple solid color", async () => {
 
     // Red should be dominant
     assertEquals(
-      r > 200,
+      r > MIN_RED_THRESHOLD,
       true,
-      `Pixel ${i / 4}: Red channel should be > 200, got ${r}`,
+      `Pixel ${i / 4}: Red channel should be > ${MIN_RED_THRESHOLD}, got ${r}`,
     );
     assertEquals(
-      g < 50,
+      g < MAX_GREEN_BLUE_THRESHOLD,
       true,
-      `Pixel ${i / 4}: Green channel should be < 50, got ${g}`,
+      `Pixel ${
+        i / 4
+      }: Green channel should be < ${MAX_GREEN_BLUE_THRESHOLD}, got ${g}`,
     );
     assertEquals(
-      b < 50,
+      b < MAX_GREEN_BLUE_THRESHOLD,
       true,
-      `Pixel ${i / 4}: Blue channel should be < 50, got ${b}`,
+      `Pixel ${
+        i / 4
+      }: Blue channel should be < ${MAX_GREEN_BLUE_THRESHOLD}, got ${b}`,
     );
   }
 });

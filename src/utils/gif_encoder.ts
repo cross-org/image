@@ -65,11 +65,11 @@ export class GIFEncoder {
       colors.length = 0;
 
       for (let i = 0; i < this.data.length; i += 4) {
-        // Reduce to 6 bits per channel (64 colors per channel = 262144 total)
-        // Then further reduce to 256 colors
-        const r = this.data[i] & 0xe0; // Keep top 3 bits
-        const g = this.data[i + 1] & 0xe0;
-        const b = this.data[i + 2] & 0xc0; // Keep top 2 bits
+        // Reduce color depth: 3 bits for R/G channels, 2 bits for B channel
+        // This gives us 8 bits total = 256 possible colors
+        const r = this.data[i] & 0xe0; // Keep top 3 bits (8 values)
+        const g = this.data[i + 1] & 0xe0; // Keep top 3 bits (8 values)
+        const b = this.data[i + 2] & 0xc0; // Keep top 2 bits (4 values)
         const key = `${r},${g},${b}`;
 
         if (!colorMap.has(key)) {
