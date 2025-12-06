@@ -1,0 +1,29 @@
+{
+  "name": "@cross/image",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./mod.ts"
+  },
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-node-globals"
+      ]
+    }
+  },
+  "compilerOptions": {
+    "useUnknownInCatchVariables": false,
+    "lib": ["deno.ns", "deno.unstable", "esnext", "dom", "dom.iterable"]
+  },
+  "imports": {
+    "@cross/test": "jsr:@cross/test@^0.0.14",
+    "@std/assert": "jsr:@std/assert@^1.0.15"
+  },
+  "publish": {
+    "exclude": [".github", "test/*", "test_output/*"]
+  },
+  "tasks": {
+    "check": "deno fmt --check && deno lint && deno check mod.ts && deno test -A --coverage=cov_profile && echo \"Generating coverage\" && deno coverage cov_profile --exclude=test/ --lcov --output=cov_profile.lcov",
+    "check-deps": "deno run -rA jsr:@check/deps"
+  }
+}
