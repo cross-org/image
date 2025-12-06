@@ -88,7 +88,7 @@ export class TIFFFormat implements ImageFormat {
       0x0102,
       3,
       4,
-      ifdStart + numEntries * 12 + 4 + 8,
+      ifdStart + numEntries * 12 + 4 + 16,
     );
 
     // Compression (0x0103) - 1 = uncompressed
