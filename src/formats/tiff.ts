@@ -5,7 +5,9 @@ const DEFAULT_DPI = 72;
 
 /**
  * TIFF format handler
- * Implements a basic TIFF decoder and encoder
+ * Implements pure-JS TIFF decoder for uncompressed RGB/RGBA images
+ * and encoder for uncompressed RGBA TIFFs. Falls back to ImageDecoder
+ * for compressed TIFFs (LZW, JPEG, PackBits, etc.)
  */
 export class TIFFFormat implements ImageFormat {
   readonly name = "tiff";
@@ -391,10 +393,14 @@ export class TIFFFormat implements ImageFormat {
     tag: number,
     isLittleEndian: boolean,
   ): number | null {
+    if (ifdOffset + 2 > data.length) return null;
+
     const numEntries = this.readUint16(data, ifdOffset, isLittleEndian);
     let pos = ifdOffset + 2;
 
     for (let i = 0; i < numEntries; i++) {
+      if (pos + 12 > data.length) break;
+
       const entryTag = this.readUint16(data, pos, isLittleEndian);
       const entryType = this.readUint16(data, pos + 2, isLittleEndian);
       const entryCount = this.readUint32(data, pos + 4, isLittleEndian);
@@ -405,6 +411,8 @@ export class TIFFFormat implements ImageFormat {
         if ((entryType === 3 || entryType === 4) && entryCount === 1) {
           return entryValue;
         }
+        // For other cases, return the value (which might be an offset)
+        return entryValue;
       }
 
       pos += 12;
@@ -415,9 +423,23 @@ export class TIFFFormat implements ImageFormat {
 
   private async decodeUsingRuntime(
     data: Uint8Array,
-    _width: number,
-    _height: number,
+    width: number,
+    height: number,
   ): Promise<Uint8Array> {
+    // Try pure JavaScript decoder first for uncompressed TIFFs
+    try {
+      const pureJSResult = this.decodePureJS(data, width, height);
+      if (pureJSResult) {
+        return pureJSResult;
+      }
+    } catch (error) {
+      // Pure JS decoder failed, fall through to ImageDecoder
+      console.warn(
+        "TIFF decoding with pure JS failed, trying ImageDecoder:",
+        error,
+      );
+    }
+
     // Try to use ImageDecoder API if available (Deno, modern browsers)
     if (typeof ImageDecoder !== "undefined") {
       try {
@@ -444,7 +466,7 @@ export class TIFFFormat implements ImageFormat {
     }
 
     throw new Error(
-      "TIFF decoding requires ImageDecoder API or equivalent runtime support",
+      "TIFF decoding requires uncompressed TIFF or ImageDecoder API support",
     );
   }
 
@@ -452,5 +474,90 @@ export class TIFFFormat implements ImageFormat {
     const endIndex = data.indexOf(0, offset);
     if (endIndex === -1 || endIndex <= offset) return "";
     return new TextDecoder().decode(data.slice(offset, endIndex));
+  }
+
+  /**
+   * Pure JavaScript TIFF decoder for uncompressed RGB/RGBA images
+   * Returns null if the TIFF uses unsupported features
+   */
+  private decodePureJS(
+    data: Uint8Array,
+    width: number,
+    height: number,
+  ): Uint8Array | null {
+    // Determine byte order
+    const isLittleEndian = data[0] === 0x49;
+
+    // Read IFD offset
+    const ifdOffset = this.readUint32(data, 4, isLittleEndian);
+
+    // Check compression
+    const compression = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0103,
+      isLittleEndian,
+    );
+    if (compression !== 1) {
+      // Only support uncompressed (compression = 1)
+      return null;
+    }
+
+    // Check photometric interpretation
+    const photometric = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0106,
+      isLittleEndian,
+    );
+    if (photometric !== 2) {
+      // Only support RGB (photometric = 2)
+      return null;
+    }
+
+    // Get samples per pixel
+    const samplesPerPixel = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0115,
+      isLittleEndian,
+    );
+    if (!samplesPerPixel || (samplesPerPixel !== 3 && samplesPerPixel !== 4)) {
+      // Only support RGB (3) or RGBA (4)
+      return null;
+    }
+
+    // Get strip offset
+    const stripOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0111,
+      isLittleEndian,
+    );
+    if (!stripOffset || stripOffset >= data.length) {
+      return null;
+    }
+
+    // Read pixel data
+    const rgba = new Uint8Array(width * height * 4);
+    let srcPos = stripOffset;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const dstIdx = (y * width + x) * 4;
+
+        if (srcPos + samplesPerPixel > data.length) {
+          return null; // Not enough data
+        }
+
+        // TIFF stores RGB(A) in order
+        rgba[dstIdx] = data[srcPos++]; // R
+        rgba[dstIdx + 1] = data[srcPos++]; // G
+        rgba[dstIdx + 2] = data[srcPos++]; // B
+        rgba[dstIdx + 3] = samplesPerPixel === 4 ? data[srcPos++] : 255; // A
+      }
+    }
+
+    return rgba;
   }
 }
