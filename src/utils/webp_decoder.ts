@@ -165,7 +165,7 @@ export class WebPDecoder {
     reader: BitReader,
     width: number,
     height: number,
-    alphaUsed: number,
+    _alphaUsed: number,
   ): Uint8Array {
     // Read transform info (simplified - we'll skip transforms for now)
     const useTransforms = reader.readBits(1);
@@ -201,11 +201,11 @@ export class WebPDecoder {
 
     // Try to decode what we can
     for (let i = 0; i < width * height && pixelIndex < pixelData.length; i++) {
-      // Set to a neutral gray with full alpha
+      // Set to a neutral gray with full alpha (simplified fallback)
       pixelData[pixelIndex++] = 128; // R
       pixelData[pixelIndex++] = 128; // G
       pixelData[pixelIndex++] = 128; // B
-      pixelData[pixelIndex++] = alphaUsed ? 255 : 255; // A
+      pixelData[pixelIndex++] = 255; // A (always opaque for now)
     }
 
     return pixelData;
