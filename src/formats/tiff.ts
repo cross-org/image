@@ -113,12 +113,22 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x011a, 5, 1, ifdStart + numEntries * 12 + 4);
 
     // YResolution (0x011b)
-    this.writeIFDEntry(result, 0x011b, 5, 1, ifdStart + numEntries * 12 + 4);
+    this.writeIFDEntry(
+      result,
+      0x011b,
+      5,
+      1,
+      ifdStart + numEntries * 12 + 4 + 8,
+    );
 
     // Next IFD offset (0 = no more IFDs)
     this.writeUint32LE(result, 0);
 
     // XResolution value (72 DPI as rational: 72/1)
+    this.writeUint32LE(result, 72);
+    this.writeUint32LE(result, 1);
+
+    // YResolution value (72 DPI as rational: 72/1)
     this.writeUint32LE(result, 72);
     this.writeUint32LE(result, 1);
 
