@@ -129,7 +129,10 @@ export class PNGFormat implements ImageFormat {
       // Add tEXt chunks for standard metadata
       if (metadata.title !== undefined) {
         chunks.push(
-          this.createChunk("tEXt", this.createTextChunk("Title", metadata.title)),
+          this.createChunk(
+            "tEXt",
+            this.createTextChunk("Title", metadata.title),
+          ),
         );
       }
       if (metadata.author !== undefined) {
