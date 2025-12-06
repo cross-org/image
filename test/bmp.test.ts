@@ -137,3 +137,40 @@ test("BMP: encode and decode - larger image", async () => {
   assertEquals(decoded.height, height);
   assertEquals(decoded.data.length, width * height * 4);
 });
+
+test("BMP: metadata - DPI preservation", async () => {
+  const format = new BMPFormat();
+
+  const imageData = {
+    width: 100,
+    height: 100,
+    data: new Uint8Array(100 * 100 * 4).fill(255),
+    metadata: {
+      dpiX: 300,
+      dpiY: 300,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.metadata?.dpiX, 300);
+  assertEquals(decoded.metadata?.dpiY, 300);
+});
+
+test("BMP: metadata - default DPI when not specified", async () => {
+  const format = new BMPFormat();
+
+  const imageData = {
+    width: 10,
+    height: 10,
+    data: new Uint8Array(10 * 10 * 4).fill(255),
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // Default is 72 DPI
+  assertEquals(decoded.metadata?.dpiX, 72);
+  assertEquals(decoded.metadata?.dpiY, 72);
+});

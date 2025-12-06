@@ -139,3 +139,111 @@ test("PNG: encode and decode - larger image", async () => {
   assertEquals(decoded.height, height);
   assertEquals(decoded.data.length, width * height * 4);
 });
+
+test("PNG: metadata - DPI preservation", async () => {
+  const format = new PNGFormat();
+
+  const imageData = {
+    width: 100,
+    height: 100,
+    data: new Uint8Array(100 * 100 * 4).fill(255),
+    metadata: {
+      dpiX: 300,
+      dpiY: 300,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.metadata?.dpiX, 300);
+  assertEquals(decoded.metadata?.dpiY, 300);
+});
+
+test("PNG: metadata - text fields preservation", async () => {
+  const format = new PNGFormat();
+
+  const imageData = {
+    width: 10,
+    height: 10,
+    data: new Uint8Array(10 * 10 * 4).fill(255),
+    metadata: {
+      title: "Test Image",
+      author: "Test Author",
+      description: "A test description",
+      copyright: "Copyright 2024",
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.metadata?.title, "Test Image");
+  assertEquals(decoded.metadata?.author, "Test Author");
+  assertEquals(decoded.metadata?.description, "A test description");
+  assertEquals(decoded.metadata?.copyright, "Copyright 2024");
+});
+
+test("PNG: metadata - custom fields preservation", async () => {
+  const format = new PNGFormat();
+
+  const imageData = {
+    width: 10,
+    height: 10,
+    data: new Uint8Array(10 * 10 * 4).fill(255),
+    metadata: {
+      custom: {
+        Camera: "Canon EOS",
+        ISO: "400",
+        Flash: "false",
+      },
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.metadata?.custom?.Camera, "Canon EOS");
+  assertEquals(decoded.metadata?.custom?.ISO, "400");
+  assertEquals(decoded.metadata?.custom?.Flash, "false");
+});
+
+test("PNG: metadata - creation date preservation", async () => {
+  const format = new PNGFormat();
+
+  const testDate = new Date("2024-01-15T12:30:45");
+  const imageData = {
+    width: 10,
+    height: 10,
+    data: new Uint8Array(10 * 10 * 4).fill(255),
+    metadata: {
+      creationDate: testDate,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // Compare timestamps (may have some precision loss)
+  assertEquals(decoded.metadata?.creationDate?.getFullYear(), 2024);
+  assertEquals(decoded.metadata?.creationDate?.getMonth(), 0); // January
+  assertEquals(decoded.metadata?.creationDate?.getDate(), 15);
+  assertEquals(decoded.metadata?.creationDate?.getHours(), 12);
+  assertEquals(decoded.metadata?.creationDate?.getMinutes(), 30);
+  assertEquals(decoded.metadata?.creationDate?.getSeconds(), 45);
+});
+
+test("PNG: metadata - no metadata when not provided", async () => {
+  const format = new PNGFormat();
+
+  const imageData = {
+    width: 10,
+    height: 10,
+    data: new Uint8Array(10 * 10 * 4).fill(255),
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.metadata, undefined);
+});

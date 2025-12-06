@@ -1,4 +1,4 @@
-import type { ImageData, ImageFormat } from "../types.ts";
+import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 
 /**
  * BMP format handler
@@ -29,6 +29,7 @@ export class BMPFormat implements ImageFormat {
     let height: number;
     let bitDepth: number;
     let compression: number;
+    const metadata: ImageMetadata = {};
 
     if (dibHeaderSize >= 40) {
       // BITMAPINFOHEADER or later
@@ -36,6 +37,18 @@ export class BMPFormat implements ImageFormat {
       height = this.readInt32LE(data, 22);
       bitDepth = this.readUint16LE(data, 28);
       compression = this.readUint32LE(data, 30);
+
+      // Read DPI information (pixels per meter)
+      const xPixelsPerMeter = this.readInt32LE(data, 38);
+      const yPixelsPerMeter = this.readInt32LE(data, 42);
+
+      if (xPixelsPerMeter > 0 && yPixelsPerMeter > 0) {
+        // Convert pixels per meter to DPI (1 meter = 39.3701 inches)
+        metadata.dpiX = Math.round(xPixelsPerMeter / 39.3701);
+        metadata.dpiY = Math.round(yPixelsPerMeter / 39.3701);
+        metadata.physicalWidth = Math.abs(width) / metadata.dpiX;
+        metadata.physicalHeight = Math.abs(height) / metadata.dpiY;
+      }
     } else {
       throw new Error("Unsupported BMP header format");
     }
@@ -81,11 +94,16 @@ export class BMPFormat implements ImageFormat {
       }
     }
 
-    return Promise.resolve({ width, height: absHeight, data: rgba });
+    return Promise.resolve({
+      width,
+      height: absHeight,
+      data: rgba,
+      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+    });
   }
 
   encode(imageData: ImageData): Promise<Uint8Array> {
-    const { width, height, data } = imageData;
+    const { width, height, data, metadata } = imageData;
 
     // Calculate sizes
     const bytesPerPixel = 4; // We'll encode as 32-bit RGBA
@@ -94,6 +112,17 @@ export class BMPFormat implements ImageFormat {
     const fileSize = 14 + 40 + pixelDataSize; // File header + DIB header + pixel data
 
     const result = new Uint8Array(fileSize);
+
+    // Calculate DPI values
+    let xPixelsPerMeter = 2835; // Default 72 DPI
+    let yPixelsPerMeter = 2835;
+
+    if (metadata?.dpiX && metadata.dpiX > 0) {
+      xPixelsPerMeter = Math.round(metadata.dpiX * 39.3701);
+    }
+    if (metadata?.dpiY && metadata.dpiY > 0) {
+      yPixelsPerMeter = Math.round(metadata.dpiY * 39.3701);
+    }
 
     // BMP File Header (14 bytes)
     result[0] = 0x42; // 'B'
@@ -110,8 +139,8 @@ export class BMPFormat implements ImageFormat {
     this.writeUint16LE(result, 28, 32); // Bits per pixel
     this.writeUint32LE(result, 30, 0); // Compression (0 = uncompressed)
     this.writeUint32LE(result, 34, pixelDataSize); // Image size
-    this.writeInt32LE(result, 38, 2835); // X pixels per meter (72 DPI)
-    this.writeInt32LE(result, 42, 2835); // Y pixels per meter (72 DPI)
+    this.writeInt32LE(result, 38, xPixelsPerMeter); // X pixels per meter
+    this.writeInt32LE(result, 42, yPixelsPerMeter); // Y pixels per meter
     this.writeUint32LE(result, 46, 0); // Colors in palette
     this.writeUint32LE(result, 50, 0); // Important colors
 
