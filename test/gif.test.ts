@@ -110,9 +110,21 @@ test("GIF: encode and decode - simple solid color", async () => {
     const b = decoded.data[i + 2];
 
     // Red should be dominant
-    assertEquals(r > 200, true, `Pixel ${i / 4}: Red channel should be > 200, got ${r}`);
-    assertEquals(g < 50, true, `Pixel ${i / 4}: Green channel should be < 50, got ${g}`);
-    assertEquals(b < 50, true, `Pixel ${i / 4}: Blue channel should be < 50, got ${b}`);
+    assertEquals(
+      r > 200,
+      true,
+      `Pixel ${i / 4}: Red channel should be > 200, got ${r}`,
+    );
+    assertEquals(
+      g < 50,
+      true,
+      `Pixel ${i / 4}: Green channel should be < 50, got ${g}`,
+    );
+    assertEquals(
+      b < 50,
+      true,
+      `Pixel ${i / 4}: Blue channel should be < 50, got ${b}`,
+    );
   }
 });
 
@@ -172,4 +184,3 @@ test("GIF: encode and decode - multi-color pattern", async () => {
   // Verify we have the expected number of bytes
   assertEquals(decoded.data.length, width * height * 4);
 });
-

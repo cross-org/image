@@ -128,10 +128,10 @@ status:
 | PNG    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
 | BMP    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
 | RAW    | ✅   | ✅    | ✅ Full         | ✅ Full         | N/A               | N/A                | Uncompressed RGBA (no metadata)        |
+| GIF    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
 | JPEG   | ✅   | ✅    | ⚠️ Baseline     | ❌              | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only          |
 | WebP   | ✅   | ✅    | ⚠️ Lossless     | ❌              | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for lossless (VP8L) only       |
 | TIFF   | ✅   | ✅    | ⚠️ Uncompressed | ✅ Uncompressed | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed RGB/RGBA only |
-| GIF    | ✅   | ✅    | ❌              | ❌              | ✅ ImageDecoder   | ✅ OffscreenCanvas | Requires ImageDecoder/OffscreenCanvas  |
 
 **Legend:**
 
@@ -167,9 +167,12 @@ This table shows which format standards and variants are supported:
 |        | - LZW, JPEG, PackBits compression   | ⚠️ Native only | ImageDecoder   |
 |        | - Multi-page/IFD                    | ❌ Not Yet     | -              |
 |        | - EXIF, Artist, Copyright metadata  | ✅ Full        | Pure-JS        |
-| GIF    | GIF87a, GIF89a                      | ⚠️ Native only | ImageDecoder   |
-|        | - LZW compression                   | ⚠️ Native only | ImageDecoder   |
-|        | - Animation (first frame only)      | ✅ Full        | ImageDecoder   |
+| GIF    | GIF87a, GIF89a                      | ✅ Full        | Pure-JS        |
+|        | - LZW compression/decompression     | ✅ Full        | Pure-JS        |
+|        | - Color quantization (encoding)     | ✅ Full        | Pure-JS        |
+|        | - Transparency support              | ✅ Full        | Pure-JS        |
+|        | - Interlacing support               | ✅ Full        | Pure-JS        |
+|        | - Animation (first frame only)      | ✅ Full        | Pure-JS        |
 |        | - Comment extensions, XMP           | ✅ Full        | Pure-JS        |
 | RAW    | Uncompressed RGBA                   | ✅ Full        | Pure-JS        |
 
@@ -180,13 +183,13 @@ This table shows which format standards and variants are supported:
 | PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
 | BMP    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
 | RAW    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
+| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
 | JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full     |
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full     |
 | TIFF   | ✅       | ⚠️ Basic    | ✅          | ✅  | Node 18: pure-JS uncompressed only, 20+: full |
-| GIF    | ✅       | ❌          | ✅          | ✅  | Requires ImageDecoder (Node 20+)              |
 
-**Note**: For maximum compatibility across all runtimes, use PNG or BMP formats
-which have complete pure-JS implementations.
+**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF, or
+RAW formats which have complete pure-JS implementations.
 
 ## Extending with Custom Formats
 

@@ -172,7 +172,7 @@ export class GIFEncoder {
     // Global Color Table
     // The GCT size is 2^(n+1) where n is the value in the packed field
     // So we need to write that many colors, padding if necessary
-    const gctSize = 1 << (bitsPerColor);
+    const gctSize = 1 << bitsPerColor;
     const paddedPalette = new Uint8Array(gctSize * 3);
     paddedPalette.set(palette);
     this.writeBytes(output, paddedPalette);
