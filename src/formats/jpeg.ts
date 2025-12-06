@@ -95,122 +95,96 @@ export class JPEGFormat implements ImageFormat {
   async encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 
-    // Create a simple JPEG with baseline DCT
-    // For a complete implementation, we'd need full JPEG encoding
-    // Here we'll create a minimal valid JPEG structure
+    // Try to use runtime encoding if available (better quality)
+    if (typeof OffscreenCanvas !== "undefined") {
+      try {
+        const canvas = new OffscreenCanvas(width, height);
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const imgData = ctx.createImageData(width, height);
+          const imgDataData = new Uint8ClampedArray(data);
+          imgData.data.set(imgDataData);
+          ctx.putImageData(imgData, 0, 0);
 
-    const chunks: number[] = [];
+          const blob = await canvas.convertToBlob({
+            type: "image/jpeg",
+            quality: 0.9,
+          });
+          const arrayBuffer = await blob.arrayBuffer();
+          const encoded = new Uint8Array(arrayBuffer);
 
-    // SOI (Start of Image)
-    chunks.push(0xff, 0xd8);
+          // If we have metadata, we need to inject it into the JPEG
+          if (metadata && Object.keys(metadata).length > 0) {
+            return this.injectMetadata(encoded, metadata);
+          }
 
-    // APP0 (JFIF marker) with DPI information
-    const dpiX = metadata?.dpiX ?? 72;
-    const dpiY = metadata?.dpiY ?? 72;
-    this.writeMarker(chunks, 0xe0, [
-      0x4a,
-      0x46,
-      0x49,
-      0x46,
-      0x00, // "JFIF\0"
-      0x01,
-      0x01, // version 1.1
-      0x01, // density units (dots per inch)
-      (dpiX >> 8) & 0xff,
-      dpiX & 0xff, // X density
-      (dpiY >> 8) & 0xff,
-      dpiY & 0xff, // Y density
-      0x00,
-      0x00, // thumbnail size
-    ]);
-
-    // APP1 (EXIF marker) if we have EXIF metadata
-    if (metadata) {
-      const exifData = this.createEXIFData(metadata);
-      if (exifData && exifData.length > 0) {
-        this.writeMarker(chunks, 0xe1, [
-          0x45,
-          0x78,
-          0x69,
-          0x66,
-          0x00,
-          0x00, // "Exif\0\0"
-          ...exifData,
-        ]);
+          return encoded;
+        }
+      } catch (_error) {
+        // Fall through to pure JS encoder
       }
     }
 
-    // DQT (Define Quantization Table) - simplified
-    this.writeMarker(chunks, 0xdb, this.createDQT());
+    // Fallback to pure JavaScript encoder
+    const { JPEGEncoder } = await import("../utils/jpeg_encoder.ts");
+    const dpiX = metadata?.dpiX ?? 72;
+    const dpiY = metadata?.dpiY ?? 72;
+    const encoder = new JPEGEncoder(85); // Quality 85
+    const encoded = encoder.encode(width, height, data, dpiX, dpiY);
 
-    // SOF0 (Start of Frame, Baseline DCT)
-    this.writeMarker(chunks, 0xc0, [
-      0x08, // precision
-      (height >> 8) & 0xff,
-      height & 0xff, // height
-      (width >> 8) & 0xff,
-      width & 0xff, // width
-      0x03, // number of components (RGB)
-      0x01,
-      0x11,
-      0x00, // Y component
-      0x02,
-      0x11,
-      0x01, // Cb component
-      0x03,
-      0x11,
-      0x01, // Cr component
-    ]);
-
-    // DHT (Define Huffman Table) - simplified
-    this.writeMarker(chunks, 0xc4, this.createDHT());
-
-    // SOS (Start of Scan)
-    this.writeMarker(chunks, 0xda, [
-      0x03, // number of components
-      0x01,
-      0x00, // Y component
-      0x02,
-      0x11, // Cb component
-      0x03,
-      0x11, // Cr component
-      0x00,
-      0x3f,
-      0x00, // spectral selection
-    ]);
-
-    // Encode image data (simplified - just storing RGB as-is which isn't proper JPEG)
-    // In a real implementation, this would do DCT, quantization, and Huffman encoding
-    const encodedData = await this.encodeImageData(data, width, height);
-    for (const byte of encodedData) {
-      chunks.push(byte);
+    // Add EXIF metadata if present
+    if (metadata && Object.keys(metadata).length > 0) {
+      return this.injectMetadata(encoded, metadata);
     }
 
-    // EOI (End of Image)
-    chunks.push(0xff, 0xd9);
-
-    return new Uint8Array(chunks);
+    return encoded;
   }
 
-  private writeMarker(chunks: number[], marker: number, data: number[]): void {
-    chunks.push(0xff, marker);
-    const length = data.length + 2;
-    chunks.push((length >> 8) & 0xff, length & 0xff);
-    chunks.push(...data);
-  }
+  private injectMetadata(
+    encoded: Uint8Array,
+    metadata: ImageMetadata,
+  ): Uint8Array {
+    // Find the position after SOI and APP0 to inject APP1 (EXIF)
+    let pos = 2; // After SOI (0xFF 0xD8)
 
-  private createDQT(): number[] {
-    // Simplified quantization table
-    const table = new Array(64).fill(16);
-    return [0x00, ...table]; // 0x00 = table 0, 8-bit
-  }
+    // Skip APP0 if present
+    if (
+      pos + 2 < encoded.length && encoded[pos] === 0xff &&
+      encoded[pos + 1] === 0xe0
+    ) {
+      const length = (encoded[pos + 2] << 8) | encoded[pos + 3];
+      pos += length + 2;
+    }
 
-  private createDHT(): number[] {
-    // Simplified Huffman table (DC table)
-    const bits = new Array(16).fill(0);
-    bits[0] = 1;
-    const values = [0];
-    return [0x00, ...bits, ...values];
+    // Create EXIF data
+    const exifData = this.createEXIFData(metadata);
+    if (exifData.length === 0) {
+      return encoded;
+    }
+
+    // Create APP1 marker with EXIF data
+    // APP1 structure: FF E1 [length 2 bytes] "Exif\0\0" [exif data]
+    const app1Length = 2 + 6 + exifData.length; // length field + "Exif\0\0" + data
+    const app1 = new Uint8Array(2 + 2 + 6 + exifData.length); // marker + length + "Exif\0\0" + data
+    app1[0] = 0xff;
+    app1[1] = 0xe1; // APP1 marker
+    app1[2] = (app1Length >> 8) & 0xff;
+    app1[3] = app1Length & 0xff;
+    app1[4] = 0x45; // 'E'
+    app1[5] = 0x78; // 'x'
+    app1[6] = 0x69; // 'i'
+    app1[7] = 0x66; // 'f'
+    app1[8] = 0x00;
+    app1[9] = 0x00;
+    app1.set(exifData, 10);
+
+    // Inject APP1 into the JPEG
+    const result = new Uint8Array(encoded.length + app1.length);
+    result.set(encoded.slice(0, pos), 0);
+    result.set(app1, pos);
+    result.set(encoded.slice(pos), pos + app1.length);
+
+    return result;
   }
 
   private async decodeUsingRuntime(
@@ -257,47 +231,6 @@ export class JPEGFormat implements ImageFormat {
         `JPEG decoding failed: ${error}`,
       );
     }
-  }
-
-  private async encodeImageData(
-    data: Uint8Array,
-    width: number,
-    height: number,
-  ): Promise<Uint8Array> {
-    // This is a placeholder - proper JPEG encoding requires DCT, quantization,
-    // and Huffman encoding. For testing purposes, we'll create minimal data.
-    // In production, you'd want full JPEG encoding or use runtime APIs.
-
-    // Try to use runtime encoding if available
-    if (typeof OffscreenCanvas !== "undefined") {
-      try {
-        const canvas = new OffscreenCanvas(width, height);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Could not get canvas context");
-
-        const imgData = ctx.createImageData(width, height);
-        const imgDataData = new Uint8ClampedArray(data);
-        imgData.data.set(imgDataData);
-        ctx.putImageData(imgData, 0, 0);
-
-        const blob = await canvas.convertToBlob({
-          type: "image/jpeg",
-          quality: 0.9,
-        });
-        const arrayBuffer = await blob.arrayBuffer();
-        return new Uint8Array(arrayBuffer);
-      } catch (error) {
-        // OffscreenCanvas encoding failed, fall through to simplified fallback
-        console.warn("JPEG encoding with OffscreenCanvas failed:", error);
-      }
-    }
-
-    // Simplified fallback for testing
-    const result = new Uint8Array(Math.floor(width * height / 2));
-    for (let i = 0; i < result.length; i++) {
-      result[i] = 0xff;
-    }
-    return result;
   }
 
   // Metadata parsing and creation methods
