@@ -1,4 +1,5 @@
-// Test utilities that work across Deno, Bun, and Node.js
+// Re-export and adapt test utilities from @cross/test for simple function signatures
+import { test as crossTest } from "@cross/test";
 
 interface TestOptions {
   ignore?: boolean;
@@ -7,14 +8,9 @@ interface TestOptions {
   sanitizeResources?: boolean;
 }
 
-// Detect runtime
-// @ts-ignore - runtime globals
-const isDeno = typeof Deno !== "undefined" && Deno.test !== undefined;
-// @ts-ignore - runtime globals
-const isBun = typeof Bun !== "undefined" && typeof Bun.test !== "undefined";
-// @ts-ignore - runtime globals
-const nodeTestGlobal = !isDeno && !isBun && typeof test !== "undefined";
-
+/**
+ * Simple test function wrapper that works with @cross/test
+ */
 export function test(
   name: string,
   fn: () => void | Promise<void>,
@@ -28,60 +24,15 @@ export function test(
     | (TestOptions & { name: string; fn: () => void | Promise<void> }),
   fn?: () => void | Promise<void>,
 ): void {
-  if (isDeno) {
-    // Use Deno's test runner
-    // @ts-ignore - Deno global
-    if (typeof nameOrOptions === "string") {
-      // @ts-ignore - Deno global
-      Deno.test(nameOrOptions, fn!);
-    } else {
-      // @ts-ignore - Deno global
-      Deno.test(nameOrOptions);
-    }
-  } else if (isBun) {
-    // Use Bun's test runner
-    const testName = typeof nameOrOptions === "string"
-      ? nameOrOptions
-      : nameOrOptions.name;
-    const testFn = typeof nameOrOptions === "string" ? fn! : nameOrOptions.fn;
-    const options: TestOptions = typeof nameOrOptions === "string"
-      ? {}
-      : nameOrOptions;
+  const testName = typeof nameOrOptions === "string"
+    ? nameOrOptions
+    : nameOrOptions.name;
+  const testFn = typeof nameOrOptions === "string" ? fn! : nameOrOptions.fn;
+  const options = typeof nameOrOptions === "string" ? {} : nameOrOptions;
 
-    if (options.ignore) {
-      // @ts-ignore - Bun global
-      Bun.test.skip(testName, testFn);
-    } else if (options.only) {
-      // @ts-ignore - Bun global
-      Bun.test.only(testName, testFn);
-    } else {
-      // @ts-ignore - Bun global
-      Bun.test(testName, testFn);
-    }
-  } else if (nodeTestGlobal) {
-    // Node.js with tsx --test provides a global test function
-    const testName = typeof nameOrOptions === "string"
-      ? nameOrOptions
-      : nameOrOptions.name;
-    const testFn = typeof nameOrOptions === "string" ? fn! : nameOrOptions.fn;
-    const options: TestOptions = typeof nameOrOptions === "string"
-      ? {}
-      : nameOrOptions;
-
-    if (options.ignore) {
-      // @ts-ignore - Node test global
-      globalThis.test.skip(testName, testFn);
-    } else if (options.only) {
-      // @ts-ignore - Node test global
-      globalThis.test.only(testName, testFn);
-    } else {
-      // @ts-ignore - Node test global
-      globalThis.test(testName, testFn);
-    }
-  } else {
-    // No supported test runner detected
-    throw new Error(
-      "No test runner detected. This module supports Deno, Bun, and Node.js (with tsx --test).",
-    );
-  }
+  // Convert simple function to @cross/test format
+  // @cross/test expects (context, done) but our tests use simple () => void
+  crossTest(testName, () => testFn(), {
+    skip: options.ignore,
+  });
 }
