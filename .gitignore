@@ -47,3 +47,6 @@ _site
 
 # Test output
 test_output/
+
+# Generated test images
+test_images/

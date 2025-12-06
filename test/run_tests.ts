@@ -4,3 +4,4 @@
 import "./resize.test.ts";
 import "./png.test.ts";
 import "./image.test.ts";
+import "./purejs_roundtrip.test.ts";
