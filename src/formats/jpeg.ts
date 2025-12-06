@@ -239,16 +239,24 @@ export class JPEGFormat implements ImageFormat {
 
         return new Uint8Array(imageData.data.buffer);
       } catch (error) {
-        // ImageDecoder API failed, fall through to throw error below
-        console.warn("JPEG decoding with ImageDecoder failed:", error);
+        // ImageDecoder API failed, fall through to pure JS decoder
+        console.warn(
+          "JPEG decoding with ImageDecoder failed, using pure JS decoder:",
+          error,
+        );
       }
     }
 
-    // Fallback: create a placeholder (for testing purposes)
-    // In production, you'd want proper JPEG decoding
-    throw new Error(
-      "JPEG decoding requires ImageDecoder API or equivalent runtime support",
-    );
+    // Fallback to pure JavaScript decoder
+    try {
+      const { JPEGDecoder } = await import("../utils/jpeg_decoder.ts");
+      const decoder = new JPEGDecoder(data);
+      return decoder.decode();
+    } catch (error) {
+      throw new Error(
+        `JPEG decoding failed: ${error}`,
+      );
+    }
   }
 
   private async encodeImageData(
