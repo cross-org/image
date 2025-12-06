@@ -1,5 +1,8 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 
+// Constants for unit conversions
+const INCHES_PER_METER = 39.3701;
+
 /**
  * PNG format handler
  * Implements a pure JavaScript PNG decoder and encoder
@@ -425,9 +428,9 @@ export class PNGFormat implements ImageFormat {
     const unit = data[8]; // 0 = unknown, 1 = meter
 
     if (unit === 1 && pixelsPerUnitX > 0 && pixelsPerUnitY > 0) {
-      // Convert pixels per meter to DPI (1 meter = 39.3701 inches)
-      metadata.dpiX = Math.round(pixelsPerUnitX / 39.3701);
-      metadata.dpiY = Math.round(pixelsPerUnitY / 39.3701);
+      // Convert pixels per meter to DPI
+      metadata.dpiX = Math.round(pixelsPerUnitX / INCHES_PER_METER);
+      metadata.dpiY = Math.round(pixelsPerUnitY / INCHES_PER_METER);
       metadata.physicalWidth = width / metadata.dpiX;
       metadata.physicalHeight = height / metadata.dpiY;
     }
@@ -466,22 +469,24 @@ export class PNGFormat implements ImageFormat {
     // iTXt format: keyword\0compressed_flag\0compression_method\0language\0translated_keyword\0text
     let pos = 0;
     const nullIndex = data.indexOf(0, pos);
-    if (nullIndex === -1) return;
+    if (nullIndex === -1 || pos >= data.length) return;
 
     const keyword = new TextDecoder().decode(data.slice(pos, nullIndex));
     pos = nullIndex + 1;
 
+    if (pos + 2 > data.length) return; // Need at least 2 bytes for flags
     const _compressionFlag = data[pos++];
     const _compressionMethod = data[pos++];
 
     const languageNullIndex = data.indexOf(0, pos);
-    if (languageNullIndex === -1) return;
+    if (languageNullIndex === -1 || pos >= data.length) return;
     pos = languageNullIndex + 1;
 
     const translatedKeywordNullIndex = data.indexOf(0, pos);
-    if (translatedKeywordNullIndex === -1) return;
+    if (translatedKeywordNullIndex === -1 || pos >= data.length) return;
     pos = translatedKeywordNullIndex + 1;
 
+    if (pos >= data.length) return; // No text data
     const text = new TextDecoder("utf-8").decode(data.slice(pos));
 
     // Map to metadata fields (same as tEXt)
@@ -543,22 +548,25 @@ export class PNGFormat implements ImageFormat {
               (data[entryOffset + 10] << 8) | data[entryOffset + 11];
 
           if (valueOffset < data.length) {
-            const dateStr = new TextDecoder().decode(
-              data.slice(valueOffset, data.indexOf(0, valueOffset)),
-            );
-            // Parse EXIF datetime format: "YYYY:MM:DD HH:MM:SS"
-            const match = dateStr.match(
-              /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
-            );
-            if (match) {
-              metadata.creationDate = new Date(
-                parseInt(match[1]),
-                parseInt(match[2]) - 1,
-                parseInt(match[3]),
-                parseInt(match[4]),
-                parseInt(match[5]),
-                parseInt(match[6]),
+            const nullIndex = data.indexOf(0, valueOffset);
+            if (nullIndex > valueOffset) {
+              const dateStr = new TextDecoder().decode(
+                data.slice(valueOffset, nullIndex),
               );
+              // Parse EXIF datetime format: "YYYY:MM:DD HH:MM:SS"
+              const match = dateStr.match(
+                /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+              );
+              if (match) {
+                metadata.creationDate = new Date(
+                  parseInt(match[1]),
+                  parseInt(match[2]) - 1,
+                  parseInt(match[3]),
+                  parseInt(match[4]),
+                  parseInt(match[5]),
+                  parseInt(match[6]),
+                );
+              }
             }
           }
         }
@@ -576,8 +584,8 @@ export class PNGFormat implements ImageFormat {
     const dpiY = metadata.dpiY ?? 72;
 
     // Convert DPI to pixels per meter
-    const pixelsPerMeterX = Math.round(dpiX * 39.3701);
-    const pixelsPerMeterY = Math.round(dpiY * 39.3701);
+    const pixelsPerMeterX = Math.round(dpiX * INCHES_PER_METER);
+    const pixelsPerMeterY = Math.round(dpiY * INCHES_PER_METER);
 
     this.writeUint32(chunk, 0, pixelsPerMeterX);
     this.writeUint32(chunk, 4, pixelsPerMeterY);

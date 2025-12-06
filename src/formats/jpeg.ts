@@ -1,5 +1,8 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 
+// Constants for unit conversions
+const CM_PER_INCH = 2.54;
+
 /**
  * JPEG format handler
  * Implements a basic JPEG decoder and encoder
@@ -318,8 +321,8 @@ export class JPEGFormat implements ImageFormat {
       metadata.physicalHeight = height / yDensity;
     } else if (units === 2 && xDensity > 0 && yDensity > 0) {
       // Units are dots per cm, convert to DPI
-      metadata.dpiX = Math.round(xDensity * 2.54);
-      metadata.dpiY = Math.round(yDensity * 2.54);
+      metadata.dpiX = Math.round(xDensity * CM_PER_INCH);
+      metadata.dpiY = Math.round(yDensity * CM_PER_INCH);
       metadata.physicalWidth = width / metadata.dpiX;
       metadata.physicalHeight = height / metadata.dpiY;
     }
@@ -376,24 +379,23 @@ export class JPEGFormat implements ImageFormat {
 
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
-            const dateStr = new TextDecoder().decode(
-              exifData.slice(
-                valueOffset,
-                endIndex > valueOffset ? endIndex : undefined,
-              ),
-            );
-            const match = dateStr.match(
-              /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
-            );
-            if (match) {
-              metadata.creationDate = new Date(
-                parseInt(match[1]),
-                parseInt(match[2]) - 1,
-                parseInt(match[3]),
-                parseInt(match[4]),
-                parseInt(match[5]),
-                parseInt(match[6]),
+            if (endIndex > valueOffset) {
+              const dateStr = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
               );
+              const match = dateStr.match(
+                /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+              );
+              if (match) {
+                metadata.creationDate = new Date(
+                  parseInt(match[1]),
+                  parseInt(match[2]) - 1,
+                  parseInt(match[3]),
+                  parseInt(match[4]),
+                  parseInt(match[5]),
+                  parseInt(match[6]),
+                );
+              }
             }
           }
         }
@@ -410,12 +412,11 @@ export class JPEGFormat implements ImageFormat {
 
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
-            metadata.description = new TextDecoder().decode(
-              exifData.slice(
-                valueOffset,
-                endIndex > valueOffset ? endIndex : undefined,
-              ),
-            );
+            if (endIndex > valueOffset) {
+              metadata.description = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
           }
         }
 
@@ -431,12 +432,11 @@ export class JPEGFormat implements ImageFormat {
 
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
-            metadata.author = new TextDecoder().decode(
-              exifData.slice(
-                valueOffset,
-                endIndex > valueOffset ? endIndex : undefined,
-              ),
-            );
+            if (endIndex > valueOffset) {
+              metadata.author = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
           }
         }
 
@@ -452,12 +452,11 @@ export class JPEGFormat implements ImageFormat {
 
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
-            metadata.copyright = new TextDecoder().decode(
-              exifData.slice(
-                valueOffset,
-                endIndex > valueOffset ? endIndex : undefined,
-              ),
-            );
+            if (endIndex > valueOffset) {
+              metadata.copyright = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
           }
         }
       }
