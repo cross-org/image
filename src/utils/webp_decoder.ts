@@ -1,9 +1,23 @@
 /**
- * Basic WebP decoder implementation
- * Supports WebP lossless (VP8L) format
+ * WebP VP8L (Lossless) decoder implementation
  *
- * This is a simplified implementation that handles lossless WebP files.
- * For lossy WebP (VP8) or complex images, the ImageDecoder API fallback is preferred.
+ * This module implements a pure JavaScript decoder for WebP lossless (VP8L) format.
+ * It supports:
+ * - Huffman coding (canonical Huffman codes)
+ * - LZ77 backward references for compression
+ * - Color cache for repeated colors
+ * - Simple and complex Huffman code tables
+ *
+ * Current limitations:
+ * - Does not support transforms (predictor, color, subtract green, color indexing)
+ * - Does not support meta Huffman codes
+ * - Does not support lossy WebP (VP8) format
+ *
+ * For images with transforms or lossy compression, the decoder will fall back
+ * to the runtime's ImageDecoder API if available.
+ *
+ * @see https://developers.google.com/speed/webp/docs/riff_container
+ * @see https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
  */
 
 // Helper to read little-endian values
