@@ -127,7 +127,9 @@ export class BMPFormat implements ImageFormat {
       }
       // Add padding to make row size multiple of 4
       const padding = rowSize - width * bytesPerPixel;
-      offset += padding;
+      for (let p = 0; p < padding; p++) {
+        result[offset++] = 0;
+      }
     }
 
     return Promise.resolve(result);
