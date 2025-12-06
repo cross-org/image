@@ -1,4 +1,34 @@
 /**
+ * Image metadata
+ */
+export interface ImageMetadata {
+  /** Physical width in inches (derived from DPI if available) */
+  physicalWidth?: number;
+  /** Physical height in inches (derived from DPI if available) */
+  physicalHeight?: number;
+  /** Dots per inch (horizontal) */
+  dpiX?: number;
+  /** Dots per inch (vertical) */
+  dpiY?: number;
+  /** GPS latitude */
+  latitude?: number;
+  /** GPS longitude */
+  longitude?: number;
+  /** Image title */
+  title?: string;
+  /** Image description */
+  description?: string;
+  /** Image author */
+  author?: string;
+  /** Copyright information */
+  copyright?: string;
+  /** Creation date */
+  creationDate?: Date;
+  /** Custom metadata fields */
+  custom?: Record<string, string | number | boolean>;
+}
+
+/**
  * Image data representation
  */
 export interface ImageData {
@@ -8,6 +38,8 @@ export interface ImageData {
   height: number;
   /** Raw pixel data as RGBA (4 bytes per pixel) */
   data: Uint8Array;
+  /** Optional metadata */
+  metadata?: ImageMetadata;
 }
 
 /**

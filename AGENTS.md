@@ -20,11 +20,17 @@ Repo CI inputs (`.github/workflows/tests.yaml`):
 
 Do before you commit:
 
-- Deno: deno fmt --check; deno lint; deno check mod.ts; deno test -A; deno run
-  -A jsr:@check/deps (no outdated deps allowed here)
+- **Always run**:
+  `deno fmt --check && deno lint && deno check mod.ts && deno check test/*.test.ts`
+- Deno: deno test -A; deno run -A jsr:@check/deps (no outdated deps allowed
+  here)
 - Bun: tests run with bun test after jsr/npm deps install
 - Node (18/20/22): tests run with tsx; ESM required (package.json
   {"type":"module"})
+
+Use the precommit task to validate before committing:
+
+- Run: `deno task precommit`
 
 Keep in mind:
 
