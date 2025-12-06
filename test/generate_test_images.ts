@@ -8,23 +8,48 @@ import { Image } from "../mod.ts";
 async function generateTestImages() {
   console.log("Generating test images...");
 
+  // Ensure test_images directory exists
+  try {
+    await Deno.mkdir("test_images", { recursive: true });
+  } catch (e) {
+    if (!(e instanceof Deno.errors.AlreadyExists)) {
+      throw e;
+    }
+  }
+
   // 1. Simple solid color image (2x2)
-  const solid = Image.fromRGBA(2, 2, new Uint8Array([
-    255, 0, 0, 255,  // red
-    0, 255, 0, 255,  // green
-    0, 0, 255, 255,  // blue
-    255, 255, 0, 255 // yellow
-  ]));
-  
+  const solid = Image.fromRGBA(
+    2,
+    2,
+    new Uint8Array([
+      255,
+      0,
+      0,
+      255, // red
+      0,
+      255,
+      0,
+      255, // green
+      0,
+      0,
+      255,
+      255, // blue
+      255,
+      255,
+      0,
+      255, // yellow
+    ]),
+  );
+
   // 2. Gradient image (100x100)
   const gradientData = new Uint8Array(100 * 100 * 4);
   for (let y = 0; y < 100; y++) {
     for (let x = 0; x < 100; x++) {
       const i = (y * 100 + x) * 4;
-      gradientData[i] = Math.floor((x / 100) * 255);     // R gradient
+      gradientData[i] = Math.floor((x / 100) * 255); // R gradient
       gradientData[i + 1] = Math.floor((y / 100) * 255); // G gradient
-      gradientData[i + 2] = 128;                          // B constant
-      gradientData[i + 3] = 255;                          // A opaque
+      gradientData[i + 2] = 128; // B constant
+      gradientData[i + 3] = 255; // A opaque
     }
   }
   const gradient = Image.fromRGBA(100, 100, gradientData);
@@ -49,10 +74,10 @@ async function generateTestImages() {
   for (let y = 0; y < 256; y++) {
     for (let x = 0; x < 256; x++) {
       const i = (y * 256 + x) * 4;
-      largeData[i] = x;                                // R
-      largeData[i + 1] = y;                            // G
-      largeData[i + 2] = (x + y) % 256;                // B
-      largeData[i + 3] = 255;                          // A
+      largeData[i] = x; // R
+      largeData[i + 1] = y; // G
+      largeData[i + 2] = (x + y) % 256; // B
+      largeData[i + 3] = 255; // A
     }
   }
   const large = Image.fromRGBA(256, 256, largeData);
@@ -63,7 +88,7 @@ async function generateTestImages() {
     { name: "solid", image: solid },
     { name: "gradient", image: gradient },
     { name: "pattern", image: pattern },
-    { name: "large", image: large }
+    { name: "large", image: large },
   ];
 
   for (const format of formats) {

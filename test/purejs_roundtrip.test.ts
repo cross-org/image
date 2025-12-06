@@ -327,7 +327,11 @@ test("Pure-JS: decode pre-generated PNG images", async () => {
           true,
           `${file} should have valid height`,
         );
-        assertEquals(image.data.length, image.width * image.height * 4);
+        assertEquals(
+          image.data.length,
+          image.width * image.height * 4,
+          `${file} should have correct data length`,
+        );
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
           console.log(`Skipping ${file} - file not found`);
@@ -359,7 +363,11 @@ test("Pure-JS: decode pre-generated TIFF images", async () => {
           true,
           `${file} should have valid height`,
         );
-        assertEquals(image.data.length, image.width * image.height * 4);
+        assertEquals(
+          image.data.length,
+          image.width * image.height * 4,
+          `${file} should have correct data length`,
+        );
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
           console.log(`Skipping ${file} - file not found`);
