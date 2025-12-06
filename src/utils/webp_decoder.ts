@@ -127,6 +127,9 @@ class BitReader {
     if (this.bitPos !== 0 && this.bitPos !== 8) {
       this.bitPos = 0;
     }
+    if (this.pos + count > this.data.length) {
+      throw new Error("Unexpected end of data");
+    }
     const result = this.data.slice(this.pos, this.pos + count);
     this.pos += count;
     return result;
@@ -285,7 +288,9 @@ export class WebPDecoder {
         // Literal pixel
         const red = huffmanTables.red.readSymbol(reader);
         const blue = huffmanTables.blue.readSymbol(reader);
-        const alpha = alphaUsed ? huffmanTables.alpha.readSymbol(reader) : 255;
+        const alpha = alphaUsed !== 0
+          ? huffmanTables.alpha.readSymbol(reader)
+          : 255;
 
         pixelData[pixelIndex++] = red;
         pixelData[pixelIndex++] = green;

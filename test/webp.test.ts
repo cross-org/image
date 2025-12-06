@@ -47,13 +47,11 @@ test("WebP: properties", () => {
 });
 
 test("WebP: encode - requires runtime support", async () => {
-  const data = new Uint8Array(4 * 4);
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = 255; // R
-    data[i + 1] = 0; // G
-    data[i + 2] = 0; // B
-    data[i + 3] = 255; // A
-  }
+  const data = new Uint8Array(1 * 1 * 4);
+  data[0] = 255; // R
+  data[1] = 0; // G
+  data[2] = 0; // B
+  data[3] = 255; // A
 
   await assertRejects(
     async () => await webpFormat.encode({ width: 1, height: 1, data }),
