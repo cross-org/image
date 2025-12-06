@@ -193,8 +193,9 @@ export class JPEGFormat implements ImageFormat {
         bitmap.close();
 
         return new Uint8Array(imageData.data.buffer);
-      } catch {
-        // Fall through to alternative method
+      } catch (error) {
+        // ImageDecoder API failed, fall through to throw error below
+        console.warn("JPEG decoding with ImageDecoder failed:", error);
       }
     }
 
@@ -232,8 +233,9 @@ export class JPEGFormat implements ImageFormat {
         });
         const arrayBuffer = await blob.arrayBuffer();
         return new Uint8Array(arrayBuffer);
-      } catch {
-        // Fall through
+      } catch (error) {
+        // OffscreenCanvas encoding failed, fall through to simplified fallback
+        console.warn("JPEG encoding with OffscreenCanvas failed:", error);
       }
     }
 

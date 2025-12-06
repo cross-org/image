@@ -169,6 +169,7 @@ export class PNGFormat implements ImageFormat {
     const bytesPerPixel = this.getBytesPerPixel(colorType, bitDepth);
     const scanlineLength = width * bytesPerPixel;
     let dataPos = 0;
+    const scanlines: Uint8Array[] = [];
 
     for (let y = 0; y < height; y++) {
       const filterType = data[dataPos++];
@@ -180,15 +181,12 @@ export class PNGFormat implements ImageFormat {
 
       this.unfilterScanline(
         scanline,
-        y > 0
-          ? data.slice(
-            dataPos - scanlineLength * 2 - 1,
-            dataPos - scanlineLength - 1,
-          )
-          : null,
+        y > 0 ? scanlines[y - 1] : null,
         filterType,
         bytesPerPixel,
       );
+
+      scanlines.push(scanline);
 
       // Convert to RGBA
       for (let x = 0; x < width; x++) {
