@@ -1,5 +1,8 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 
+// Constants for unit conversions
+const INCHES_PER_METER = 39.3701;
+
 /**
  * BMP format handler
  * Implements a pure JavaScript BMP decoder and encoder
@@ -43,9 +46,9 @@ export class BMPFormat implements ImageFormat {
       const yPixelsPerMeter = this.readInt32LE(data, 42);
 
       if (xPixelsPerMeter > 0 && yPixelsPerMeter > 0) {
-        // Convert pixels per meter to DPI (1 meter = 39.3701 inches)
-        metadata.dpiX = Math.round(xPixelsPerMeter / 39.3701);
-        metadata.dpiY = Math.round(yPixelsPerMeter / 39.3701);
+        // Convert pixels per meter to DPI
+        metadata.dpiX = Math.round(xPixelsPerMeter / INCHES_PER_METER);
+        metadata.dpiY = Math.round(yPixelsPerMeter / INCHES_PER_METER);
         metadata.physicalWidth = Math.abs(width) / metadata.dpiX;
         metadata.physicalHeight = Math.abs(height) / metadata.dpiY;
       }
@@ -118,10 +121,10 @@ export class BMPFormat implements ImageFormat {
     let yPixelsPerMeter = 2835;
 
     if (metadata?.dpiX && metadata.dpiX > 0) {
-      xPixelsPerMeter = Math.round(metadata.dpiX * 39.3701);
+      xPixelsPerMeter = Math.round(metadata.dpiX * INCHES_PER_METER);
     }
     if (metadata?.dpiY && metadata.dpiY > 0) {
-      yPixelsPerMeter = Math.round(metadata.dpiY * 39.3701);
+      yPixelsPerMeter = Math.round(metadata.dpiY * INCHES_PER_METER);
     }
 
     // BMP File Header (14 bytes)
