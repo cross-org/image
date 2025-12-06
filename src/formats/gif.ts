@@ -1,14 +1,17 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import { GIFDecoder } from "../utils/gif_decoder.ts";
+import { GIFEncoder } from "../utils/gif_encoder.ts";
 
 /**
  * GIF format handler
- * Uses runtime APIs (ImageDecoder/OffscreenCanvas) for encoding/decoding.
+ * Now includes pure-JS implementation with custom LZW compression/decompression
  *
- * Pure-JS implementation not currently available due to complexity:
- * - Requires LZW compression/decompression
+ * Features:
+ * - LZW compression/decompression
  * - Color quantization and palette generation for encoding
  * - Interlacing support
- * - Animation frame handling
+ * - Transparency support
+ * - Falls back to runtime APIs when pure-JS fails
  *
  * Note: Only decodes the first frame of animated GIFs
  */
@@ -30,26 +33,50 @@ export class GIFFormat implements ImageFormat {
       throw new Error("Invalid GIF signature");
     }
 
-    // For a complete pure JS implementation, we'd need to implement LZW decompression
-    // and handle all GIF features (animation, transparency, interlacing, etc.)
-    // This is quite complex, so we'll use the runtime's decoder.
+    // Try pure-JS decoder first
+    try {
+      const decoder = new GIFDecoder(data);
+      const result = decoder.decode();
 
+      // Extract metadata from comment extensions
+      const metadata = this.extractMetadata(data);
+
+      return {
+        width: result.width,
+        height: result.height,
+        data: result.data,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      };
+    } catch (error) {
+      // Fall back to runtime decoder if pure-JS fails
+      console.warn(
+        "Pure-JS GIF decoder failed, falling back to runtime:",
+        error,
+      );
+
+      let pos = 6; // Skip "GIF89a" or "GIF87a"
+      const width = this.readUint16LE(data, pos);
+      pos += 2;
+      const height = this.readUint16LE(data, pos);
+
+      const rgba = await this.decodeUsingRuntime(data, width, height);
+      const metadata = this.extractMetadata(data);
+
+      return {
+        width,
+        height,
+        data: rgba,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      };
+    }
+  }
+
+  private extractMetadata(data: Uint8Array): ImageMetadata {
+    const metadata: ImageMetadata = {};
     let pos = 6; // Skip "GIF89a" or "GIF87a"
 
     // Read logical screen descriptor
-    const width = this.readUint16LE(data, pos);
-    pos += 2;
-    const height = this.readUint16LE(data, pos);
-    pos += 2;
-
-    if (width === 0 || height === 0) {
-      throw new Error("Invalid GIF dimensions");
-    }
-
-    // Extract metadata from comment extensions
-    const metadata: ImageMetadata = {};
-
-    // Skip packed fields, background color, aspect ratio
+    pos += 4; // Skip width and height
     const packed = data[pos++];
     const hasGlobalColorTable = (packed & 0x80) !== 0;
     const globalColorTableSize = 2 << (packed & 0x07);
@@ -70,13 +97,11 @@ export class GIFFormat implements ImageFormat {
         if (label === 0xfe) { // Comment Extension
           const comment = this.readDataSubBlocks(data, pos);
           if (comment.text) {
-            // Try to parse structured comment
             this.parseComment(comment.text, metadata);
           }
           pos = comment.endPos;
         } else if (label === 0xff) { // Application Extension
           const appData = this.readDataSubBlocks(data, pos);
-          // Check for XMP data
           if (
             appData.text && appData.text.startsWith("XMP DataXMP") ||
             appData.text.includes("<?xpacket")
@@ -99,54 +124,64 @@ export class GIFFormat implements ImageFormat {
       }
     }
 
-    // Use runtime decoder for full GIF support
-    const rgba = await this.decodeUsingRuntime(data, width, height);
-
-    return {
-      width,
-      height,
-      data: rgba,
-      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-    };
+    return metadata;
   }
 
   async encode(imageData: ImageData): Promise<Uint8Array> {
-    // GIF encoding is complex due to LZW compression and color quantization
-    // We'll use runtime encoding if available
     const { width, height, data, metadata } = imageData;
 
-    if (typeof OffscreenCanvas !== "undefined") {
-      try {
-        const canvas = new OffscreenCanvas(width, height);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Could not get canvas context");
+    // Try pure-JS encoder first
+    try {
+      const encoder = new GIFEncoder(width, height, data);
+      const encoded = encoder.encode();
 
-        const imgData = ctx.createImageData(width, height);
-        const imgDataData = new Uint8ClampedArray(data);
-        imgData.data.set(imgDataData);
-        ctx.putImageData(imgData, 0, 0);
-
-        const blob = await canvas.convertToBlob({
-          type: "image/gif",
-        });
-        const arrayBuffer = await blob.arrayBuffer();
-        const encoded = new Uint8Array(arrayBuffer);
-
-        // Inject metadata if present
-        if (metadata && Object.keys(metadata).length > 0) {
-          const injected = this.injectMetadata(encoded, metadata);
-          return injected;
-        }
-
-        return encoded;
-      } catch (error) {
-        throw new Error(`GIF encoding failed: ${error}`);
+      // Inject metadata if present
+      if (metadata && Object.keys(metadata).length > 0) {
+        const injected = this.injectMetadata(encoded, metadata);
+        return injected;
       }
-    }
 
-    throw new Error(
-      "GIF encoding requires OffscreenCanvas API or equivalent runtime support",
-    );
+      return encoded;
+    } catch (error) {
+      // Fall back to runtime encoding if pure-JS fails
+      console.warn(
+        "Pure-JS GIF encoder failed, falling back to runtime:",
+        error,
+      );
+
+      if (typeof OffscreenCanvas !== "undefined") {
+        try {
+          const canvas = new OffscreenCanvas(width, height);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Could not get canvas context");
+
+          const imgData = ctx.createImageData(width, height);
+          const imgDataData = new Uint8ClampedArray(data);
+          imgData.data.set(imgDataData);
+          ctx.putImageData(imgData, 0, 0);
+
+          const blob = await canvas.convertToBlob({
+            type: "image/gif",
+          });
+          const arrayBuffer = await blob.arrayBuffer();
+          const encoded = new Uint8Array(arrayBuffer);
+
+          // Inject metadata if present
+          if (metadata && Object.keys(metadata).length > 0) {
+            const injected = this.injectMetadata(encoded, metadata);
+            return injected;
+          }
+
+          return encoded;
+        } catch (runtimeError) {
+          throw new Error(`GIF encoding failed: ${runtimeError}`);
+        }
+      }
+
+      throw new Error(
+        "GIF encoding requires pure-JS support or OffscreenCanvas API",
+      );
+    }
   }
 
   private readUint16LE(data: Uint8Array, offset: number): number {
