@@ -1,5 +1,5 @@
-import { assertEquals, assertRejects } from "@std/assert";
-import { test } from "@cross/test";
+import { assertEquals, assertRejects } from "../test/assert.ts";
+import { test } from "../test/test_runner.ts";
 import { Image } from "../src/image.ts";
 
 test("Image: fromRGBA - create image from raw data", () => {
@@ -255,7 +255,8 @@ test("Image: registerFormat", () => {
     name: "dummy",
     mimeType: "image/dummy",
     canDecode: () => false,
-    decode: () => Promise.resolve({ width: 0, height: 0, data: new Uint8Array() }),
+    decode: () =>
+      Promise.resolve({ width: 0, height: 0, data: new Uint8Array() }),
     encode: () => Promise.resolve(new Uint8Array()),
   };
 

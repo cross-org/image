@@ -1,5 +1,5 @@
-import { assertEquals, assertRejects } from "@std/assert";
-import { test } from "@cross/test";
+import { assertEquals, assertRejects } from "../test/assert.ts";
+import { test } from "../test/test_runner.ts";
 import { PNGFormat } from "../src/formats/png.ts";
 
 test("PNG: canDecode - valid PNG signature", () => {
