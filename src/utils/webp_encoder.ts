@@ -3,18 +3,22 @@
  *
  * This module implements a pure JavaScript encoder for WebP lossless (VP8L) format.
  * It supports:
- * - Basic lossless encoding with simple Huffman coding
- * - Uncompressed pixel data (no transforms, no LZ77)
+ * - Basic lossless encoding with simple Huffman coding (1-2 symbols per channel)
+ * - Uncompressed pixel data (no transforms, no LZ77, no color cache in current version)
  *
  * Current limitations:
  * - Does not use transforms (predictor, color, subtract green, color indexing)
- * - Does not use LZ77 backward references
- * - Does not use color cache
+ * - Does not use LZ77 backward references (planned for future)
+ * - Does not use color cache (planned for future)
  * - Uses simplified Huffman coding (single/double symbol codes only)
  * - Intended as a fallback when OffscreenCanvas is not available
  *
  * This encoder produces valid but uncompressed WebP lossless files.
  * For better compression, use the runtime's OffscreenCanvas API when available.
+ *
+ * Note: Full WebP VP8L encoding with LZ77, color cache, and complex Huffman codes
+ * is a complex undertaking. This implementation prioritizes correctness and compatibility
+ * over compression ratio.
  *
  * @see https://developers.google.com/speed/webp/docs/riff_container
  * @see https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
