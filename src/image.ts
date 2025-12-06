@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ResizeOptions } from "./types.ts";
+import type {
+  ImageData,
+  ImageFormat,
+  ImageMetadata,
+  ResizeOptions,
+} from "./types.ts";
 import { resizeBilinear, resizeNearest } from "./utils/resize.ts";
 import { PNGFormat } from "./formats/png.ts";
 import { JPEGFormat } from "./formats/jpeg.ts";
@@ -37,6 +42,119 @@ export class Image {
   get data(): Uint8Array {
     if (!this.imageData) throw new Error("No image loaded");
     return this.imageData.data;
+  }
+
+  /**
+   * Get the current image metadata
+   */
+  get metadata(): ImageMetadata | undefined {
+    if (!this.imageData) throw new Error("No image loaded");
+    return this.imageData.metadata;
+  }
+
+  /**
+   * Set or update image metadata
+   * @param metadata Metadata to set or merge
+   * @param merge If true, merges with existing metadata. If false, replaces it. Default: true
+   */
+  setMetadata(metadata: ImageMetadata, merge = true): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    if (merge && this.imageData.metadata) {
+      this.imageData.metadata = {
+        ...this.imageData.metadata,
+        ...metadata,
+        custom: {
+          ...this.imageData.metadata.custom,
+          ...metadata.custom,
+        },
+      };
+    } else {
+      this.imageData.metadata = { ...metadata };
+    }
+
+    return this;
+  }
+
+  /**
+   * Get a specific metadata field
+   * @param key The metadata field to retrieve
+   * @returns The metadata value or undefined
+   */
+  getMetadataField<K extends keyof ImageMetadata>(
+    key: K,
+  ): ImageMetadata[K] | undefined {
+    if (!this.imageData) throw new Error("No image loaded");
+    return this.imageData.metadata?.[key];
+  }
+
+  /**
+   * Get position (latitude, longitude) from metadata
+   * @returns Object with latitude and longitude, or undefined if not available
+   */
+  getPosition(): { latitude: number; longitude: number } | undefined {
+    const latitude = this.getMetadataField("latitude");
+    const longitude = this.getMetadataField("longitude");
+
+    if (latitude !== undefined && longitude !== undefined) {
+      return { latitude, longitude };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Set position (latitude, longitude) in metadata
+   * @param latitude GPS latitude
+   * @param longitude GPS longitude
+   */
+  setPosition(latitude: number, longitude: number): this {
+    return this.setMetadata({ latitude, longitude });
+  }
+
+  /**
+   * Get physical dimensions from metadata
+   * @returns Object with DPI and physical dimensions, or undefined if not available
+   */
+  getDimensions(): {
+    dpiX?: number;
+    dpiY?: number;
+    physicalWidth?: number;
+    physicalHeight?: number;
+  } | undefined {
+    const dpiX = this.getMetadataField("dpiX");
+    const dpiY = this.getMetadataField("dpiY");
+    const physicalWidth = this.getMetadataField("physicalWidth");
+    const physicalHeight = this.getMetadataField("physicalHeight");
+
+    if (
+      dpiX !== undefined || dpiY !== undefined || physicalWidth !== undefined ||
+      physicalHeight !== undefined
+    ) {
+      return { dpiX, dpiY, physicalWidth, physicalHeight };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Set physical dimensions in metadata
+   * @param dpiX Dots per inch (horizontal)
+   * @param dpiY Dots per inch (vertical), defaults to dpiX if not provided
+   */
+  setDPI(dpiX: number, dpiY?: number): this {
+    const actualDpiY = dpiY ?? dpiX;
+
+    // Calculate physical dimensions based on pixel dimensions and DPI
+    const physicalWidth = this.width / dpiX;
+    const physicalHeight = this.height / actualDpiY;
+
+    return this.setMetadata({
+      dpiX,
+      dpiY: actualDpiY,
+      physicalWidth,
+      physicalHeight,
+    });
   }
 
   /**
@@ -123,11 +241,23 @@ export class Image {
       resizedData = resizeBilinear(srcData, srcWidth, srcHeight, width, height);
     }
 
+    // Preserve metadata when resizing
+    const metadata = this.imageData.metadata;
+
     this.imageData = {
       width,
       height,
       data: resizedData,
+      metadata: metadata ? { ...metadata } : undefined,
     };
+
+    // Update physical dimensions if DPI is set
+    if (metadata?.dpiX) {
+      this.imageData.metadata!.physicalWidth = width / metadata.dpiX;
+    }
+    if (metadata?.dpiY) {
+      this.imageData.metadata!.physicalHeight = height / metadata.dpiY;
+    }
 
     return this;
   }
@@ -150,7 +280,7 @@ export class Image {
 
   /**
    * Clone this image
-   * @returns New image instance with copied data
+   * @returns New image instance with copied data and metadata
    */
   clone(): Image {
     if (!this.imageData) throw new Error("No image loaded");
@@ -160,6 +290,14 @@ export class Image {
       width: this.imageData.width,
       height: this.imageData.height,
       data: new Uint8Array(this.imageData.data),
+      metadata: this.imageData.metadata
+        ? {
+          ...this.imageData.metadata,
+          custom: this.imageData.metadata.custom
+            ? { ...this.imageData.metadata.custom }
+            : undefined,
+        }
+        : undefined,
     };
     return image;
   }

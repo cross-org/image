@@ -22,7 +22,12 @@
  */
 
 export { Image } from "./src/image.ts";
-export type { ImageData, ImageFormat, ResizeOptions } from "./src/types.ts";
+export type {
+  ImageData,
+  ImageFormat,
+  ImageMetadata,
+  ResizeOptions,
+} from "./src/types.ts";
 export { PNGFormat } from "./src/formats/png.ts";
 export { JPEGFormat } from "./src/formats/jpeg.ts";
 export { WebPFormat } from "./src/formats/webp.ts";
