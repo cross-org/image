@@ -5,18 +5,27 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deno_ci:
+    permissions:
+      contents: read
     uses: cross-org/workflows/.github/workflows/deno-ci.yml@main
     with:
       entrypoint: mod.ts
       lint_docs: false
       allow_outdated: false
   bun_ci:
+    permissions:
+      contents: read
     uses: cross-org/workflows/.github/workflows/bun-ci.yml@main
     with:
       jsr_dependencies: "@cross/test @std/assert"
   node_ci:
+    permissions:
+      contents: read
     uses: cross-org/workflows/.github/workflows/node-ci.yml@main
     with:
       jsr_dependencies: "@cross/test @std/assert"
