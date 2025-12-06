@@ -65,8 +65,8 @@ export class Image {
         ...this.imageData.metadata,
         ...metadata,
         custom: {
-          ...this.imageData.metadata.custom,
-          ...metadata.custom,
+          ...(this.imageData.metadata.custom || {}),
+          ...(metadata.custom || {}),
         },
       };
     } else {
@@ -252,11 +252,13 @@ export class Image {
     };
 
     // Update physical dimensions if DPI is set
-    if (metadata?.dpiX) {
-      this.imageData.metadata!.physicalWidth = width / metadata.dpiX;
-    }
-    if (metadata?.dpiY) {
-      this.imageData.metadata!.physicalHeight = height / metadata.dpiY;
+    if (this.imageData.metadata) {
+      if (metadata?.dpiX) {
+        this.imageData.metadata.physicalWidth = width / metadata.dpiX;
+      }
+      if (metadata?.dpiY) {
+        this.imageData.metadata.physicalHeight = height / metadata.dpiY;
+      }
     }
 
     return this;

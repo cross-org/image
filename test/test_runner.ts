@@ -78,5 +78,10 @@ export function test(
       // @ts-ignore - Node test global
       globalThis.test(testName, testFn);
     }
+  } else {
+    // No supported test runner detected
+    throw new Error(
+      "No test runner detected. This module supports Deno, Bun, and Node.js (with tsx --test).",
+    );
   }
 }
