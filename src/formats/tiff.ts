@@ -340,6 +340,9 @@ export class TIFFFormat implements ImageFormat {
     offset: number,
     isLittleEndian: boolean,
   ): number {
+    if (offset + 1 >= data.length) {
+      throw new Error("TIFF read error: offset out of bounds");
+    }
     if (isLittleEndian) {
       return data[offset] | (data[offset + 1] << 8);
     } else {
@@ -352,6 +355,9 @@ export class TIFFFormat implements ImageFormat {
     offset: number,
     isLittleEndian: boolean,
   ): number {
+    if (offset + 3 >= data.length) {
+      throw new Error("TIFF read error: offset out of bounds");
+    }
     if (isLittleEndian) {
       return data[offset] | (data[offset + 1] << 8) |
         (data[offset + 2] << 16) | (data[offset + 3] << 24);
@@ -407,11 +413,13 @@ export class TIFFFormat implements ImageFormat {
       const entryValue = this.readUint32(data, pos + 8, isLittleEndian);
 
       if (entryTag === tag) {
-        // For short/long types with count=1, value is stored directly
+        // For SHORT/LONG types with count=1, value is stored directly
+        // For other types or count>1, this returns the offset to the actual data
+        // Callers should handle offsets appropriately based on the tag type
         if ((entryType === 3 || entryType === 4) && entryCount === 1) {
           return entryValue;
         }
-        // For other cases, return the value (which might be an offset)
+        // Return the value/offset for other cases
         return entryValue;
       }
 
@@ -432,12 +440,9 @@ export class TIFFFormat implements ImageFormat {
       if (pureJSResult) {
         return pureJSResult;
       }
-    } catch (error) {
-      // Pure JS decoder failed, fall through to ImageDecoder
-      console.warn(
-        "TIFF decoding with pure JS failed, trying ImageDecoder:",
-        error,
-      );
+    } catch (_error) {
+      // Pure JS decoder failed, fall through to ImageDecoder silently
+      // This is expected for compressed TIFFs
     }
 
     // Try to use ImageDecoder API if available (Deno, modern browsers)
@@ -485,6 +490,11 @@ export class TIFFFormat implements ImageFormat {
     width: number,
     height: number,
   ): Uint8Array | null {
+    // Validate minimum TIFF header size
+    if (data.length < 8) {
+      return null;
+    }
+
     // Determine byte order
     const isLittleEndian = data[0] === 0x49;
 
