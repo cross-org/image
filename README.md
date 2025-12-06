@@ -160,7 +160,11 @@ This table shows which format standards and variants are supported:
 |        | Progressive DCT                     | ⚠️ Native only | ImageDecoder   |
 |        | - EXIF metadata                     | ✅ Full        | Pure-JS        |
 |        | - JFIF (APP0) with DPI              | ✅ Full        | Pure-JS        |
-| WebP   | WebP Lossless (VP8L)                | ⚠️ Basic       | Pure-JS        |
+| WebP   | WebP Lossless (VP8L)                | ⚠️ Partial     | Pure-JS        |
+|        | - Huffman coding                    | ✅ Full        | Pure-JS        |
+|        | - LZ77 backward references          | ✅ Full        | Pure-JS        |
+|        | - Color cache                       | ✅ Full        | Pure-JS        |
+|        | - Transforms (predictor, etc.)      | ❌ Not Yet     | -              |
 |        | WebP Lossy (VP8)                    | ⚠️ Native only | ImageDecoder   |
 |        | - EXIF, XMP metadata                | ✅ Full        | Pure-JS        |
 | TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full        | Pure-JS        |
