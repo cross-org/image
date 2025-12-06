@@ -31,3 +31,6 @@ export type {
 export { PNGFormat } from "./src/formats/png.ts";
 export { JPEGFormat } from "./src/formats/jpeg.ts";
 export { WebPFormat } from "./src/formats/webp.ts";
+export { GIFFormat } from "./src/formats/gif.ts";
+export { TIFFFormat } from "./src/formats/tiff.ts";
+export { BMPFormat } from "./src/formats/bmp.ts";
