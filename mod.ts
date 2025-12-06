@@ -2,7 +2,7 @@
  * @module @cross/image
  *
  * A pure JavaScript, dependency-free, cross-runtime image processing library.
- * Supports reading, resizing, and saving common image formats (PNG, JPEG, WebP).
+ * Supports reading, resizing, and saving common image formats (PNG, JPEG, WebP, GIF, TIFF, BMP).
  *
  * @example
  * ```ts
@@ -31,3 +31,6 @@ export type {
 export { PNGFormat } from "./src/formats/png.ts";
 export { JPEGFormat } from "./src/formats/jpeg.ts";
 export { WebPFormat } from "./src/formats/webp.ts";
+export { GIFFormat } from "./src/formats/gif.ts";
+export { TIFFFormat } from "./src/formats/tiff.ts";
+export { BMPFormat } from "./src/formats/bmp.ts";

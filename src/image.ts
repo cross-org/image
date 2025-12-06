@@ -8,6 +8,9 @@ import { resizeBilinear, resizeNearest } from "./utils/resize.ts";
 import { PNGFormat } from "./formats/png.ts";
 import { JPEGFormat } from "./formats/jpeg.ts";
 import { WebPFormat } from "./formats/webp.ts";
+import { GIFFormat } from "./formats/gif.ts";
+import { TIFFFormat } from "./formats/tiff.ts";
+import { BMPFormat } from "./formats/bmp.ts";
 
 /**
  * Main Image class for reading, manipulating, and saving images
@@ -18,6 +21,9 @@ export class Image {
     new PNGFormat(),
     new JPEGFormat(),
     new WebPFormat(),
+    new GIFFormat(),
+    new TIFFFormat(),
+    new BMPFormat(),
   ];
 
   /**
