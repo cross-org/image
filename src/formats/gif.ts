@@ -2,7 +2,14 @@ import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 
 /**
  * GIF format handler
- * Implements a basic GIF decoder and encoder
+ * Uses runtime APIs (ImageDecoder/OffscreenCanvas) for encoding/decoding.
+ *
+ * Pure-JS implementation not currently available due to complexity:
+ * - Requires LZW compression/decompression
+ * - Color quantization and palette generation for encoding
+ * - Interlacing support
+ * - Animation frame handling
+ *
  * Note: Only decodes the first frame of animated GIFs
  */
 export class GIFFormat implements ImageFormat {
