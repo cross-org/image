@@ -11,6 +11,7 @@ import { WebPFormat } from "./formats/webp.ts";
 import { GIFFormat } from "./formats/gif.ts";
 import { TIFFFormat } from "./formats/tiff.ts";
 import { BMPFormat } from "./formats/bmp.ts";
+import { RAWFormat } from "./formats/raw.ts";
 
 /**
  * Main Image class for reading, manipulating, and saving images
@@ -24,6 +25,7 @@ export class Image {
     new GIFFormat(),
     new TIFFFormat(),
     new BMPFormat(),
+    new RAWFormat(),
   ];
 
   /**

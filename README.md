@@ -8,7 +8,7 @@ Deno, Node.js, and Bun.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
-- 🎨 **Multiple formats** - PNG, JPEG, WebP, GIF, TIFF, and BMP support
+- 🎨 **Multiple formats** - PNG, JPEG, WebP, GIF, TIFF, BMP, and RAW support
 - ✂️ **Image manipulation** - Resize with multiple algorithms
 - 🔧 **Simple API** - Easy to use, intuitive interface
 
@@ -118,14 +118,15 @@ await Deno.writeFile("output.webp", output);
 
 ## Supported Formats
 
-| Format | Read | Write | Notes                            |
-| ------ | ---- | ----- | -------------------------------- |
-| PNG    | ✅   | ✅    | Full pure-JS implementation      |
-| JPEG   | ✅   | ✅    | Uses runtime APIs (ImageDecoder) |
-| WebP   | ✅   | ✅    | Uses runtime APIs (ImageDecoder) |
-| GIF    | ✅   | ✅    | Uses runtime APIs (ImageDecoder) |
-| TIFF   | ✅   | ✅    | Uses runtime APIs (ImageDecoder) |
-| BMP    | ✅   | ✅    | Full pure-JS implementation      |
+| Format | Read | Write | Notes                                    |
+| ------ | ---- | ----- | ---------------------------------------- |
+| PNG    | ✅   | ✅    | Full pure-JS implementation              |
+| JPEG   | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
+| WebP   | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
+| GIF    | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
+| TIFF   | ✅   | ✅    | Uses runtime APIs (ImageDecoder)         |
+| BMP    | ✅   | ✅    | Full pure-JS implementation              |
+| RAW    | ✅   | ✅    | Uncompressed RGBA (pure-JS, no metadata) |
 
 ## Extending with Custom Formats
 
