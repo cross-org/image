@@ -23,6 +23,7 @@
     "exclude": [".github", "test/*", "test_output/*"]
   },
   "tasks": {
+    "precommit": "deno fmt --check && deno lint && deno check mod.ts && deno check test/*.test.ts && deno test -A",
     "check": "deno fmt --check && deno lint && deno check mod.ts && deno test -A --coverage=cov_profile && echo \"Generating coverage\" && deno coverage cov_profile --exclude=test/ --lcov --output=cov_profile.lcov",
     "check-deps": "deno run -rA jsr:@check/deps"
   }

@@ -28,7 +28,9 @@ export function test(
     ? nameOrOptions
     : nameOrOptions.name;
   const testFn = typeof nameOrOptions === "string" ? fn! : nameOrOptions.fn;
-  const options = typeof nameOrOptions === "string" ? {} : nameOrOptions;
+  const options: TestOptions = typeof nameOrOptions === "string"
+    ? {}
+    : nameOrOptions;
 
   // Convert simple function to @cross/test format
   // @cross/test expects (context, done) but our tests use simple () => void
