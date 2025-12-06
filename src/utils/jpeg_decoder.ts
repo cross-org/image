@@ -1,0 +1,639 @@
+/**
+ * Basic baseline JPEG decoder implementation
+ * Supports baseline DCT JPEG images (the most common format)
+ *
+ * This is a simplified implementation that handles common JPEG files.
+ * For complex or non-standard JPEGs, the ImageDecoder API fallback is preferred.
+ */
+
+// JPEG markers
+const EOI = 0xFFD9; // End of Image
+const SOS = 0xFFDA; // Start of Scan
+const DQT = 0xFFDB; // Define Quantization Table
+const DHT = 0xFFC4; // Define Huffman Table
+const SOF0 = 0xFFC0; // Start of Frame (Baseline DCT)
+const SOF2 = 0xFFC2; // Start of Frame (Progressive DCT)
+const DRI = 0xFFDD; // Define Restart Interval
+
+// Zigzag order for DCT coefficients
+const ZIGZAG = [
+  0,
+  1,
+  8,
+  16,
+  9,
+  2,
+  3,
+  10,
+  17,
+  24,
+  32,
+  25,
+  18,
+  11,
+  4,
+  5,
+  12,
+  19,
+  26,
+  33,
+  40,
+  48,
+  41,
+  34,
+  27,
+  20,
+  13,
+  6,
+  7,
+  14,
+  21,
+  28,
+  35,
+  42,
+  49,
+  56,
+  57,
+  50,
+  43,
+  36,
+  29,
+  22,
+  15,
+  23,
+  30,
+  37,
+  44,
+  51,
+  58,
+  59,
+  52,
+  45,
+  38,
+  31,
+  39,
+  46,
+  53,
+  60,
+  61,
+  54,
+  47,
+  55,
+  62,
+  63,
+];
+
+interface JPEGComponent {
+  id: number;
+  h: number; // Horizontal sampling factor
+  v: number; // Vertical sampling factor
+  qTable: number; // Quantization table selector
+  dcTable: number; // DC Huffman table selector
+  acTable: number; // AC Huffman table selector
+  pred: number; // DC predictor
+  blocks: number[][][]; // Decoded blocks
+}
+
+interface HuffmanTable {
+  codes: Map<number, number>;
+  maxCode: number[];
+  minCode: number[];
+  valPtr: number[];
+  huffVal: number[];
+}
+
+export class JPEGDecoder {
+  private data: Uint8Array;
+  private pos: number = 0;
+  private width: number = 0;
+  private height: number = 0;
+  private components: JPEGComponent[] = [];
+  private qTables: number[][] = [];
+  private dcTables: HuffmanTable[] = [];
+  private acTables: HuffmanTable[] = [];
+  private restartInterval: number = 0;
+  private bitBuffer: number = 0;
+  private bitCount: number = 0;
+
+  constructor(data: Uint8Array) {
+    this.data = data;
+  }
+
+  decode(): Uint8Array {
+    // Verify JPEG signature
+    if (
+      this.data.length < 2 || this.data[0] !== 0xFF || this.data[1] !== 0xD8
+    ) {
+      throw new Error("Invalid JPEG signature");
+    }
+
+    this.pos = 2;
+
+    // Parse markers
+    while (this.pos < this.data.length) {
+      const marker = this.readMarker();
+
+      if (marker === EOI) {
+        break;
+      } else if (marker === SOS) {
+        this.parseSOS();
+        this.decodeScan();
+        break; // Stop after first scan for baseline JPEG
+      } else if (marker === DQT) {
+        this.parseDQT();
+      } else if (marker === DHT) {
+        this.parseDHT();
+      } else if (marker === SOF0) {
+        this.parseSOF();
+      } else if (marker === SOF2) {
+        throw new Error("Progressive JPEG not supported in pure JS decoder");
+      } else if (marker === DRI) {
+        this.parseDRI();
+      } else if (marker >= 0xFFE0 && marker <= 0xFFEF) {
+        // Skip APP markers
+        this.skipSegment();
+      } else if (marker >= 0xFFC0 && marker <= 0xFFCF) {
+        // Other SOF markers
+        if (marker !== 0xFFC4 && marker !== 0xFFC8 && marker !== 0xFFCC) {
+          throw new Error(
+            `Unsupported JPEG type: marker 0x${marker.toString(16)}`,
+          );
+        }
+      } else {
+        // Skip unknown markers
+        if (this.pos < this.data.length) {
+          this.skipSegment();
+        }
+      }
+    }
+
+    if (this.width === 0 || this.height === 0) {
+      throw new Error("Failed to decode JPEG: invalid dimensions");
+    }
+
+    // Convert YCbCr to RGB
+    return this.convertToRGB();
+  }
+
+  private readMarker(): number {
+    while (this.pos < this.data.length && this.data[this.pos] !== 0xFF) {
+      this.pos++;
+    }
+
+    if (this.pos >= this.data.length - 1) {
+      return EOI;
+    }
+
+    const byte1 = this.data[this.pos++];
+    let byte2 = this.data[this.pos++];
+
+    // Skip padding 0xFF bytes
+    while (byte2 === 0xFF && this.pos < this.data.length) {
+      byte2 = this.data[this.pos++];
+    }
+
+    return (byte1 << 8) | byte2;
+  }
+
+  private readUint16(): number {
+    const value = (this.data[this.pos] << 8) | this.data[this.pos + 1];
+    this.pos += 2;
+    return value;
+  }
+
+  private skipSegment(): void {
+    const length = this.readUint16();
+    this.pos += length - 2;
+  }
+
+  private parseDQT(): void {
+    let length = this.readUint16() - 2;
+
+    while (length > 0) {
+      const info = this.data[this.pos++];
+      const tableId = info & 0x0F;
+      const precision = (info >> 4) & 0x0F;
+
+      if (precision !== 0) {
+        throw new Error("16-bit quantization tables not supported");
+      }
+
+      const table = new Array(64);
+      for (let i = 0; i < 64; i++) {
+        table[ZIGZAG[i]] = this.data[this.pos++];
+      }
+
+      this.qTables[tableId] = table;
+      length -= 65;
+    }
+  }
+
+  private parseDHT(): void {
+    let length = this.readUint16() - 2;
+
+    while (length > 0) {
+      const info = this.data[this.pos++];
+      const tableId = info & 0x0F;
+      const tableClass = (info >> 4) & 0x0F;
+
+      const bits = new Array(16);
+      let numSymbols = 0;
+      for (let i = 0; i < 16; i++) {
+        bits[i] = this.data[this.pos++];
+        numSymbols += bits[i];
+      }
+
+      const huffVal = new Array(numSymbols);
+      for (let i = 0; i < numSymbols; i++) {
+        huffVal[i] = this.data[this.pos++];
+      }
+
+      const table = this.buildHuffmanTable(bits, huffVal);
+
+      if (tableClass === 0) {
+        this.dcTables[tableId] = table;
+      } else {
+        this.acTables[tableId] = table;
+      }
+
+      length -= 17 + numSymbols;
+    }
+  }
+
+  private buildHuffmanTable(bits: number[], huffVal: number[]): HuffmanTable {
+    const maxCode = new Array(16).fill(-1);
+    const minCode = new Array(16).fill(-1);
+    const valPtr = new Array(16).fill(-1);
+    const codes = new Map<number, number>();
+
+    let code = 0;
+    let valIndex = 0;
+
+    for (let i = 0; i < 16; i++) {
+      if (bits[i] > 0) {
+        minCode[i] = code;
+        valPtr[i] = valIndex;
+
+        for (let j = 0; j < bits[i]; j++) {
+          codes.set((i << 16) | code, huffVal[valIndex]);
+          code++;
+          valIndex++;
+        }
+
+        maxCode[i] = code - 1;
+        code <<= 1;
+      } else {
+        code <<= 1;
+      }
+    }
+
+    return { codes, maxCode, minCode, valPtr, huffVal };
+  }
+
+  private parseSOF(): void {
+    const _length = this.readUint16();
+    const precision = this.data[this.pos++];
+
+    if (precision !== 8) {
+      throw new Error(`Unsupported precision: ${precision}`);
+    }
+
+    this.height = this.readUint16();
+    this.width = this.readUint16();
+    const numComponents = this.data[this.pos++];
+
+    if (numComponents !== 1 && numComponents !== 3) {
+      throw new Error(`Unsupported number of components: ${numComponents}`);
+    }
+
+    this.components = [];
+    for (let i = 0; i < numComponents; i++) {
+      const id = this.data[this.pos++];
+      const samplingFactor = this.data[this.pos++];
+      const qTable = this.data[this.pos++];
+
+      this.components.push({
+        id,
+        h: (samplingFactor >> 4) & 0x0F,
+        v: samplingFactor & 0x0F,
+        qTable,
+        dcTable: 0,
+        acTable: 0,
+        pred: 0,
+        blocks: [],
+      });
+    }
+  }
+
+  private parseSOS(): void {
+    const _length = this.readUint16();
+    const numComponents = this.data[this.pos++];
+
+    for (let i = 0; i < numComponents; i++) {
+      const id = this.data[this.pos++];
+      const tables = this.data[this.pos++];
+
+      const component = this.components.find((c) => c.id === id);
+      if (component) {
+        component.dcTable = (tables >> 4) & 0x0F;
+        component.acTable = tables & 0x0F;
+      }
+    }
+
+    this.pos += 3; // Skip spectral selection and successive approximation
+  }
+
+  private parseDRI(): void {
+    const _length = this.readUint16();
+    this.restartInterval = this.readUint16();
+  }
+
+  private decodeScan(): void {
+    // Calculate MCU dimensions
+    const maxH = Math.max(...this.components.map((c) => c.h));
+    const maxV = Math.max(...this.components.map((c) => c.v));
+
+    const mcuWidth = Math.ceil(this.width / (8 * maxH));
+    const mcuHeight = Math.ceil(this.height / (8 * maxV));
+
+    // Initialize bit buffer
+    this.bitBuffer = 0;
+    this.bitCount = 0;
+
+    // Initialize blocks for each component
+    for (const component of this.components) {
+      const blocksAcross = Math.ceil(this.width * component.h / (8 * maxH));
+      const blocksDown = Math.ceil(this.height * component.v / (8 * maxV));
+      component.blocks = Array(blocksDown).fill(null).map(() =>
+        Array(blocksAcross).fill(null).map(() => new Array(64).fill(0))
+      );
+    }
+
+    // Decode MCUs
+    try {
+      for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
+        for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
+          // Decode all components in this MCU
+          for (const component of this.components) {
+            for (let v = 0; v < component.v; v++) {
+              for (let h = 0; h < component.h; h++) {
+                const blockY = mcuY * component.v + v;
+                const blockX = mcuX * component.h + h;
+
+                if (
+                  blockY < component.blocks.length &&
+                  blockX < component.blocks[0].length
+                ) {
+                  this.decodeBlock(component, blockY, blockX);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // If we run into issues during decoding, we may still have partial data
+      console.warn("JPEG decode warning:", e);
+    }
+  }
+
+  private decodeBlock(
+    component: JPEGComponent,
+    blockY: number,
+    blockX: number,
+  ): void {
+    const block = component.blocks[blockY][blockX];
+
+    // Decode DC coefficient
+    const dcTable = this.dcTables[component.dcTable];
+    if (!dcTable) {
+      throw new Error(`Missing DC table ${component.dcTable}`);
+    }
+
+    const dcLen = this.decodeHuffman(dcTable);
+    const dcDiff = dcLen > 0 ? this.receiveBits(dcLen) : 0;
+    component.pred += dcDiff;
+    block[0] = component.pred * this.qTables[component.qTable][0];
+
+    // Decode AC coefficients
+    const acTable = this.acTables[component.acTable];
+    if (!acTable) {
+      throw new Error(`Missing AC table ${component.acTable}`);
+    }
+
+    let k = 1;
+    while (k < 64) {
+      const rs = this.decodeHuffman(acTable);
+      const r = (rs >> 4) & 0x0F;
+      const s = rs & 0x0F;
+
+      if (s === 0) {
+        if (r === 15) {
+          k += 16;
+        } else {
+          break; // EOB
+        }
+      } else {
+        k += r;
+        if (k >= 64) break;
+        block[ZIGZAG[k]] = this.receiveBits(s) *
+          this.qTables[component.qTable][ZIGZAG[k]];
+        k++;
+      }
+    }
+
+    // Perform IDCT
+    this.idct(block);
+  }
+
+  private decodeHuffman(table: HuffmanTable): number {
+    let code = 0;
+
+    for (let len = 0; len < 16; len++) {
+      code = (code << 1) | this.readBit();
+
+      if (table.minCode[len] !== -1 && code <= table.maxCode[len]) {
+        const index = table.valPtr[len] + (code - table.minCode[len]);
+        return table.huffVal[index];
+      }
+    }
+
+    throw new Error("Invalid Huffman code");
+  }
+
+  private readBit(): number {
+    if (this.bitCount === 0) {
+      let byte = this.data[this.pos++];
+
+      // Handle byte stuffing (0xFF 0x00)
+      if (byte === 0xFF) {
+        const nextByte = this.data[this.pos];
+        if (nextByte === 0x00) {
+          this.pos++;
+        } else if (nextByte >= 0xD0 && nextByte <= 0xD7) {
+          // Restart marker - reset DC predictors
+          this.pos++;
+          for (const component of this.components) {
+            component.pred = 0;
+          }
+          byte = this.data[this.pos++];
+        }
+      }
+
+      this.bitBuffer = byte;
+      this.bitCount = 8;
+    }
+
+    this.bitCount--;
+    return (this.bitBuffer >> this.bitCount) & 1;
+  }
+
+  private receiveBits(n: number): number {
+    let value = 0;
+    for (let i = 0; i < n; i++) {
+      value = (value << 1) | this.readBit();
+    }
+
+    // Convert from magnitude representation
+    if (value < (1 << (n - 1))) {
+      value = value - (1 << n) + 1;
+    }
+
+    return value;
+  }
+
+  private idct(block: number[]): void {
+    // Simplified 2D IDCT
+    // This is a basic implementation - not optimized
+    const temp = new Array(64);
+
+    // 1D IDCT on rows
+    for (let i = 0; i < 8; i++) {
+      const offset = i * 8;
+
+      for (let j = 0; j < 8; j++) {
+        let sum = 0;
+        for (let k = 0; k < 8; k++) {
+          const c = k === 0 ? 1 / Math.sqrt(2) : 1;
+          sum += c * block[offset + k] *
+            Math.cos((2 * j + 1) * k * Math.PI / 16);
+        }
+        temp[offset + j] = sum / 2;
+      }
+    }
+
+    // 1D IDCT on columns
+    for (let j = 0; j < 8; j++) {
+      for (let i = 0; i < 8; i++) {
+        let sum = 0;
+        for (let k = 0; k < 8; k++) {
+          const c = k === 0 ? 1 / Math.sqrt(2) : 1;
+          sum += c * temp[k * 8 + j] * Math.cos((2 * i + 1) * k * Math.PI / 16);
+        }
+        // Level shift and clamp
+        block[i * 8 + j] = Math.max(
+          0,
+          Math.min(255, Math.round(sum / 2 + 128)),
+        );
+      }
+    }
+  }
+
+  private convertToRGB(): Uint8Array {
+    const rgba = new Uint8Array(this.width * this.height * 4);
+
+    if (this.components.length === 1) {
+      // Grayscale
+      const y = this.components[0];
+      for (let row = 0; row < this.height; row++) {
+        for (let col = 0; col < this.width; col++) {
+          const blockRow = Math.floor(row / 8);
+          const blockCol = Math.floor(col / 8);
+          const blockY = row % 8;
+          const blockX = col % 8;
+
+          if (blockRow < y.blocks.length && blockCol < y.blocks[0].length) {
+            const value = y.blocks[blockRow][blockCol][blockY * 8 + blockX];
+            const offset = (row * this.width + col) * 4;
+            rgba[offset] = value;
+            rgba[offset + 1] = value;
+            rgba[offset + 2] = value;
+            rgba[offset + 3] = 255;
+          }
+        }
+      }
+    } else {
+      // YCbCr to RGB
+      const [y, cb, cr] = this.components;
+      const maxH = Math.max(...this.components.map((c) => c.h));
+      const maxV = Math.max(...this.components.map((c) => c.v));
+
+      for (let row = 0; row < this.height; row++) {
+        for (let col = 0; col < this.width; col++) {
+          // Y component
+          const yBlockRow = Math.floor(row / 8);
+          const yBlockCol = Math.floor(col / 8);
+          const yBlockY = row % 8;
+          const yBlockX = col % 8;
+
+          let yVal = 0;
+          if (yBlockRow < y.blocks.length && yBlockCol < y.blocks[0].length) {
+            yVal = y.blocks[yBlockRow][yBlockCol][yBlockY * 8 + yBlockX];
+          }
+
+          // Cb and Cr components (may be subsampled)
+          const cbBlockRow = Math.floor(row * cb.v / (8 * maxV));
+          const cbBlockCol = Math.floor(col * cb.h / (8 * maxH));
+          const cbBlockY = Math.floor((row * cb.v / maxV) % 8);
+          const cbBlockX = Math.floor((col * cb.h / maxH) % 8);
+
+          let cbVal = 0;
+          if (
+            cbBlockRow < cb.blocks.length && cbBlockCol < cb.blocks[0].length
+          ) {
+            cbVal = cb.blocks[cbBlockRow][cbBlockCol][cbBlockY * 8 + cbBlockX] -
+              128;
+          }
+
+          const crBlockRow = Math.floor(row * cr.v / (8 * maxV));
+          const crBlockCol = Math.floor(col * cr.h / (8 * maxH));
+          const crBlockY = Math.floor((row * cr.v / maxV) % 8);
+          const crBlockX = Math.floor((col * cr.h / maxH) % 8);
+
+          let crVal = 0;
+          if (
+            crBlockRow < cr.blocks.length && crBlockCol < cr.blocks[0].length
+          ) {
+            crVal = cr.blocks[crBlockRow][crBlockCol][crBlockY * 8 + crBlockX] -
+              128;
+          }
+
+          // YCbCr to RGB conversion
+          const r = Math.max(
+            0,
+            Math.min(255, Math.round(yVal + 1.402 * crVal)),
+          );
+          const g = Math.max(
+            0,
+            Math.min(
+              255,
+              Math.round(yVal - 0.344136 * cbVal - 0.714136 * crVal),
+            ),
+          );
+          const b = Math.max(
+            0,
+            Math.min(255, Math.round(yVal + 1.772 * cbVal)),
+          );
+
+          const offset = (row * this.width + col) * 4;
+          rgba[offset] = r;
+          rgba[offset + 1] = g;
+          rgba[offset + 2] = b;
+          rgba[offset + 3] = 255;
+        }
+      }
+    }
+
+    return rgba;
+  }
+}

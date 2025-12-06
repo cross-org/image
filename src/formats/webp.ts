@@ -174,13 +174,25 @@ export class WebPFormat implements ImageFormat {
 
         return new Uint8Array(imageData.data.buffer);
       } catch (error) {
-        throw new Error(`WebP decoding failed: ${error}`);
+        // ImageDecoder API failed, fall through to pure JS decoder
+        console.warn(
+          "WebP decoding with ImageDecoder failed, using pure JS decoder:",
+          error,
+        );
       }
     }
 
-    throw new Error(
-      "WebP decoding requires ImageDecoder API or equivalent runtime support",
-    );
+    // Fallback to pure JavaScript decoder (VP8L lossless only)
+    try {
+      const { WebPDecoder } = await import("../utils/webp_decoder.ts");
+      const decoder = new WebPDecoder(data);
+      const result = decoder.decode();
+      return result.data;
+    } catch (error) {
+      throw new Error(
+        `WebP decoding failed: ${error}`,
+      );
+    }
   }
 
   // Metadata parsing and injection methods
