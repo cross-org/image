@@ -1,4 +1,7 @@
-import type { ImageData, ImageFormat } from "../types.ts";
+import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+
+// Constants for unit conversions
+const DEFAULT_DPI = 72;
 
 /**
  * TIFF format handler
@@ -30,12 +33,116 @@ export class TIFFFormat implements ImageFormat {
     // Read IFD offset
     const ifdOffset = this.readUint32(data, 4, isLittleEndian);
 
-    // Parse IFD to get image dimensions
+    // Parse IFD to get image dimensions and metadata
     const width = this.getIFDValue(data, ifdOffset, 0x0100, isLittleEndian); // ImageWidth tag
     const height = this.getIFDValue(data, ifdOffset, 0x0101, isLittleEndian); // ImageHeight tag
 
     if (!width || !height) {
       throw new Error("Could not determine TIFF dimensions");
+    }
+
+    // Extract metadata from TIFF tags
+    const metadata: ImageMetadata = {};
+
+    // XResolution (0x011a) and YResolution (0x011b) for DPI
+    const xResOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x011a,
+      isLittleEndian,
+    );
+    const yResOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x011b,
+      isLittleEndian,
+    );
+
+    if (xResOffset && xResOffset < data.length - 8) {
+      const numerator = this.readUint32(data, xResOffset, isLittleEndian);
+      const denominator = this.readUint32(
+        data,
+        xResOffset + 4,
+        isLittleEndian,
+      );
+      if (denominator > 0) {
+        metadata.dpiX = Math.round(numerator / denominator);
+      }
+    }
+
+    if (yResOffset && yResOffset < data.length - 8) {
+      const numerator = this.readUint32(data, yResOffset, isLittleEndian);
+      const denominator = this.readUint32(
+        data,
+        yResOffset + 4,
+        isLittleEndian,
+      );
+      if (denominator > 0) {
+        metadata.dpiY = Math.round(numerator / denominator);
+      }
+    }
+
+    // Calculate physical dimensions if DPI is available
+    if (metadata.dpiX && metadata.dpiY) {
+      metadata.physicalWidth = width / metadata.dpiX;
+      metadata.physicalHeight = height / metadata.dpiY;
+    }
+
+    // ImageDescription (0x010e)
+    const descOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x010e,
+      isLittleEndian,
+    );
+    if (descOffset && descOffset < data.length) {
+      metadata.description = this.readString(data, descOffset);
+    }
+
+    // Artist (0x013b)
+    const artistOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x013b,
+      isLittleEndian,
+    );
+    if (artistOffset && artistOffset < data.length) {
+      metadata.author = this.readString(data, artistOffset);
+    }
+
+    // Copyright (0x8298)
+    const copyrightOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x8298,
+      isLittleEndian,
+    );
+    if (copyrightOffset && copyrightOffset < data.length) {
+      metadata.copyright = this.readString(data, copyrightOffset);
+    }
+
+    // DateTime (0x0132)
+    const dateTimeOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0132,
+      isLittleEndian,
+    );
+    if (dateTimeOffset && dateTimeOffset < data.length) {
+      const dateStr = this.readString(data, dateTimeOffset);
+      const match = dateStr.match(
+        /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+      );
+      if (match) {
+        metadata.creationDate = new Date(
+          parseInt(match[1]),
+          parseInt(match[2]) - 1,
+          parseInt(match[3]),
+          parseInt(match[4]),
+          parseInt(match[5]),
+          parseInt(match[6]),
+        );
+      }
     }
 
     // For a complete pure JS implementation, we'd need to handle:
@@ -47,11 +154,16 @@ export class TIFFFormat implements ImageFormat {
 
     const rgba = await this.decodeUsingRuntime(data, width, height);
 
-    return { width, height, data: rgba };
+    return {
+      width,
+      height,
+      data: rgba,
+      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+    };
   }
 
   encode(imageData: ImageData): Promise<Uint8Array> {
-    const { width, height, data } = imageData;
+    const { width, height, data, metadata } = imageData;
 
     // Create an uncompressed TIFF with RGBA
     const result: number[] = [];
@@ -72,8 +184,18 @@ export class TIFFFormat implements ImageFormat {
 
     // IFD (Image File Directory)
     const ifdStart = result.length;
-    const numEntries = 11;
+
+    // Count number of entries (including metadata)
+    let numEntries = 11; // Base entries
+    if (metadata?.description) numEntries++;
+    if (metadata?.author) numEntries++;
+    if (metadata?.copyright) numEntries++;
+    if (metadata?.creationDate) numEntries++;
+
     this.writeUint16LE(result, numEntries);
+
+    // Calculate offsets for variable-length data
+    let dataOffset = ifdStart + 2 + numEntries * 12 + 4;
 
     // IFD entries (12 bytes each)
     // ImageWidth (0x0100)
@@ -83,13 +205,8 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x0101, 4, 1, height);
 
     // BitsPerSample (0x0102) - 8 bits per channel
-    this.writeIFDEntry(
-      result,
-      0x0102,
-      3,
-      4,
-      ifdStart + numEntries * 12 + 4 + 16,
-    );
+    this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
+    dataOffset += 8; // 4 x 2-byte values
 
     // Compression (0x0103) - 1 = uncompressed
     this.writeIFDEntry(result, 0x0103, 3, 1, 1);
@@ -110,26 +227,62 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x0117, 4, 1, width * height * 4);
 
     // XResolution (0x011a)
-    this.writeIFDEntry(result, 0x011a, 5, 1, ifdStart + numEntries * 12 + 4);
+    const xResOffset = dataOffset;
+    this.writeIFDEntry(result, 0x011a, 5, 1, xResOffset);
+    dataOffset += 8;
 
     // YResolution (0x011b)
-    this.writeIFDEntry(
-      result,
-      0x011b,
-      5,
-      1,
-      ifdStart + numEntries * 12 + 4 + 8,
-    );
+    const yResOffset = dataOffset;
+    this.writeIFDEntry(result, 0x011b, 5, 1, yResOffset);
+    dataOffset += 8;
+
+    // Optional metadata entries
+    if (metadata?.description) {
+      const descBytes = new TextEncoder().encode(metadata.description + "\0");
+      this.writeIFDEntry(result, 0x010e, 2, descBytes.length, dataOffset);
+      dataOffset += descBytes.length;
+    }
+
+    if (metadata?.author) {
+      const authorBytes = new TextEncoder().encode(metadata.author + "\0");
+      this.writeIFDEntry(result, 0x013b, 2, authorBytes.length, dataOffset);
+      dataOffset += authorBytes.length;
+    }
+
+    if (metadata?.copyright) {
+      const copyrightBytes = new TextEncoder().encode(
+        metadata.copyright + "\0",
+      );
+      this.writeIFDEntry(result, 0x8298, 2, copyrightBytes.length, dataOffset);
+      dataOffset += copyrightBytes.length;
+    }
+
+    if (metadata?.creationDate) {
+      const date = metadata.creationDate;
+      const dateStr = `${date.getFullYear()}:${
+        String(date.getMonth() + 1).padStart(2, "0")
+      }:${String(date.getDate()).padStart(2, "0")} ${
+        String(date.getHours()).padStart(2, "0")
+      }:${String(date.getMinutes()).padStart(2, "0")}:${
+        String(date.getSeconds()).padStart(2, "0")
+      }\0`;
+      const dateBytes = new TextEncoder().encode(dateStr);
+      this.writeIFDEntry(result, 0x0132, 2, dateBytes.length, dataOffset);
+      dataOffset += dateBytes.length;
+    }
 
     // Next IFD offset (0 = no more IFDs)
     this.writeUint32LE(result, 0);
 
-    // XResolution value (72 DPI as rational: 72/1)
-    this.writeUint32LE(result, 72);
+    // Write variable-length data
+    // XResolution value (rational)
+    const dpiX = metadata?.dpiX ?? DEFAULT_DPI;
+    this.writeUint32LE(result, dpiX);
     this.writeUint32LE(result, 1);
 
-    // YResolution value (72 DPI as rational: 72/1)
-    this.writeUint32LE(result, 72);
+    // YResolution value (rational)
+    const dpiY = metadata?.dpiY ?? DEFAULT_DPI;
+    this.writeUint32LE(result, dpiY);
     this.writeUint32LE(result, 1);
 
     // BitsPerSample values
@@ -137,6 +290,45 @@ export class TIFFFormat implements ImageFormat {
     this.writeUint16LE(result, 8);
     this.writeUint16LE(result, 8);
     this.writeUint16LE(result, 8);
+
+    // Write metadata strings
+    if (metadata?.description) {
+      const descBytes = new TextEncoder().encode(metadata.description + "\0");
+      for (const byte of descBytes) {
+        result.push(byte);
+      }
+    }
+
+    if (metadata?.author) {
+      const authorBytes = new TextEncoder().encode(metadata.author + "\0");
+      for (const byte of authorBytes) {
+        result.push(byte);
+      }
+    }
+
+    if (metadata?.copyright) {
+      const copyrightBytes = new TextEncoder().encode(
+        metadata.copyright + "\0",
+      );
+      for (const byte of copyrightBytes) {
+        result.push(byte);
+      }
+    }
+
+    if (metadata?.creationDate) {
+      const date = metadata.creationDate;
+      const dateStr = `${date.getFullYear()}:${
+        String(date.getMonth() + 1).padStart(2, "0")
+      }:${String(date.getDate()).padStart(2, "0")} ${
+        String(date.getHours()).padStart(2, "0")
+      }:${String(date.getMinutes()).padStart(2, "0")}:${
+        String(date.getSeconds()).padStart(2, "0")
+      }\0`;
+      const dateBytes = new TextEncoder().encode(dateStr);
+      for (const byte of dateBytes) {
+        result.push(byte);
+      }
+    }
 
     return Promise.resolve(new Uint8Array(result));
   }
@@ -254,5 +446,11 @@ export class TIFFFormat implements ImageFormat {
     throw new Error(
       "TIFF decoding requires ImageDecoder API or equivalent runtime support",
     );
+  }
+
+  private readString(data: Uint8Array, offset: number): string {
+    const endIndex = data.indexOf(0, offset);
+    if (endIndex === -1 || endIndex <= offset) return "";
+    return new TextDecoder().decode(data.slice(offset, endIndex));
   }
 }
