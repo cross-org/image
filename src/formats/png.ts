@@ -520,7 +520,7 @@ export class PNGFormat implements ImageFormat {
 
       if (ifd0Offset + 2 > data.length) return;
 
-      // Read number of IFD entries
+      // Read number of IFD entries with bounds check
       const numEntries = littleEndian
         ? data[ifd0Offset] | (data[ifd0Offset + 1] << 8)
         : (data[ifd0Offset] << 8) | data[ifd0Offset + 1];

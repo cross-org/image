@@ -350,7 +350,7 @@ export class JPEGFormat implements ImageFormat {
 
       if (ifd0Offset + 2 > exifData.length) return;
 
-      // Read number of entries
+      // Read number of entries with bounds check
       const numEntries = littleEndian
         ? exifData[ifd0Offset] | (exifData[ifd0Offset + 1] << 8)
         : (exifData[ifd0Offset] << 8) | exifData[ifd0Offset + 1];
@@ -377,7 +377,10 @@ export class JPEGFormat implements ImageFormat {
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
             const dateStr = new TextDecoder().decode(
-              exifData.slice(valueOffset, endIndex),
+              exifData.slice(
+                valueOffset,
+                endIndex > valueOffset ? endIndex : undefined,
+              ),
             );
             const match = dateStr.match(
               /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
@@ -408,7 +411,10 @@ export class JPEGFormat implements ImageFormat {
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
             metadata.description = new TextDecoder().decode(
-              exifData.slice(valueOffset, endIndex > 0 ? endIndex : undefined),
+              exifData.slice(
+                valueOffset,
+                endIndex > valueOffset ? endIndex : undefined,
+              ),
             );
           }
         }
@@ -426,7 +432,10 @@ export class JPEGFormat implements ImageFormat {
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
             metadata.author = new TextDecoder().decode(
-              exifData.slice(valueOffset, endIndex > 0 ? endIndex : undefined),
+              exifData.slice(
+                valueOffset,
+                endIndex > valueOffset ? endIndex : undefined,
+              ),
             );
           }
         }
@@ -444,7 +453,10 @@ export class JPEGFormat implements ImageFormat {
           if (valueOffset < exifData.length) {
             const endIndex = exifData.indexOf(0, valueOffset);
             metadata.copyright = new TextDecoder().decode(
-              exifData.slice(valueOffset, endIndex > 0 ? endIndex : undefined),
+              exifData.slice(
+                valueOffset,
+                endIndex > valueOffset ? endIndex : undefined,
+              ),
             );
           }
         }
