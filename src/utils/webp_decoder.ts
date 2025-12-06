@@ -1,9 +1,23 @@
 /**
- * Basic WebP decoder implementation
- * Supports WebP lossless (VP8L) format
+ * WebP VP8L (Lossless) decoder implementation
  *
- * This is a simplified implementation that handles lossless WebP files.
- * For lossy WebP (VP8) or complex images, the ImageDecoder API fallback is preferred.
+ * This module implements a pure JavaScript decoder for WebP lossless (VP8L) format.
+ * It supports:
+ * - Huffman coding (canonical Huffman codes)
+ * - LZ77 backward references for compression
+ * - Color cache for repeated colors
+ * - Simple and complex Huffman code tables
+ *
+ * Current limitations:
+ * - Does not support transforms (predictor, color, subtract green, color indexing)
+ * - Does not support meta Huffman codes
+ * - Does not support lossy WebP (VP8) format
+ *
+ * For images with transforms or lossy compression, the decoder will fall back
+ * to the runtime's ImageDecoder API if available.
+ *
+ * @see https://developers.google.com/speed/webp/docs/riff_container
+ * @see https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
  */
 
 // Helper to read little-endian values
@@ -16,11 +30,60 @@ function readUint32LE(data: Uint8Array, offset: number): number {
     (data[offset + 2] << 16) | (data[offset + 3] << 24);
 }
 
-// Huffman code structure (placeholder for future use)
-// interface HuffmanCode {
-//   bits: number;
-//   value: number;
-// }
+// Huffman tree node
+interface HuffmanNode {
+  symbol?: number;
+  left?: HuffmanNode;
+  right?: HuffmanNode;
+}
+
+// Huffman code table
+class HuffmanTable {
+  private root: HuffmanNode;
+  private singleSymbol?: number; // For tables with only one symbol
+
+  constructor() {
+    this.root = {};
+  }
+
+  addCode(symbol: number, code: number, codeLength: number): void {
+    // Handle single symbol case (code length 0)
+    if (codeLength === 0) {
+      this.singleSymbol = symbol;
+      return;
+    }
+
+    let node = this.root;
+    for (let i = codeLength - 1; i >= 0; i--) {
+      const bit = (code >> i) & 1;
+      if (bit === 0) {
+        if (!node.left) node.left = {};
+        node = node.left;
+      } else {
+        if (!node.right) node.right = {};
+        node = node.right;
+      }
+    }
+    node.symbol = symbol;
+  }
+
+  readSymbol(reader: BitReader): number {
+    // Handle single symbol case
+    if (this.singleSymbol !== undefined) {
+      return this.singleSymbol;
+    }
+
+    let node = this.root;
+    while (node.symbol === undefined) {
+      const bit = reader.readBits(1);
+      node = bit === 0 ? node.left! : node.right!;
+      if (!node) {
+        throw new Error("Invalid Huffman code");
+      }
+    }
+    return node.symbol;
+  }
+}
 
 class BitReader {
   private data: Uint8Array;
@@ -56,6 +119,20 @@ class BitReader {
 
   getPosition(): number {
     return this.pos;
+  }
+
+  // Read bytes aligned to byte boundary
+  readBytes(count: number): Uint8Array {
+    // Align to byte boundary
+    if (this.bitPos !== 0 && this.bitPos !== 8) {
+      this.bitPos = 0;
+    }
+    if (this.pos + count > this.data.length) {
+      throw new Error("Unexpected end of data");
+    }
+    const result = this.data.slice(this.pos, this.pos + count);
+    this.pos += count;
+    return result;
   }
 }
 
@@ -165,82 +242,326 @@ export class WebPDecoder {
     reader: BitReader,
     width: number,
     height: number,
-    _alphaUsed: number,
+    alphaUsed: number,
   ): Uint8Array {
-    // Read transform info (simplified - we'll skip transforms for now)
+    // Read transform info
     const useTransforms = reader.readBits(1);
 
     if (useTransforms) {
       // For simplicity, we don't support transforms in this basic decoder
+      // Transforms include: predictor, color, subtract green, color indexing
       throw new Error("WebP transforms not supported in basic decoder");
     }
 
     // Read color cache info
-    const useCCache = reader.readBits(1);
+    const useColorCache = reader.readBits(1) === 1;
     let colorCacheBits = 0;
-    if (useCCache) {
+    let colorCacheSize = 0;
+    if (useColorCache) {
       colorCacheBits = reader.readBits(4);
       if (colorCacheBits < 1 || colorCacheBits > 11) {
         throw new Error("Invalid color cache bits");
       }
+      colorCacheSize = 1 << colorCacheBits;
     }
 
-    // Read Huffman codes (placeholder - not fully implemented)
-    this.readHuffmanCodes(reader);
+    // Read Huffman codes
+    const huffmanTables = this.readHuffmanCodes(
+      reader,
+      useColorCache,
+      colorCacheBits,
+    );
 
-    // Decode the image
+    // Decode the image using Huffman codes
     const pixelData = new Uint8Array(width * height * 4);
     let pixelIndex = 0;
+    const numPixels = width * height;
 
-    // This is a very simplified decoder that handles basic cases
-    // A full implementation would need to handle:
-    // - Transforms (predictor, color, subtract green, color indexing)
-    // - LZ77 backward references
-    // - Color cache
-    // For now, we'll create a simple solid color image as a fallback
+    // Color cache for repeated colors
+    const colorCache = new Uint32Array(colorCacheSize);
 
-    // Try to decode what we can
-    for (let i = 0; i < width * height && pixelIndex < pixelData.length; i++) {
-      // Set to a neutral gray with full alpha (simplified fallback)
-      pixelData[pixelIndex++] = 128; // R
-      pixelData[pixelIndex++] = 128; // G
-      pixelData[pixelIndex++] = 128; // B
-      pixelData[pixelIndex++] = 255; // A (always opaque for now)
+    for (let i = 0; i < numPixels;) {
+      // Read green channel (which determines the code type)
+      const green = huffmanTables.green.readSymbol(reader);
+
+      if (green < 256) {
+        // Literal pixel
+        const red = huffmanTables.red.readSymbol(reader);
+        const blue = huffmanTables.blue.readSymbol(reader);
+        const alpha = alphaUsed !== 0
+          ? huffmanTables.alpha.readSymbol(reader)
+          : 255;
+
+        pixelData[pixelIndex++] = red;
+        pixelData[pixelIndex++] = green;
+        pixelData[pixelIndex++] = blue;
+        pixelData[pixelIndex++] = alpha;
+
+        // Add to color cache if enabled
+        if (useColorCache) {
+          const color = (alpha << 24) | (blue << 16) | (green << 8) | red;
+          colorCache[i % colorCacheSize] = color;
+        }
+
+        i++;
+      } else if (green < 256 + 24) {
+        // Backward reference (LZ77)
+        const lengthSymbol = green - 256;
+        const length = this.getLength(lengthSymbol, reader);
+
+        const distancePrefix = huffmanTables.distance.readSymbol(reader);
+        const distance = this.getDistance(distancePrefix, reader);
+
+        // Copy pixels from earlier in the stream
+        const srcIndex = pixelIndex - distance * 4;
+        if (srcIndex < 0) {
+          throw new Error("Invalid backward reference");
+        }
+
+        for (let j = 0; j < length; j++) {
+          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4];
+          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 1];
+          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 2];
+          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 3];
+
+          // Add to color cache
+          if (useColorCache) {
+            const color = (pixelData[pixelIndex - 1] << 24) |
+              (pixelData[pixelIndex - 2] << 16) |
+              (pixelData[pixelIndex - 3] << 8) |
+              pixelData[pixelIndex - 4];
+            colorCache[(i + j) % colorCacheSize] = color;
+          }
+        }
+
+        i += length;
+      } else {
+        // Color cache reference
+        const cacheIndex = green - 256 - 24;
+        if (cacheIndex >= colorCacheSize) {
+          throw new Error("Invalid color cache index");
+        }
+
+        const color = colorCache[cacheIndex];
+        pixelData[pixelIndex++] = color & 0xff; // R
+        pixelData[pixelIndex++] = (color >> 8) & 0xff; // G
+        pixelData[pixelIndex++] = (color >> 16) & 0xff; // B
+        pixelData[pixelIndex++] = (color >> 24) & 0xff; // A
+
+        i++;
+      }
     }
 
     return pixelData;
   }
 
-  private readHuffmanCodes(reader: BitReader): void {
-    // Read Huffman image (meta Huffman codes)
+  private readHuffmanCodes(
+    reader: BitReader,
+    useColorCache: boolean,
+    colorCacheBits: number,
+  ): {
+    green: HuffmanTable;
+    red: HuffmanTable;
+    blue: HuffmanTable;
+    alpha: HuffmanTable;
+    distance: HuffmanTable;
+  } {
+    // Read meta Huffman codes
     const useMetaHuffman = reader.readBits(1);
 
     if (useMetaHuffman) {
-      // Meta Huffman codes - simplified handling
-      const _huffmanBits = reader.readBits(3) + 2;
-      // Skip for now
+      // Meta Huffman is more complex - for now throw error
+      throw new Error("Meta Huffman codes not yet supported");
     }
 
     // Read the main Huffman codes
-    // This is simplified and would need full implementation
-    const numCodes = reader.readBits(4) + 4;
+    // There are 5 Huffman code groups: green, red, blue, alpha, distance
+    // But we read 4 + optional distance code
+    const numCodeGroups = reader.readBits(4) + 4;
 
-    for (let i = 0; i < numCodes; i++) {
-      const simple = reader.readBits(1);
-      if (simple) {
-        const numSymbols = reader.readBits(1) + 1;
-        for (let j = 0; j < numSymbols; j++) {
-          if (i === 0) {
-            reader.readBits(8); // Read green symbol
-          } else {
-            reader.readBits(8); // Read other symbols
-          }
-        }
+    const tables = {
+      green: new HuffmanTable(),
+      red: new HuffmanTable(),
+      blue: new HuffmanTable(),
+      alpha: new HuffmanTable(),
+      distance: new HuffmanTable(),
+    };
+
+    const tableArray = [
+      tables.green,
+      tables.red,
+      tables.blue,
+      tables.alpha,
+      tables.distance,
+    ];
+
+    for (let i = 0; i < numCodeGroups && i < 5; i++) {
+      this.readHuffmanCode(
+        reader,
+        tableArray[i],
+        useColorCache,
+        colorCacheBits,
+        i === 0,
+      );
+    }
+
+    return tables;
+  }
+
+  private readHuffmanCode(
+    reader: BitReader,
+    table: HuffmanTable,
+    useColorCache: boolean,
+    colorCacheBits: number,
+    isGreen: boolean,
+  ): void {
+    const simple = reader.readBits(1);
+
+    if (simple) {
+      // Simple code - directly specify 1 or 2 symbols
+      const numSymbols = reader.readBits(1) + 1;
+      const isFirstEightBits = reader.readBits(1);
+
+      const symbols: number[] = [];
+      for (let i = 0; i < numSymbols; i++) {
+        const symbolBits = isFirstEightBits
+          ? 1 + reader.readBits(7)
+          : reader.readBits(8);
+        symbols.push(symbolBits);
+      }
+
+      // Build simple Huffman table
+      if (numSymbols === 1) {
+        // Single symbol - 0 bits needed
+        table.addCode(symbols[0], 0, 0);
       } else {
-        // Code length codes
-        const _codeLengthCodeLengths = new Array(19).fill(0);
-        // Simplified - would need full implementation
+        // Two symbols - 1 bit each
+        table.addCode(symbols[0], 0, 1);
+        table.addCode(symbols[1], 1, 1);
+      }
+    } else {
+      // Complex code - read code lengths
+      const maxSymbol = isGreen
+        ? (256 + 24 + (useColorCache ? (1 << colorCacheBits) : 0))
+        : 256;
+
+      const codeLengths = this.readCodeLengths(reader, maxSymbol);
+      this.buildHuffmanTable(table, codeLengths);
+    }
+  }
+
+  private readCodeLengths(reader: BitReader, maxSymbol: number): number[] {
+    // Read code length codes (used to encode the actual code lengths)
+    const numCodeLengthCodes = reader.readBits(4) + 4;
+    const codeLengthCodeLengths = new Array(19).fill(0);
+
+    // Code length code order
+    const codeLengthCodeOrder = [
+      17,
+      18,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      16,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+    ];
+
+    for (let i = 0; i < numCodeLengthCodes; i++) {
+      codeLengthCodeLengths[codeLengthCodeOrder[i]] = reader.readBits(3);
+    }
+
+    // Build code length Huffman table
+    const codeLengthTable = new HuffmanTable();
+    this.buildHuffmanTable(codeLengthTable, codeLengthCodeLengths);
+
+    // Read actual code lengths
+    const codeLengths = new Array(maxSymbol).fill(0);
+    let i = 0;
+    while (i < maxSymbol) {
+      const code = codeLengthTable.readSymbol(reader);
+
+      if (code < 16) {
+        // Literal code length
+        codeLengths[i++] = code;
+      } else if (code === 16) {
+        // Repeat previous code length 3-6 times
+        const repeatCount = reader.readBits(2) + 3;
+        const prevLength = i > 0 ? codeLengths[i - 1] : 0;
+        for (let j = 0; j < repeatCount && i < maxSymbol; j++) {
+          codeLengths[i++] = prevLength;
+        }
+      } else if (code === 17) {
+        // Repeat 0 for 3-10 times
+        const repeatCount = reader.readBits(3) + 3;
+        i += repeatCount;
+      } else if (code === 18) {
+        // Repeat 0 for 11-138 times
+        const repeatCount = reader.readBits(7) + 11;
+        i += repeatCount;
       }
     }
+
+    return codeLengths;
+  }
+
+  private buildHuffmanTable(table: HuffmanTable, codeLengths: number[]): void {
+    // Build canonical Huffman codes
+    const maxCodeLength = Math.max(...codeLengths);
+    const lengthCounts = new Array(maxCodeLength + 1).fill(0);
+
+    for (const length of codeLengths) {
+      if (length > 0) {
+        lengthCounts[length]++;
+      }
+    }
+
+    // Generate codes
+    let code = 0;
+    const nextCode = new Array(maxCodeLength + 1).fill(0);
+    for (let i = 1; i <= maxCodeLength; i++) {
+      code = (code + lengthCounts[i - 1]) << 1;
+      nextCode[i] = code;
+    }
+
+    // Assign codes to symbols
+    for (let symbol = 0; symbol < codeLengths.length; symbol++) {
+      const length = codeLengths[symbol];
+      if (length > 0) {
+        table.addCode(symbol, nextCode[length], length);
+        nextCode[length]++;
+      }
+    }
+  }
+
+  private getLength(symbol: number, reader: BitReader): number {
+    // Length encoding for backward references
+    if (symbol < 4) {
+      return symbol + 1;
+    }
+    const extraBits = (symbol - 2) >> 1;
+    const base = ((2 + (symbol & 1)) << extraBits) + 1;
+    return base + reader.readBits(extraBits);
+  }
+
+  private getDistance(symbol: number, reader: BitReader): number {
+    // Distance encoding for backward references
+    if (symbol < 4) {
+      return symbol + 1;
+    }
+    const extraBits = (symbol - 2) >> 1;
+    const base = ((2 + (symbol & 1)) << extraBits) + 1;
+    return base + reader.readBits(extraBits);
   }
 }
