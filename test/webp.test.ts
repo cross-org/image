@@ -93,6 +93,131 @@ test("WebP: encode - pure-JS fallback works", async () => {
   }
 });
 
+test("WebP: encode - lossless quality (100)", async () => {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // @ts-ignore: Force pure-JS path for testing
+    globalThis.OffscreenCanvas = undefined;
+
+    const data = new Uint8Array(2 * 2 * 4);
+    // Create a simple gradient
+    for (let i = 0; i < 4; i++) {
+      data[i * 4] = 64 * i; // R
+      data[i * 4 + 1] = 64 * i; // G
+      data[i * 4 + 2] = 64 * i; // B
+      data[i * 4 + 3] = 255; // A
+    }
+
+    const encoded = await webpFormat.encode(
+      { width: 2, height: 2, data },
+      { quality: 100 },
+    );
+
+    // Verify it's a valid WebP
+    assertEquals(encoded[0], 0x52); // 'R'
+    assertEquals(webpFormat.canDecode(encoded), true);
+  } finally {
+    // @ts-ignore: Restore
+    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+  }
+});
+
+test("WebP: encode - lossy quality (75)", async () => {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // @ts-ignore: Force pure-JS path for testing
+    globalThis.OffscreenCanvas = undefined;
+
+    const data = new Uint8Array(4 * 4 * 4);
+    // Create a gradient with many colors
+    for (let i = 0; i < 16; i++) {
+      data[i * 4] = 16 * i; // R
+      data[i * 4 + 1] = 16 * i; // G
+      data[i * 4 + 2] = 16 * i; // B
+      data[i * 4 + 3] = 255; // A
+    }
+
+    const losslessEncoded = await webpFormat.encode(
+      { width: 4, height: 4, data },
+      { quality: 100 },
+    );
+
+    const lossyEncoded = await webpFormat.encode(
+      { width: 4, height: 4, data },
+      { quality: 75 },
+    );
+
+    // Verify both are valid WebP
+    assertEquals(webpFormat.canDecode(losslessEncoded), true);
+    assertEquals(webpFormat.canDecode(lossyEncoded), true);
+
+    // Lossy should typically be smaller or similar size due to color quantization
+    // reducing the number of unique colors
+    // Note: Due to Huffman encoding, this isn't always guaranteed for tiny images
+    console.log(
+      `Lossless size: ${losslessEncoded.length}, Lossy size: ${lossyEncoded.length}`,
+    );
+  } finally {
+    // @ts-ignore: Restore
+    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+  }
+});
+
+test("WebP: encode - very low quality (30)", async () => {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // @ts-ignore: Force pure-JS path for testing
+    globalThis.OffscreenCanvas = undefined;
+
+    const data = new Uint8Array(8 * 8 * 4);
+    // Create a gradient with many colors
+    for (let i = 0; i < 64; i++) {
+      data[i * 4] = 4 * i; // R
+      data[i * 4 + 1] = 4 * i; // G
+      data[i * 4 + 2] = 4 * i; // B
+      data[i * 4 + 3] = 255; // A
+    }
+
+    const encoded = await webpFormat.encode(
+      { width: 8, height: 8, data },
+      { quality: 30 },
+    );
+
+    // Verify it's a valid WebP
+    assertEquals(webpFormat.canDecode(encoded), true);
+  } finally {
+    // @ts-ignore: Restore
+    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+  }
+});
+
+test("WebP: encode - force lossless flag", async () => {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // @ts-ignore: Force pure-JS path for testing
+    globalThis.OffscreenCanvas = undefined;
+
+    const data = new Uint8Array(2 * 2 * 4);
+    for (let i = 0; i < 4; i++) {
+      data[i * 4] = 128; // R
+      data[i * 4 + 1] = 128; // G
+      data[i * 4 + 2] = 128; // B
+      data[i * 4 + 3] = 255; // A
+    }
+
+    // Even with quality < 100, lossless flag should force lossless encoding
+    const encoded = await webpFormat.encode(
+      { width: 2, height: 2, data },
+      { quality: 75, lossless: true },
+    );
+
+    assertEquals(webpFormat.canDecode(encoded), true);
+  } finally {
+    // @ts-ignore: Restore
+    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+  }
+});
+
 // Test basic VP8L decoding with a simple solid color lossless WebP
 // This test uses a manually crafted simple VP8L image
 test("WebP: decode simple lossless image", () => {

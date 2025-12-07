@@ -1,9 +1,11 @@
 /**
- * WebP VP8L (Lossless) encoder implementation
+ * WebP VP8L (Lossless) encoder implementation with quality-based quantization
  *
  * This module implements a pure JavaScript encoder for WebP lossless (VP8L) format.
  * It supports:
- * - Lossless encoding with simple Huffman coding (1-2 symbols per channel)
+ * - Lossless encoding (quality=100) with Huffman coding
+ * - Lossy encoding (quality<100) using color quantization while still using VP8L format
+ * - Simple Huffman coding (1-2 symbols per channel)
  * - Complex Huffman coding for channels with many unique values (3+ symbols)
  * - Literal pixel encoding (no transforms applied)
  *
@@ -11,11 +13,12 @@
  * - Does not use transforms (predictor, color, subtract green, color indexing)
  * - Does not use LZ77 backward references (planned for future)
  * - Does not use color cache (planned for future)
+ * - Lossy mode uses simple quantization, not true VP8 lossy encoding
  * - Intended as a fallback when OffscreenCanvas is not available
  *
- * This encoder produces valid WebP lossless files with good compression for images
- * with moderate color variation. For better compression, use the runtime's
- * OffscreenCanvas API when available, or wait for LZ77/color cache implementation.
+ * This encoder produces valid WebP lossless files with optional quality-based
+ * color quantization for lossy compression. For true VP8 lossy encoding with
+ * better compression, use the runtime's OffscreenCanvas API when available.
  *
  * @see https://developers.google.com/speed/webp/docs/riff_container
  * @see https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
@@ -82,14 +85,18 @@ export class WebPEncoder {
   private width: number;
   private height: number;
   private data: Uint8Array;
+  private quality: number;
 
   constructor(width: number, height: number, rgba: Uint8Array) {
     this.width = width;
     this.height = height;
     this.data = rgba;
+    this.quality = 100; // Default to lossless
   }
 
-  encode(): Uint8Array {
+  encode(quality: number = 100): Uint8Array {
+    this.quality = Math.max(1, Math.min(100, quality));
+
     // Build RIFF container
     const output: number[] = [];
 
@@ -169,6 +176,52 @@ export class WebPEncoder {
     return false;
   }
 
+  /**
+   * Quantize image data based on quality setting
+   * Quality 100 = no quantization (lossless)
+   * Quality 1-99 = quantize colors to reduce bit depth
+   * This creates a "lossy" effect while still using VP8L format
+   */
+  private quantizeImageData(): Uint8Array {
+    if (this.quality === 100) {
+      // No quantization for lossless
+      return this.data;
+    }
+
+    // Calculate quantization level based on quality
+    // Quality 90-99: very light quantization (shift by 1 bit)
+    // Quality 70-89: light quantization (shift by 2 bits)
+    // Quality 50-69: medium quantization (shift by 3 bits)
+    // Quality 30-49: heavy quantization (shift by 4 bits)
+    // Quality 1-29: very heavy quantization (shift by 5 bits)
+    let shift: number;
+    if (this.quality >= 90) {
+      shift = 1;
+    } else if (this.quality >= 70) {
+      shift = 2;
+    } else if (this.quality >= 50) {
+      shift = 3;
+    } else if (this.quality >= 30) {
+      shift = 4;
+    } else {
+      shift = 5;
+    }
+
+    // Create quantized copy of the image data
+    const quantized = new Uint8Array(this.data.length);
+    const mask = 0xFF << shift; // Bitmask for quantization
+    for (let i = 0; i < this.data.length; i += 4) {
+      // Quantize RGB channels using bitwise AND with mask
+      quantized[i] = this.data[i] & mask; // R
+      quantized[i + 1] = this.data[i + 1] & mask; // G
+      quantized[i + 2] = this.data[i + 2] & mask; // B
+      // Keep alpha channel unquantized for better transparency handling
+      quantized[i + 3] = this.data[i + 3]; // A
+    }
+
+    return quantized;
+  }
+
   private encodeImageData(hasAlpha: number): number[] {
     const writer = new BitWriter();
 
@@ -187,6 +240,9 @@ export class WebPEncoder {
     const numCodeGroups = 5;
     writer.writeBits(numCodeGroups - 4, 4); // 1 means 5 groups
 
+    // Apply quantization if quality < 100
+    const encodingData = this.quantizeImageData();
+
     // Collect symbol frequencies for each channel
     const greenFreqs = new Map<number, number>();
     const redFreqs = new Map<number, number>();
@@ -196,10 +252,10 @@ export class WebPEncoder {
     const numPixels = this.width * this.height;
     for (let i = 0; i < numPixels; i++) {
       const offset = i * 4;
-      const r = this.data[offset];
-      const g = this.data[offset + 1];
-      const b = this.data[offset + 2];
-      const a = this.data[offset + 3];
+      const r = encodingData[offset];
+      const g = encodingData[offset + 1];
+      const b = encodingData[offset + 2];
+      const a = encodingData[offset + 3];
 
       greenFreqs.set(g, (greenFreqs.get(g) || 0) + 1);
       redFreqs.set(r, (redFreqs.get(r) || 0) + 1);
@@ -226,10 +282,10 @@ export class WebPEncoder {
     // Encode pixels using the Huffman codes
     for (let i = 0; i < numPixels; i++) {
       const offset = i * 4;
-      const r = this.data[offset];
-      const g = this.data[offset + 1];
-      const b = this.data[offset + 2];
-      const a = this.data[offset + 3];
+      const r = encodingData[offset];
+      const g = encodingData[offset + 1];
+      const b = encodingData[offset + 2];
+      const a = encodingData[offset + 3];
 
       // Write each channel using its Huffman code
       this.writeSymbol(writer, greenCodes, g);
