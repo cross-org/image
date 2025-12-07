@@ -13,6 +13,27 @@ import { assertEquals } from "../test/assert.ts";
 import { test } from "../test/test_runner.ts";
 import { Image } from "../src/image.ts";
 
+// Helper to check if an error is a file not found error (cross-runtime)
+function isFileNotFoundError(e: unknown): boolean {
+  return (
+    (typeof Deno !== "undefined" && e instanceof Deno.errors.NotFound) ||
+    (e instanceof Error && (e as { code?: string }).code === "ENOENT")
+  );
+}
+
+// Cross-runtime file reading helper
+async function readFile(path: string): Promise<Uint8Array> {
+  if (typeof Deno !== "undefined") {
+    // Deno runtime
+    return await Deno.readFile(path);
+  } else {
+    // Node.js/Bun runtime
+    const fs = await import("fs/promises");
+    const buffer = await fs.readFile(path);
+    return new Uint8Array(buffer);
+  }
+}
+
 // Helper to check if two colors are similar (for lossy formats)
 function colorsSimilar(c1: number, c2: number, tolerance = 30): boolean {
   return Math.abs(c1 - c2) <= tolerance;
@@ -276,7 +297,7 @@ test("Pure-JS: decode pre-generated JPEG images", async () => {
     const files = ["solid.jpeg", "gradient.jpeg", "pattern.jpeg"];
     for (const file of files) {
       try {
-        const data = await Deno.readFile(`test_images/${file}`);
+        const data = await readFile(`test_images/${file}`);
         const image = await Image.read(data);
 
         // Should successfully decode
@@ -293,7 +314,7 @@ test("Pure-JS: decode pre-generated JPEG images", async () => {
         );
       } catch (e) {
         // If file doesn't exist, skip this test
-        if (e instanceof Deno.errors.NotFound) {
+        if (isFileNotFoundError(e)) {
           console.log(
             `Skipping ${file} - file not found (run generate_test_images.ts first)`,
           );
@@ -303,7 +324,7 @@ test("Pure-JS: decode pre-generated JPEG images", async () => {
       }
     }
   } catch (e) {
-    if (e instanceof Deno.errors.NotFound) {
+    if (isFileNotFoundError(e)) {
       console.log(
         "Skipping pre-generated image tests - run generate_test_images.ts first",
       );
@@ -318,7 +339,7 @@ test("Pure-JS: decode pre-generated PNG images", async () => {
     const files = ["solid.png", "gradient.png", "pattern.png"];
     for (const file of files) {
       try {
-        const data = await Deno.readFile(`test_images/${file}`);
+        const data = await readFile(`test_images/${file}`);
         const image = await Image.read(data);
 
         assertEquals(image.width > 0, true, `${file} should have valid width`);
@@ -333,7 +354,7 @@ test("Pure-JS: decode pre-generated PNG images", async () => {
           `${file} should have correct data length`,
         );
       } catch (e) {
-        if (e instanceof Deno.errors.NotFound) {
+        if (isFileNotFoundError(e)) {
           console.log(`Skipping ${file} - file not found`);
           continue;
         }
@@ -341,7 +362,7 @@ test("Pure-JS: decode pre-generated PNG images", async () => {
       }
     }
   } catch (e) {
-    if (e instanceof Deno.errors.NotFound) {
+    if (isFileNotFoundError(e)) {
       console.log("Skipping pre-generated image tests");
     } else {
       throw e;
@@ -354,7 +375,7 @@ test("Pure-JS: decode pre-generated TIFF images", async () => {
     const files = ["solid.tiff", "gradient.tiff", "pattern.tiff"];
     for (const file of files) {
       try {
-        const data = await Deno.readFile(`test_images/${file}`);
+        const data = await readFile(`test_images/${file}`);
         const image = await Image.read(data);
 
         assertEquals(image.width > 0, true, `${file} should have valid width`);
@@ -369,7 +390,7 @@ test("Pure-JS: decode pre-generated TIFF images", async () => {
           `${file} should have correct data length`,
         );
       } catch (e) {
-        if (e instanceof Deno.errors.NotFound) {
+        if (isFileNotFoundError(e)) {
           console.log(`Skipping ${file} - file not found`);
           continue;
         }
@@ -377,7 +398,7 @@ test("Pure-JS: decode pre-generated TIFF images", async () => {
       }
     }
   } catch (e) {
-    if (e instanceof Deno.errors.NotFound) {
+    if (isFileNotFoundError(e)) {
       console.log("Skipping pre-generated image tests");
     } else {
       throw e;
