@@ -192,3 +192,85 @@ test("GIF: encode and decode - multi-color pattern", async () => {
   // Verify we have the expected number of bytes
   assertEquals(decoded.data.length, width * height * 4);
 });
+
+test("GIF: encode and decode - black and white with color reduction", async () => {
+  const format = new GIFFormat();
+
+  // Create an image with many colors (> 256) plus pure black and white
+  // This triggers the color reduction path in the encoder
+  const width = 20;
+  const height = 20;
+  const data = new Uint8Array(width * height * 4);
+
+  // Fill with gradient to create many colors (more than 256)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      // Create gradient with many unique colors
+      data[idx] = Math.floor((x / width) * 255); // R
+      data[idx + 1] = Math.floor((y / height) * 255); // G
+      data[idx + 2] = Math.floor(((x + y) / (width + height)) * 255); // B
+      data[idx + 3] = 255; // A
+    }
+  }
+
+  // Override some pixels to be pure black
+  for (let i = 0; i < 10; i++) {
+    const idx = i * 4;
+    data[idx] = 0;
+    data[idx + 1] = 0;
+    data[idx + 2] = 0;
+    data[idx + 3] = 255;
+  }
+
+  // Override some pixels to be pure white
+  for (let i = 10; i < 20; i++) {
+    const idx = i * 4;
+    data[idx] = 255;
+    data[idx + 1] = 255;
+    data[idx + 2] = 255;
+    data[idx + 3] = 255;
+  }
+
+  const imageData: ImageData = { width, height, data };
+
+  // Encode
+  const encoded = await format.encode(imageData);
+
+  // Verify it's a valid GIF
+  assertEquals(format.canDecode(encoded), true);
+
+  // Decode
+  const decoded = await format.decode(encoded);
+
+  // Check dimensions
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+
+  // Check that pure black pixels remain black
+  for (let i = 0; i < 10; i++) {
+    const idx = i * 4;
+    const r = decoded.data[idx];
+    const g = decoded.data[idx + 1];
+    const b = decoded.data[idx + 2];
+    assertEquals(
+      r === 0 && g === 0 && b === 0,
+      true,
+      `Black pixel ${i} should be (0,0,0), got (${r},${g},${b})`,
+    );
+  }
+
+  // Check that pure white pixels remain white (not light brown)
+  // This is the key test - with the bug, white would become (224,224,192)
+  for (let i = 10; i < 20; i++) {
+    const idx = i * 4;
+    const r = decoded.data[idx];
+    const g = decoded.data[idx + 1];
+    const b = decoded.data[idx + 2];
+    assertEquals(
+      r === 255 && g === 255 && b === 255,
+      true,
+      `White pixel ${i} should be (255,255,255), got (${r},${g},${b})`,
+    );
+  }
+});
