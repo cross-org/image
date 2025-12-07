@@ -287,12 +287,15 @@ APIs (ImageDecoder) provide excellent performance when available.
 
 ### Runtime Support
 
-| Runtime  | Pure-JS Baseline | ImageDecoder (Progressive) |
-| -------- | ---------------- | -------------------------- |
-| Deno 2.x | ✅ Full          | ✅ Full                    |
-| Node 18  | ✅ Full          | ❌ Not available           |
-| Node 20+ | ✅ Full          | ✅ Full                    |
-| Bun      | ✅ Full          | ✅ Full                    |
+| Runtime  | Pure-JS Baseline | ImageDecoder API |
+| -------- | ---------------- | ---------------- |
+| Deno 2.x | ✅ Full          | ✅ Full          |
+| Node 18  | ✅ Full          | ❌ Not available |
+| Node 20+ | ✅ Full          | ⚠️ Partial*      |
+| Bun      | ✅ Full          | ✅ Full          |
+
+\* Node.js 20+ has experimental ImageDecoder support that may require specific
+flags or versions. The pure-JS implementation provides a reliable fallback.
 
 ### Browser Support
 

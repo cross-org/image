@@ -4,6 +4,19 @@ import { test } from "../test/test_runner.ts";
 import { JPEGFormat } from "../src/formats/jpeg.ts";
 import { Image } from "../src/image.ts";
 
+// Helper to temporarily disable OffscreenCanvas to force pure-JS encoder
+function withoutOffscreenCanvas<T>(fn: () => T | Promise<T>): T | Promise<T> {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      undefined;
+    return fn();
+  } finally {
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      originalOffscreenCanvas;
+  }
+}
+
 test("JPEG: canDecode - valid JPEG signature", () => {
   const validJPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
   const format = new JPEGFormat();
@@ -313,31 +326,24 @@ test("JPEG: Pure-JS encoder - force pure-JS path", async () => {
 
   const imageData = { width, height, data };
 
-  // Force pure-JS encoder by temporarily hiding OffscreenCanvas
-  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
-  try {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
+  // Force pure-JS encoder by using the helper
+  const encoded = await withoutOffscreenCanvas(async () => {
+    return await format.encode(imageData);
+  });
 
-    const encoded = await format.encode(imageData);
+  // Should be a valid JPEG
+  assertEquals(encoded[0], 0xff);
+  assertEquals(encoded[1], 0xd8);
+  assertEquals(encoded[2], 0xff);
 
-    // Should be a valid JPEG
-    assertEquals(encoded[0], 0xff);
-    assertEquals(encoded[1], 0xd8);
-    assertEquals(encoded[2], 0xff);
+  // Should end with EOI marker
+  assertEquals(encoded[encoded.length - 2], 0xff);
+  assertEquals(encoded[encoded.length - 1], 0xd9);
 
-    // Should end with EOI marker
-    assertEquals(encoded[encoded.length - 2], 0xff);
-    assertEquals(encoded[encoded.length - 1], 0xd9);
-
-    // Decode it back (this will use pure-JS decoder if ImageDecoder unavailable)
-    const decoded = await format.decode(encoded);
-    assertEquals(decoded.width, width);
-    assertEquals(decoded.height, height);
-  } finally {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      originalOffscreenCanvas;
-  }
+  // Decode it back (this will use pure-JS decoder if ImageDecoder unavailable)
+  const decoded = await format.decode(encoded);
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
 });
 
 test("JPEG: Pure-JS decoder - grayscale image", async () => {
@@ -424,22 +430,15 @@ test("JPEG: Quality parameter affects file size", async () => {
   const imageData = { width, height, data };
 
   // Test with different quality settings through the pure-JS encoder
-  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
-  try {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
+  const encoded = await withoutOffscreenCanvas(async () => {
+    return await format.encode(imageData);
+  });
 
-    const encoded = await format.encode(imageData);
-
-    // The encoder uses quality 85 by default
-    // Higher quality = larger file size
-    // Just verify we get valid JPEG output
-    assertEquals(encoded[0], 0xff);
-    assertEquals(encoded[1], 0xd8);
-    assertEquals(encoded[encoded.length - 2], 0xff);
-    assertEquals(encoded[encoded.length - 1], 0xd9);
-  } finally {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      originalOffscreenCanvas;
-  }
+  // The encoder uses quality 85 by default
+  // Higher quality = larger file size
+  // Just verify we get valid JPEG output
+  assertEquals(encoded[0], 0xff);
+  assertEquals(encoded[1], 0xd8);
+  assertEquals(encoded[encoded.length - 2], 0xff);
+  assertEquals(encoded[encoded.length - 1], 0xd9);
 });
