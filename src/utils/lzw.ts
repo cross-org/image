@@ -96,7 +96,8 @@ export class LZWDecoder {
             this.nextCode++;
 
             // Increase code size when nextCode reaches power-of-2 threshold
-            if (this.nextCode == (1 << this.codeSize) && this.codeSize < 12) {
+            // Use (nextCode - 1) because we just incremented it
+            if ((this.nextCode) == (1 << this.codeSize) && this.codeSize < 12) {
               this.codeSize++;
             }
           }
@@ -114,7 +115,7 @@ export class LZWDecoder {
           output.push(...newEntry);
 
           // Increase code size when nextCode reaches power-of-2 threshold
-          if (this.nextCode == (1 << this.codeSize) && this.codeSize < 12) {
+          if ((this.nextCode) == (1 << this.codeSize) && this.codeSize < 12) {
             this.codeSize++;
           }
         }
