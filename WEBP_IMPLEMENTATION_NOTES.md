@@ -6,7 +6,7 @@ The WebP VP8L (lossless) encoder now implements:
 
 - ✅ Simple Huffman coding (1-2 unique symbols per channel)
 - ✅ Literal pixel encoding (uncompressed)
-- ✅ **Complex Huffman codes (>2 symbols) - NEWLY IMPLEMENTED**
+- ✅ **Complex Huffman codes (>2 symbols) - FULLY WORKING**
 - ❌ LZ77 backward references - **not yet implemented**
 - ❌ Color cache - **not yet implemented**
 
@@ -23,15 +23,10 @@ LZ77 and color cache.
 - ✅ RLE encoding of code lengths (using codes 16, 17, 18 for runs)
 - ✅ Code length Huffman table generation and encoding
 - ✅ Single channel with many unique values (tested up to 50 colors)
-- ✅ Images with patterns like checkerboards, solid colors, simple gradients
-
-### Known Limitations
-
-- ⚠️ Large gradients with multiple channels having many unique values may fail
-  - Example: 50x50 gradient where both R and G channels have 50 unique values
-  - Smaller gradients (e.g., 10x10) or patterns with fewer unique combinations
-    work fine
-- ⚠️ This is a bit-level encoding challenge that requires additional debugging
+- ✅ Multiple channels with many unique values (tested 50x50 gradients)
+- ✅ Images with patterns like checkerboards, solid colors, gradients
+- ✅ All 5 required Huffman code groups (green, red, blue, alpha, distance)
+- ✅ Correct maxSymbol values (280 for green, 256 for others, 40 for distance)
 
 ### Technical Implementation
 
@@ -43,10 +38,27 @@ The encoder now:
 4. RLE-encodes the code lengths for compactness
 5. Builds a secondary Huffman table for the code lengths themselves
 6. Writes both the code length table and the main Huffman table
-7. Encodes pixels using the Huffman codes
+7. Writes all 5 required Huffman code groups (even if distance is unused)
+8. Encodes pixels using the Huffman codes
 
-This matches the WebP specification and the decoder's expectations for most use
-cases.
+This matches the WebP specification and the decoder's expectations.
+
+## Bug Fixes
+
+### Fixed: Missing Distance Huffman Code
+
+- **Issue**: Encoder only wrote 4 Huffman code groups (green, red, blue, alpha)
+- **Fix**: Now writes all 5 required groups including distance (even when not
+  using LZ77)
+- **Impact**: Decoder was encountering "Unexpected end of data" errors
+
+### Fixed: Incorrect maxSymbol for Green Channel
+
+- **Issue**: Green channel used maxSymbol=256, but spec requires 280 (256 + 24
+  length codes)
+- **Fix**: Green channel now uses maxSymbol=280, others use 256, distance uses
+  40
+- **Impact**: Complex Huffman codes for green channel were truncated incorrectly
 
 ## Implementation Roadmap
 
