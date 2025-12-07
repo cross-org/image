@@ -450,7 +450,10 @@ export class WebPEncoder {
 
     // Calculate code lengths by traversing tree (iterative to avoid deep recursion)
     const root = nodes[0];
-    const stack: Array<{ node: Node; depth: number }> = [{ node: root, depth: 0 }];
+    const stack: Array<{ node: Node; depth: number }> = [{
+      node: root,
+      depth: 0,
+    }];
     while (stack.length > 0) {
       const { node, depth } = stack.pop()!;
       if (node.symbol !== undefined) {

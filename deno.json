@@ -17,6 +17,7 @@
   },
   "imports": {
     "@cross/test": "jsr:@cross/test@^0.0.14",
+    "@deno/dnt": "npm:@deno/dnt@^0.41.3",
     "@std/assert": "jsr:@std/assert@^1"
   },
   "publish": {

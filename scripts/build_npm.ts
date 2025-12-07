@@ -1,5 +1,5 @@
 // scripts/build_npm.ts
-import { build, emptyDir } from "npm:@deno/dnt@^0.41.3";
+import { build, emptyDir } from "@deno/dnt";
 
 import pkg from "../deno.json" with { type: "json" };
 
