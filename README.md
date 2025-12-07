@@ -144,6 +144,15 @@ const forcedLossless = await image.save("webp", {
 await Deno.writeFile("output-forced.webp", forcedLossless);
 ```
 
+**WebP Format Compatibility:**
+
+- **VP8L (Lossless)**: Supported in pure JavaScript across all runtimes
+- **VP8 (Lossy)**: Requires ImageDecoder API (Deno, Node.js 20+, Bun)
+- If you encounter "WebP lossy (VP8) format requires ImageDecoder API" error:
+  - Use a runtime with ImageDecoder support (Node.js 20+, Deno, or Bun)
+  - Or convert VP8 files to VP8L format using a tool like `cwebp -lossless`
+  - Or use alternative formats like PNG or JPEG
+
 ### Converting to ASCII Art
 
 ```ts

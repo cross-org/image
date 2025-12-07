@@ -231,3 +231,70 @@ test("WebP: decode simple lossless image", () => {
     "WebP decoder extended - requires actual WebP files for full testing",
   );
 });
+
+// Test VP8 (lossy) format detection and error handling
+test("WebP: decode VP8 lossy - proper error message", async () => {
+  // Create a minimal VP8 (lossy) WebP file to test error handling
+  function createVP8WebP(): Uint8Array {
+    const chunks: number[] = [];
+
+    // RIFF header
+    chunks.push(...[0x52, 0x49, 0x46, 0x46]); // "RIFF"
+
+    // File size (placeholder, will update)
+    const fileSizePos = chunks.length;
+    chunks.push(0x00, 0x00, 0x00, 0x00);
+
+    // WEBP signature
+    chunks.push(...[0x57, 0x45, 0x42, 0x50]); // "WEBP"
+
+    // VP8 chunk header
+    chunks.push(...[0x56, 0x50, 0x38, 0x20]); // "VP8 " (note the space)
+
+    // VP8 chunk size (minimal valid VP8 data = 10 bytes)
+    const vp8ChunkSize = 10;
+    chunks.push(
+      vp8ChunkSize & 0xff,
+      (vp8ChunkSize >> 8) & 0xff,
+      (vp8ChunkSize >> 16) & 0xff,
+      (vp8ChunkSize >> 24) & 0xff,
+    );
+
+    // Minimal VP8 frame data
+    // Frame tag (3 bytes): key frame (bit 0 = 0)
+    chunks.push(0x00, 0x00, 0x00);
+
+    // Start code (3 bytes)
+    chunks.push(0x9d, 0x01, 0x2a);
+
+    // Width and height (2 bytes each, 14 bits)
+    // Width = 2 (0x0001), Height = 2 (0x0001)
+    chunks.push(0x01, 0x00); // width
+    chunks.push(0x01, 0x00); // height
+
+    // Update file size in RIFF header
+    const fileSize = chunks.length - 8; // Size after "RIFF" and size field
+    chunks[fileSizePos] = fileSize & 0xff;
+    chunks[fileSizePos + 1] = (fileSize >> 8) & 0xff;
+    chunks[fileSizePos + 2] = (fileSize >> 16) & 0xff;
+    chunks[fileSizePos + 3] = (fileSize >> 24) & 0xff;
+
+    return new Uint8Array(chunks);
+  }
+
+  const vp8WebP = createVP8WebP();
+
+  // Check if ImageDecoder is available
+  if (typeof ImageDecoder === "undefined") {
+    // Without ImageDecoder, VP8 should fail with a helpful error message
+    await assertRejects(
+      async () => await webpFormat.decode(vp8WebP),
+      Error,
+      "WebP lossy (VP8) format requires ImageDecoder API",
+    );
+  } else {
+    // With ImageDecoder, VP8 might work (depending on the validity of our minimal file)
+    // or might fail for other reasons, which is acceptable
+    console.log("ImageDecoder available - VP8 test behavior may vary");
+  }
+});
