@@ -29,6 +29,20 @@ export interface ImageMetadata {
 }
 
 /**
+ * Frame-specific metadata for multi-frame images
+ */
+export interface FrameMetadata {
+  /** Frame delay in milliseconds (for animations) */
+  delay?: number;
+  /** Frame disposal method: how to treat the frame before rendering the next one */
+  disposal?: "none" | "background" | "previous";
+  /** X offset of frame within the canvas */
+  left?: number;
+  /** Y offset of frame within the canvas */
+  top?: number;
+}
+
+/**
  * Image data representation
  */
 export interface ImageData {
@@ -39,6 +53,34 @@ export interface ImageData {
   /** Raw pixel data as RGBA (4 bytes per pixel) */
   data: Uint8Array;
   /** Optional metadata */
+  metadata?: ImageMetadata;
+}
+
+/**
+ * Single frame in a multi-frame image
+ */
+export interface ImageFrame {
+  /** Frame width in pixels */
+  width: number;
+  /** Frame height in pixels */
+  height: number;
+  /** Raw pixel data as RGBA (4 bytes per pixel) */
+  data: Uint8Array;
+  /** Optional frame-specific metadata */
+  frameMetadata?: FrameMetadata;
+}
+
+/**
+ * Multi-frame image data representation
+ */
+export interface MultiFrameImageData {
+  /** Canvas width in pixels (for GIF logical screen) */
+  width: number;
+  /** Canvas height in pixels (for GIF logical screen) */
+  height: number;
+  /** Array of frames */
+  frames: ImageFrame[];
+  /** Optional global metadata */
   metadata?: ImageMetadata;
 }
 
@@ -98,4 +140,27 @@ export interface ImageFormat {
    * @returns true if the data matches this format
    */
   canDecode(data: Uint8Array): boolean;
+
+  /**
+   * Decode all frames from multi-frame image (optional)
+   * @param data Raw image data
+   * @returns Decoded multi-frame image data
+   */
+  decodeFrames?(data: Uint8Array): Promise<MultiFrameImageData>;
+
+  /**
+   * Encode multi-frame image data to bytes (optional)
+   * @param imageData Multi-frame image data to encode
+   * @param options Optional format-specific encoding options
+   * @returns Encoded image bytes
+   */
+  encodeFrames?(
+    imageData: MultiFrameImageData,
+    options?: unknown,
+  ): Promise<Uint8Array>;
+
+  /**
+   * Check if the format supports multiple frames
+   */
+  supportsMultipleFrames?(): boolean;
 }

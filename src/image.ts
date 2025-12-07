@@ -2,6 +2,7 @@ import type {
   ImageData,
   ImageFormat,
   ImageMetadata,
+  MultiFrameImageData,
   ResizeOptions,
 } from "./types.ts";
 import { resizeBilinear, resizeNearest } from "./utils/resize.ts";
@@ -209,6 +210,63 @@ export class Image {
     }
 
     throw new Error("Unsupported or unrecognized image format");
+  }
+
+  /**
+   * Read all frames from a multi-frame image (GIF animation, multi-page TIFF)
+   * @param data Raw image data
+   * @param format Optional format hint (e.g., "gif", "tiff")
+   * @returns MultiFrameImageData with all frames
+   */
+  static async readFrames(
+    data: Uint8Array,
+    format?: string,
+  ): Promise<MultiFrameImageData> {
+    // Try specified format first
+    if (format) {
+      const handler = Image.formats.find((f) => f.name === format);
+      if (handler && handler.canDecode(data) && handler.decodeFrames) {
+        return await handler.decodeFrames(data);
+      }
+    }
+
+    // Auto-detect format
+    for (const handler of Image.formats) {
+      if (handler.canDecode(data) && handler.decodeFrames) {
+        return await handler.decodeFrames(data);
+      }
+    }
+
+    throw new Error(
+      "Unsupported or unrecognized multi-frame image format",
+    );
+  }
+
+  /**
+   * Save multi-frame image data to bytes in the specified format
+   * @param format Format name (e.g., "gif", "tiff")
+   * @param imageData Multi-frame image data to save
+   * @param options Optional format-specific encoding options
+   * @returns Encoded image bytes
+   */
+  static async saveFrames(
+    format: string,
+    imageData: MultiFrameImageData,
+    options?: unknown,
+  ): Promise<Uint8Array> {
+    const handler = Image.formats.find((f) => f.name === format);
+
+    if (!handler) {
+      throw new Error(`Unsupported format: ${format}`);
+    }
+
+    if (!handler.encodeFrames) {
+      throw new Error(
+        `Format ${format} does not support multi-frame encoding`,
+      );
+    }
+
+    return await handler.encodeFrames(imageData, options);
   }
 
   /**

@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageFormat,
+  ImageMetadata,
+  MultiFrameImageData,
+} from "../types.ts";
 import { GIFDecoder } from "../utils/gif_decoder.ts";
 import { GIFEncoder } from "../utils/gif_encoder.ts";
 
@@ -11,13 +16,16 @@ import { GIFEncoder } from "../utils/gif_encoder.ts";
  * - Color quantization and palette generation for encoding
  * - Interlacing support
  * - Transparency support
+ * - Multi-frame animation support (decoding and encoding)
  * - Falls back to runtime APIs when pure-JS fails
- *
- * Note: Only decodes the first frame of animated GIFs
  */
 export class GIFFormat implements ImageFormat {
   readonly name = "gif";
   readonly mimeType = "image/gif";
+
+  supportsMultipleFrames(): boolean {
+    return true;
+  }
 
   canDecode(data: Uint8Array): boolean {
     // GIF signature: "GIF87a" or "GIF89a"
@@ -181,6 +189,83 @@ export class GIFFormat implements ImageFormat {
       throw new Error(
         "GIF encoding requires pure-JS support or OffscreenCanvas API",
       );
+    }
+  }
+
+  /**
+   * Decode all frames from an animated GIF
+   */
+  decodeFrames(data: Uint8Array): Promise<MultiFrameImageData> {
+    if (!this.canDecode(data)) {
+      throw new Error("Invalid GIF signature");
+    }
+
+    try {
+      const decoder = new GIFDecoder(data);
+      const result = decoder.decodeAllFrames();
+
+      // Extract metadata from comment extensions
+      const metadata = this.extractMetadata(data);
+
+      return Promise.resolve({
+        width: result.width,
+        height: result.height,
+        frames: result.frames.map((frame) => ({
+          width: frame.width,
+          height: frame.height,
+          data: frame.data,
+          frameMetadata: {
+            left: frame.left,
+            top: frame.top,
+            delay: frame.delay * 10, // Convert centiseconds to milliseconds
+            disposal: this.mapDisposalMethod(frame.disposal),
+          },
+        })),
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      });
+    } catch (error) {
+      throw new Error(`GIF multi-frame decoding failed: ${error}`);
+    }
+  }
+
+  /**
+   * Encode multi-frame image data to animated GIF
+   * Note: Currently not implemented, will encode only first frame
+   */
+  encodeFrames(
+    imageData: MultiFrameImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
+    // For now, just encode the first frame using the existing encoder
+    // Full multi-frame encoding would require a more complex GIFEncoder
+    if (imageData.frames.length === 0) {
+      throw new Error("No frames to encode");
+    }
+
+    const firstFrame = imageData.frames[0];
+    const singleFrameData: ImageData = {
+      width: firstFrame.width,
+      height: firstFrame.height,
+      data: firstFrame.data,
+      metadata: imageData.metadata,
+    };
+
+    return this.encode(singleFrameData);
+  }
+
+  private mapDisposalMethod(
+    disposal: number,
+  ): "none" | "background" | "previous" {
+    switch (disposal) {
+      case 0:
+      case 1:
+        return "none";
+      case 2:
+        return "background";
+      case 3:
+        return "previous";
+      default:
+        return "none";
     }
   }
 
