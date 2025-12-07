@@ -16,6 +16,7 @@ export class LZWDecoder {
   private codeSize: number;
   private dict: Uint8Array[];
   private prevCode: number | null;
+  private nextCode: number;
 
   constructor(minCodeSize: number, data: Uint8Array) {
     this.minCodeSize = minCodeSize;
@@ -27,6 +28,7 @@ export class LZWDecoder {
     this.codeSize = minCodeSize + 1;
     this.dict = [];
     this.prevCode = null;
+    this.nextCode = this.endCode + 1;
     this.initDictionary();
   }
 
@@ -41,6 +43,7 @@ export class LZWDecoder {
     this.dict[this.endCode] = new Uint8Array(0);
     this.codeSize = this.minCodeSize + 1;
     this.prevCode = null;
+    this.nextCode = this.endCode + 1;
   }
 
   private readCode(): number | null {
@@ -85,32 +88,40 @@ export class LZWDecoder {
 
         if (this.prevCode !== null && this.prevCode < this.dict.length) {
           const prevEntry = this.dict[this.prevCode];
-          if (prevEntry) {
+          if (prevEntry && this.nextCode < 4096) {
             const newEntry = new Uint8Array(prevEntry.length + 1);
             newEntry.set(prevEntry);
             newEntry[prevEntry.length] = entry[0];
-            this.dict.push(newEntry);
+            this.dict[this.nextCode] = newEntry;
+            this.nextCode++;
+
+            // Increase code size when nextCode reaches power-of-2 threshold
+            // Use (nextCode - 1) because we just incremented it
+            if ((this.nextCode) == (1 << this.codeSize) && this.codeSize < 12) {
+              this.codeSize++;
+            }
           }
         }
       } else if (this.prevCode !== null && this.prevCode < this.dict.length) {
         // Special case: code not in dictionary yet
         const prevEntry = this.dict[this.prevCode];
-        if (prevEntry) {
+        if (prevEntry && this.nextCode < 4096) {
           const newEntry = new Uint8Array(prevEntry.length + 1);
           newEntry.set(prevEntry);
           newEntry[prevEntry.length] = prevEntry[0];
-          this.dict.push(newEntry);
+          this.dict[this.nextCode] = newEntry;
+          this.nextCode++;
+
           output.push(...newEntry);
+
+          // Increase code size when nextCode reaches power-of-2 threshold
+          if ((this.nextCode) == (1 << this.codeSize) && this.codeSize < 12) {
+            this.codeSize++;
+          }
         }
       }
 
       this.prevCode = code;
-
-      // Increase code size when dictionary reaches certain sizes
-      const dictSize = this.dict.length;
-      if (dictSize >= (1 << this.codeSize) && this.codeSize < 12) {
-        this.codeSize++;
-      }
     }
 
     return new Uint8Array(output);
@@ -193,7 +204,7 @@ export class LZWEncoder {
           nextCode++;
 
           // Increase code size when needed
-          if (nextCode >= (1 << this.codeSize) && this.codeSize < 12) {
+          if (nextCode == (1 << this.codeSize) && this.codeSize < 12) {
             this.codeSize++;
           }
         }
