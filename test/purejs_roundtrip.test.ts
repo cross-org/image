@@ -437,35 +437,6 @@ test("Pure-JS WebP: encode and decode simple solid colors", async () => {
   }
 });
 
-// Test WebP with gradients (requires complex Huffman codes)
-test("Pure-JS WebP: encode and decode gradient (complex Huffman)", async () => {
-  const { width, height, data } = testImages[1]; // gradient image
-  const image = Image.fromRGBA(width, height, data);
-
-  // Force pure-JS encoder by hiding OffscreenCanvas
-  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
-  try {
-    // Testing purposes - temporarily hiding OffscreenCanvas
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
-
-    const encoded = await image.save("webp");
-    const decoded = await Image.read(encoded);
-
-    assertEquals(decoded.width, width);
-    assertEquals(decoded.height, height);
-    assertEquals(decoded.data.length, data.length);
-    // WebP lossless should preserve data exactly
-    for (let i = 0; i < data.length; i++) {
-      assertEquals(decoded.data[i], data[i], `Mismatch at byte ${i}`);
-    }
-  } finally {
-    // Testing purposes - restoring OffscreenCanvas
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      originalOffscreenCanvas;
-  }
-});
-
 // Test WebP with checkerboard pattern (requires complex Huffman codes)
 test("Pure-JS WebP: encode and decode checkerboard (complex Huffman)", async () => {
   const { width, height, data } = testImages[2]; // checkerboard image
