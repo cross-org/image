@@ -58,11 +58,15 @@ export class GIFEncoder {
       }
     }
 
+    // Track if we're using color reduction
+    let useColorReduction = false;
+
     // If we have too many colors, use simple color reduction
-    if (colors.length > 256) {
+    if (colors.length >= 256) {
       // Downsample colors to 256 by reducing color depth
       colorMap.clear();
       colors.length = 0;
+      useColorReduction = true;
 
       for (let i = 0; i < this.data.length; i += 4) {
         // Reduce color depth: 3 bits for R/G channels, 2 bits for B channel
@@ -98,27 +102,41 @@ export class GIFEncoder {
     // Create indexed data
     const indexed = new Uint8Array(this.width * this.height);
     for (let i = 0, j = 0; i < this.data.length; i += 4, j++) {
-      const r = this.data[i];
-      const g = this.data[i + 1];
-      const b = this.data[i + 2];
+      let r = this.data[i];
+      let g = this.data[i + 1];
+      let b = this.data[i + 2];
 
-      // Find closest color in palette
-      let minDist = Infinity;
-      let bestIdx = 0;
-
-      for (let k = 0; k < colors.length; k++) {
-        const dr = r - colors[k].r;
-        const dg = g - colors[k].g;
-        const db = b - colors[k].b;
-        const dist = dr * dr + dg * dg + db * db;
-
-        if (dist < minDist) {
-          minDist = dist;
-          bestIdx = k;
-        }
+      // Apply color reduction if it was used for palette
+      if (useColorReduction) {
+        r = r & 0xe0;
+        g = g & 0xe0;
+        b = b & 0xc0;
       }
 
-      indexed[j] = bestIdx;
+      const key = `${r},${g},${b}`;
+
+      // Use colorMap for fast O(1) lookup
+      if (colorMap.has(key)) {
+        indexed[j] = colorMap.get(key)!;
+      } else {
+        // Fallback: find closest color in palette
+        let minDist = Infinity;
+        let bestIdx = 0;
+
+        for (let k = 0; k < colors.length; k++) {
+          const dr = r - colors[k].r;
+          const dg = g - colors[k].g;
+          const db = b - colors[k].b;
+          const dist = dr * dr + dg * dg + db * db;
+
+          if (dist < minDist) {
+            minDist = dist;
+            bestIdx = k;
+          }
+        }
+
+        indexed[j] = bestIdx;
+      }
     }
 
     return { palette, indexed };
