@@ -442,3 +442,88 @@ test("JPEG: Quality parameter affects file size", async () => {
   assertEquals(encoded[encoded.length - 2], 0xff);
   assertEquals(encoded[encoded.length - 1], 0xd9);
 });
+
+test("JPEG: Pure-JS decoder - chroma subsampling compatibility", async () => {
+  // Test that the decoder correctly handles images with chroma subsampling
+  // by creating images of various sizes that would exercise different
+  // subsampling boundary conditions.
+  // Note: The pure-JS encoder currently uses 4:4:4 (no chroma subsampling),
+  // but the decoder is designed to handle 4:2:0 and 4:2:2 as well.
+
+  const testSizes = [
+    { width: 16, height: 16 }, // Exactly MCU aligned (16x16 for 4:2:0)
+    { width: 24, height: 16 }, // Non-square
+    { width: 17, height: 17 }, // Requires MCU padding
+    { width: 32, height: 24 }, // Larger, non-square
+  ];
+
+  for (const { width, height } of testSizes) {
+    // Create a gradient pattern to test color accuracy
+    const data = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        data[i] = Math.floor((x / width) * 255); // Red gradient horizontal
+        data[i + 1] = Math.floor((y / height) * 255); // Green gradient vertical
+        data[i + 2] = 128; // Blue constant
+        data[i + 3] = 255; // Alpha
+      }
+    }
+
+    const image = Image.fromRGBA(width, height, data);
+
+    // Encode with pure-JS encoder (uses 4:4:4 subsampling)
+    const encoded = await withoutOffscreenCanvas(async () => {
+      return await image.save("jpeg");
+    });
+
+    // Decode with pure-JS decoder
+    const decoded = await withoutOffscreenCanvas(async () => {
+      return await Image.read(encoded);
+    });
+
+    // Verify dimensions are preserved
+    assertEquals(decoded.width, width, `Width mismatch for ${width}x${height}`);
+    assertEquals(
+      decoded.height,
+      height,
+      `Height mismatch for ${width}x${height}`,
+    );
+
+    // Verify the image data is reasonable (lossy compression, so allow tolerance)
+    // Check the center point which should have less edge artifacts
+    const cx = Math.floor(width / 2);
+    const cy = Math.floor(height / 2);
+    const ci = (cy * width + cx) * 4;
+
+    const expectedR = Math.floor((cx / width) * 255);
+    const expectedG = Math.floor((cy / height) * 255);
+    const expectedB = 128;
+
+    const decodedR = decoded.data[ci];
+    const decodedG = decoded.data[ci + 1];
+    const decodedB = decoded.data[ci + 2];
+
+    // Allow tolerance for JPEG compression artifacts
+    // Using 40 (~16% of 255) as a reasonable tolerance for quality=85 JPEG
+    const tolerance = 40;
+    assertEquals(
+      Math.abs(decodedR - expectedR) <= tolerance,
+      true,
+      `Red channel at center of ${width}x${height}: expected ~${expectedR}, got ${decodedR}`,
+    );
+    assertEquals(
+      Math.abs(decodedG - expectedG) <= tolerance,
+      true,
+      `Green channel at center of ${width}x${height}: expected ~${expectedG}, got ${decodedG}`,
+    );
+    assertEquals(
+      Math.abs(decodedB - expectedB) <= tolerance,
+      true,
+      `Blue channel at center of ${width}x${height}: expected ~${expectedB}, got ${decodedB}`,
+    );
+
+    // Verify alpha channel is always 255
+    assertEquals(decoded.data[ci + 3], 255, `Alpha channel should be 255`);
+  }
+});

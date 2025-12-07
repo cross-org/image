@@ -582,10 +582,13 @@ export class JPEGDecoder {
           }
 
           // Cb and Cr components (may be subsampled)
-          const cbBlockRow = Math.floor(row * cb.v / (8 * maxV));
-          const cbBlockCol = Math.floor(col * cb.h / (8 * maxH));
-          const cbBlockY = Math.floor((row * cb.v / maxV) % 8);
-          const cbBlockX = Math.floor((col * cb.h / maxH) % 8);
+          // Scale pixel position by subsampling factor, then get block and within-block positions
+          const cbRow = Math.floor(row * cb.v / maxV);
+          const cbCol = Math.floor(col * cb.h / maxH);
+          const cbBlockRow = Math.floor(cbRow / 8);
+          const cbBlockCol = Math.floor(cbCol / 8);
+          const cbBlockY = cbRow % 8;
+          const cbBlockX = cbCol % 8;
 
           let cbVal = 0;
           if (
@@ -595,10 +598,12 @@ export class JPEGDecoder {
               128;
           }
 
-          const crBlockRow = Math.floor(row * cr.v / (8 * maxV));
-          const crBlockCol = Math.floor(col * cr.h / (8 * maxH));
-          const crBlockY = Math.floor((row * cr.v / maxV) % 8);
-          const crBlockX = Math.floor((col * cr.h / maxH) % 8);
+          const crRow = Math.floor(row * cr.v / maxV);
+          const crCol = Math.floor(col * cr.h / maxH);
+          const crBlockRow = Math.floor(crRow / 8);
+          const crBlockCol = Math.floor(crCol / 8);
+          const crBlockY = crRow % 8;
+          const crBlockX = crCol % 8;
 
           let crVal = 0;
           if (

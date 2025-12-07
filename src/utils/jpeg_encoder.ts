@@ -1030,10 +1030,11 @@ export class JPEGEncoder {
     // Apply DCT
     this.forwardDCT(block);
 
-    // Quantize
+    // Quantize and reorder to zigzag
     const quantized = new Array(64);
     for (let i = 0; i < 64; i++) {
-      quantized[ZIGZAG[i]] = Math.round(block[i] / quantTable[ZIGZAG[i]]);
+      const zigzagIndex = ZIGZAG[i];
+      quantized[i] = Math.round(block[zigzagIndex] / quantTable[zigzagIndex]);
     }
 
     // Encode DC coefficient
