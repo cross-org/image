@@ -33,7 +33,7 @@ export { PNGFormat } from "./src/formats/png.ts";
 export { JPEGFormat } from "./src/formats/jpeg.ts";
 export { WebPFormat } from "./src/formats/webp.ts";
 export { GIFFormat } from "./src/formats/gif.ts";
-export { TIFFFormat } from "./src/formats/tiff.ts";
+export { type TIFFEncodeOptions, TIFFFormat } from "./src/formats/tiff.ts";
 export { BMPFormat } from "./src/formats/bmp.ts";
 export { RAWFormat } from "./src/formats/raw.ts";
 export { ASCIIFormat } from "./src/formats/ascii.ts";
