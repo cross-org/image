@@ -119,7 +119,9 @@ export class WebPEncoder {
 
     // Encode VP8L data
     const vp8lData = this.encodeVP8L();
-    output.push(...vp8lData);
+    for (let i = 0; i < vp8lData.length; i++) {
+      output.push(vp8lData[i]);
+    }
 
     // Add padding if chunk size is odd
     if (vp8lData.length % 2 === 1) {
@@ -161,7 +163,9 @@ export class WebPEncoder {
 
     // Encode image data
     const imageData = this.encodeImageData(hasAlpha);
-    output.push(...imageData);
+    for (let i = 0; i < imageData.length; i++) {
+      output.push(imageData[i]);
+    }
 
     return output;
   }
@@ -444,20 +448,18 @@ export class WebPEncoder {
       nodes.push(parent);
     }
 
-    // Calculate code lengths by traversing tree
+    // Calculate code lengths by traversing tree (iterative to avoid deep recursion)
     const root = nodes[0];
-    const calculateDepth = (node: Node, depth: number) => {
+    const stack: Array<{ node: Node; depth: number }> = [{ node: root, depth: 0 }];
+    while (stack.length > 0) {
+      const { node, depth } = stack.pop()!;
       if (node.symbol !== undefined) {
-        // Leaf node - set code length (limited to maxCodeLength)
         codeLengths[node.symbol] = Math.min(depth, maxCodeLength);
       } else {
-        // Internal node - recurse
-        if (node.left) calculateDepth(node.left, depth + 1);
-        if (node.right) calculateDepth(node.right, depth + 1);
+        if (node.left) stack.push({ node: node.left, depth: depth + 1 });
+        if (node.right) stack.push({ node: node.right, depth: depth + 1 });
       }
-    };
-
-    calculateDepth(root, 0);
+    }
 
     // Handle edge case: depth 0 occurs when we have a single node tree (e.g., 2 symbols)
     // In canonical Huffman coding, all symbols must have length >= 1

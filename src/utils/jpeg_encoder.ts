@@ -797,7 +797,9 @@ export class JPEGEncoder {
 
     // Encode scan data
     const scanData = this.encodeScan(width, height, rgba);
-    output.push(...scanData);
+    for (let i = 0; i < scanData.length; i++) {
+      output.push(scanData[i]);
+    }
 
     // EOI (End of Image)
     output.push(0xff, 0xd9);

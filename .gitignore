@@ -50,3 +50,6 @@ test_output/
 
 # Generated test images
 test_images/
+
+# Local test
+local_test/
