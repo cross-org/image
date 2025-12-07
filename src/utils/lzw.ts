@@ -14,6 +14,7 @@ export class LZWDecoder {
   private pos: number;
   private bitPos: number;
   private codeSize: number;
+  private maxCode: number;
   private dict: Uint8Array[];
   private prevCode: number | null;
   private nextCode: number;
@@ -26,6 +27,7 @@ export class LZWDecoder {
     this.pos = 0;
     this.bitPos = 0;
     this.codeSize = minCodeSize + 1;
+    this.maxCode = (1 << this.codeSize) - 1;
     this.dict = [];
     this.prevCode = null;
     this.nextCode = this.endCode + 1;
@@ -42,6 +44,7 @@ export class LZWDecoder {
     this.dict[this.clearCode] = new Uint8Array(0);
     this.dict[this.endCode] = new Uint8Array(0);
     this.codeSize = this.minCodeSize + 1;
+    this.maxCode = (1 << this.codeSize) - 1;
     this.prevCode = null;
     this.nextCode = this.endCode + 1;
   }
@@ -71,6 +74,16 @@ export class LZWDecoder {
     const output: number[] = [];
 
     while (true) {
+      // Check if we need to increase code size for this read
+      // This happens when we're about to add an entry at nextCode and it exceeds maxCode
+      if (
+        this.prevCode !== null && this.nextCode > this.maxCode &&
+        this.codeSize < 12
+      ) {
+        this.maxCode = this.maxCode * 2 + 1;
+        this.codeSize++;
+      }
+
       const code = this.readCode();
 
       if (code === null || code === this.endCode) {
@@ -94,12 +107,6 @@ export class LZWDecoder {
             newEntry[prevEntry.length] = entry[0];
             this.dict[this.nextCode] = newEntry;
             this.nextCode++;
-
-            // Increase code size when nextCode reaches power-of-2 threshold
-            // Use (nextCode - 1) because we just incremented it
-            if ((this.nextCode) == (1 << this.codeSize) && this.codeSize < 12) {
-              this.codeSize++;
-            }
           }
         }
       } else if (this.prevCode !== null && this.prevCode < this.dict.length) {
@@ -113,11 +120,6 @@ export class LZWDecoder {
           this.nextCode++;
 
           output.push(...newEntry);
-
-          // Increase code size when nextCode reaches power-of-2 threshold
-          if ((this.nextCode) == (1 << this.codeSize) && this.codeSize < 12) {
-            this.codeSize++;
-          }
         }
       }
 
@@ -136,6 +138,7 @@ export class LZWEncoder {
   private clearCode: number;
   private endCode: number;
   private codeSize: number;
+  private maxCode: number;
   private dict: Map<string, number>;
   private output: number[];
   private bitBuffer: number;
@@ -146,6 +149,7 @@ export class LZWEncoder {
     this.clearCode = 1 << minCodeSize;
     this.endCode = this.clearCode + 1;
     this.codeSize = minCodeSize + 1;
+    this.maxCode = (1 << this.codeSize) - 1;
     this.dict = new Map();
     this.output = [];
     this.bitBuffer = 0;
@@ -160,6 +164,7 @@ export class LZWEncoder {
       this.dict.set(String.fromCharCode(i), i);
     }
     this.codeSize = this.minCodeSize + 1;
+    this.maxCode = (1 << this.codeSize) - 1;
   }
 
   private writeCode(code: number): void {
@@ -201,12 +206,14 @@ export class LZWEncoder {
         // Add new entry to dictionary
         if (nextCode < 4096) {
           this.dict.set(bufferK, nextCode);
-          nextCode++;
 
-          // Increase code size when needed
-          if (nextCode == (1 << this.codeSize) && this.codeSize < 12) {
+          // Increase code size when needed (check BEFORE incrementing nextCode)
+          if (nextCode > this.maxCode && this.codeSize < 12) {
+            this.maxCode = this.maxCode * 2 + 1;
             this.codeSize++;
           }
+
+          nextCode++;
         }
 
         buffer = k;
