@@ -429,8 +429,11 @@ export class TIFFFormat implements ImageFormat {
         }
         ifdOffset = this.readUint32(data, nextIFDOffsetPos, isLittleEndian);
       } catch (error) {
-        // If we fail to decode a page, stop but don't fail if we have at least one frame
-        console.warn(`Failed to decode TIFF page: ${error}`);
+        // If we fail to decode a page, we've likely hit corruption or unsupported features
+        // Stop processing but return frames successfully decoded so far
+        if (frames.length === 0) {
+          throw error; // No frames decoded - propagate the error
+        }
         break;
       }
     }

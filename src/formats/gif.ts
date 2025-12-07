@@ -217,7 +217,8 @@ export class GIFFormat implements ImageFormat {
           frameMetadata: {
             left: frame.left,
             top: frame.top,
-            delay: frame.delay * 10, // Convert centiseconds to milliseconds
+            // Convert GIF delay from centiseconds (1/100s) to milliseconds
+            delay: frame.delay * 10,
             disposal: this.mapDisposalMethod(frame.disposal),
           },
         })),

@@ -221,6 +221,7 @@ export class GIFDecoder {
     const _aspectRatio = this.readByte();
 
     const hasGlobalColorTable = (packed & 0x80) !== 0;
+    // Color table size: 2^(n+1) where n is the 3 least significant bits
     const globalColorTableSize = 2 << (packed & 0x07);
 
     let globalColorTable: Uint8Array | null = null;
@@ -269,6 +270,7 @@ export class GIFDecoder {
 
         const hasLocalColorTable = (packed & 0x80) !== 0;
         const interlaced = (packed & 0x40) !== 0;
+        // Color table size: 2^(n+1) where n is the 3 least significant bits
         const localColorTableSize = 2 << (packed & 0x07);
 
         let localColorTable: Uint8Array | null = null;
