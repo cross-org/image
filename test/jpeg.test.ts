@@ -446,7 +446,9 @@ test("JPEG: Quality parameter affects file size", async () => {
 test("JPEG: Pure-JS decoder - chroma subsampling compatibility", async () => {
   // Test that the decoder correctly handles images with chroma subsampling
   // by creating images of various sizes that would exercise different
-  // subsampling boundary conditions
+  // subsampling boundary conditions.
+  // Note: The pure-JS encoder currently uses 4:4:4 (no chroma subsampling),
+  // but the decoder is designed to handle 4:2:0 and 4:2:2 as well.
 
   const testSizes = [
     { width: 16, height: 16 }, // Exactly MCU aligned (16x16 for 4:2:0)
@@ -470,7 +472,7 @@ test("JPEG: Pure-JS decoder - chroma subsampling compatibility", async () => {
 
     const image = Image.fromRGBA(width, height, data);
 
-    // Encode with pure-JS encoder (which uses 4:4:4 - no subsampling)
+    // Encode with pure-JS encoder (uses 4:4:4 subsampling)
     const encoded = await withoutOffscreenCanvas(async () => {
       return await image.save("jpeg");
     });
@@ -502,8 +504,9 @@ test("JPEG: Pure-JS decoder - chroma subsampling compatibility", async () => {
     const decodedG = decoded.data[ci + 1];
     const decodedB = decoded.data[ci + 2];
 
-    // Allow significant tolerance for JPEG compression
-    const tolerance = 60;
+    // Allow tolerance for JPEG compression artifacts
+    // Using 40 (~16% of 255) as a reasonable tolerance for quality=85 JPEG
+    const tolerance = 40;
     assertEquals(
       Math.abs(decodedR - expectedR) <= tolerance,
       true,
