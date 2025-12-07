@@ -252,8 +252,16 @@ export class WebPFormat implements ImageFormat {
       }
     }
 
+    // This should not normally be reached, but handle edge cases
+    const formatInfo = isVP8Lossy
+      ? "VP8 (lossy)"
+      : isVP8Lossless
+      ? "VP8L (lossless)"
+      : "unknown";
     throw new Error(
-      `WebP decoding failed: Unable to determine image format or no suitable decoder available`,
+      `WebP decoding failed: Unable to decode ${formatInfo} format. ` +
+        `No suitable decoder is available in this runtime. ` +
+        `This may indicate a corrupted file or unsupported WebP variant.`,
     );
   }
 
