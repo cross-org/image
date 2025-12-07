@@ -5,7 +5,8 @@ order: 0
 
 # @cross/image
 
-A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, and Bun.
+A pure JavaScript, dependency-free, cross-runtime image processing library for
+Deno, Node.js, and Bun.
 
 ## Features
 
@@ -83,7 +84,8 @@ await Deno.writeFile("resized.png", output);
 
 ## Supported Formats
 
-This table shows which image formats are supported and their implementation status:
+This table shows which image formats are supported and their implementation
+status:
 
 | Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Notes                                        |
 | ------ | ---- | ----- | -------------- | -------------- | -------------------------------------------- |
@@ -115,11 +117,13 @@ This table shows which image formats are supported and their implementation stat
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
 
-**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF, ASCII or RAW formats which have complete pure-JS implementations.
+**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
+ASCII or RAW formats which have complete pure-JS implementations.
 
 ## API Reference
 
-See the [API documentation](api.md) for detailed information about classes, methods, and types.
+See the [API documentation](api.md) for detailed information about classes,
+methods, and types.
 
 ## License
 
@@ -127,4 +131,5 @@ MIT License - see LICENSE file for details.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request on [GitHub](https://github.com/cross-org/image).
+Contributions are welcome! Please feel free to submit a Pull Request on
+[GitHub](https://github.com/cross-org/image).
