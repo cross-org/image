@@ -174,10 +174,14 @@ test("TIFF: encode with LZW compression - small image", async () => {
   assertEquals(decoded.width, imageData.width);
   assertEquals(decoded.height, imageData.height);
   assertEquals(decoded.data.length, imageData.data.length);
-  
+
   // Verify pixel data matches exactly (LZW is lossless)
   for (let i = 0; i < imageData.data.length; i++) {
-    assertEquals(decoded.data[i], imageData.data[i], `Pixel mismatch at index ${i}`);
+    assertEquals(
+      decoded.data[i],
+      imageData.data[i],
+      `Pixel mismatch at index ${i}`,
+    );
   }
 });
 
@@ -209,7 +213,7 @@ test("TIFF: LZW roundtrip - larger image", async () => {
   assertEquals(decoded.width, width);
   assertEquals(decoded.height, height);
   assertEquals(decoded.data.length, data.length);
-  
+
   // Verify pixel data matches exactly
   for (let i = 0; i < data.length; i++) {
     assertEquals(decoded.data[i], data[i], `Pixel mismatch at index ${i}`);
@@ -275,7 +279,7 @@ test("TIFF: LZW roundtrip - pattern image", async () => {
   assertEquals(decoded.width, width);
   assertEquals(decoded.height, height);
   assertEquals(decoded.data.length, data.length);
-  
+
   // Verify pixel data matches exactly
   for (let i = 0; i < data.length; i++) {
     assertEquals(decoded.data[i], data[i], `Pixel mismatch at index ${i}`);
@@ -316,9 +320,13 @@ test("TIFF: encode defaults to uncompressed when no options", async () => {
   assertEquals(decoded.width, imageData.width);
   assertEquals(decoded.height, imageData.height);
   assertEquals(decoded.data.length, imageData.data.length);
-  
+
   // Verify pixel data matches exactly
   for (let i = 0; i < imageData.data.length; i++) {
-    assertEquals(decoded.data[i], imageData.data[i], `Pixel mismatch at index ${i}`);
+    assertEquals(
+      decoded.data[i],
+      imageData.data[i],
+      `Pixel mismatch at index ${i}`,
+    );
   }
 });

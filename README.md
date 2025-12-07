@@ -99,6 +99,23 @@ const png = await image.save("png");
 await Deno.writeFile("red-square.png", png);
 ```
 
+### Using TIFF with LZW Compression
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.read(data);
+
+// Save as uncompressed TIFF
+const uncompressed = await image.save("tiff");
+await Deno.writeFile("output.tiff", uncompressed);
+
+// Save with LZW compression (smaller file size)
+const compressed = await image.save("tiff", { compression: "lzw" });
+await Deno.writeFile("output-compressed.tiff", compressed);
+```
+
 ### Converting to ASCII Art
 
 ```ts
@@ -147,16 +164,16 @@ await Deno.writeFile("output.webp", output);
 This table shows which image formats are supported and their implementation
 status:
 
-| Format | Read | Write | Pure-JS Decode  | Pure-JS Encode  | Native API Decode | Native API Encode  | Notes                                  |
-| ------ | ---- | ----- | --------------- | --------------- | ----------------- | ------------------ | -------------------------------------- |
-| PNG    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
-| BMP    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
-| RAW    | ✅   | ✅    | ✅ Full         | ✅ Full         | N/A               | N/A                | Uncompressed RGBA (no metadata)        |
-| ASCII  | ✅   | ✅    | ✅ Full         | ✅ Full         | N/A               | N/A                | Text-based ASCII art representation    |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline     | ⚠️ Baseline     | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only          |
-| GIF    | ✅   | ✅    | ✅ Full         | ✅ Full         | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation        |
-| WebP   | ✅   | ✅    | ⚠️ Lossless     | ⚠️ Basic        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for lossless (VP8L) only       |
-| TIFF   | ✅   | ✅    | ⚠️ Uncompressed | ✅ Uncompressed | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed RGB/RGBA only |
+| Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                   |
+| ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | --------------------------------------- |
+| PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation         |
+| BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation         |
+| RAW    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Uncompressed RGBA (no metadata)         |
+| ASCII  | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation     |
+| JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only           |
+| GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation         |
+| WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for lossless (VP8L) only        |
+| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed & LZW RGB/RGBA |
 
 **Legend:**
 
@@ -193,7 +210,8 @@ This table shows which format standards and variants are supported:
 |        | WebP Lossy (VP8)                    | ⚠️ Native only    | ImageDecoder   |
 |        | - EXIF, XMP metadata                | ✅ Full           | Pure-JS        |
 | TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS        |
-|        | - LZW, JPEG, PackBits compression   | ⚠️ Native only    | ImageDecoder   |
+|        | TIFF 6.0 - LZW compressed RGB/RGBA  | ✅ Full           | Pure-JS        |
+|        | - JPEG, PackBits compression        | ⚠️ Native only    | ImageDecoder   |
 |        | - Multi-page/IFD                    | ❌ Not Yet        | -              |
 |        | - EXIF, Artist, Copyright metadata  | ✅ Full           | Pure-JS        |
 | GIF    | GIF87a, GIF89a                      | ✅ Full           | Pure-JS        |
@@ -211,16 +229,16 @@ This table shows which format standards and variants are supported:
 
 ### Runtime Compatibility by Format
 
-| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                         |
-| ------ | -------- | ----------- | ----------- | --- | --------------------------------------------- |
-| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
-| BMP    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
-| RAW    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
-| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
-| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                      |
-| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full     |
-| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full     |
-| TIFF   | ✅       | ⚠️ Basic    | ✅          | ✅  | Node 18: pure-JS uncompressed only, 20+: full |
+| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                        |
+| ------ | -------- | ----------- | ----------- | --- | -------------------------------------------- |
+| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| BMP    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| RAW    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
+| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
+| TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
 ASCII or RAW formats which have complete pure-JS implementations.
@@ -329,6 +347,29 @@ const ascii = await image.save("ascii", {
   aspectRatio: 0.5,
   invert: false,
 });
+```
+
+#### `TIFFEncodeOptions`
+
+```ts
+interface TIFFEncodeOptions {
+  compression?: "none" | "lzw"; // Compression method (default: "none")
+}
+```
+
+**Compression methods:**
+
+- `none`: Uncompressed TIFF - larger file size, fastest encoding
+- `lzw`: LZW compression - smaller file size for most images, lossless
+
+**Usage:**
+
+```ts
+// Save as uncompressed TIFF (default)
+const uncompressed = await image.save("tiff");
+
+// Save with LZW compression
+const compressed = await image.save("tiff", { compression: "lzw" });
 ```
 
 #### `ImageData`
