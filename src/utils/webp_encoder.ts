@@ -190,38 +190,13 @@ export class WebPEncoder {
     const numCodeGroups = 4;
     writer.writeBits(numCodeGroups - 4, 4); // 0 means 4 groups
 
-    // For simplicity, use single-symbol Huffman codes for each color channel
-    // This is valid but inefficient - it's like writing uncompressed data
-
-    // Collect actual symbols used
-    const greenSymbols = new Set<number>();
-    const redSymbols = new Set<number>();
-    const blueSymbols = new Set<number>();
-    const alphaSymbols = new Set<number>();
+    // Collect symbol frequencies for each channel
+    const greenFreqs = new Map<number, number>();
+    const redFreqs = new Map<number, number>();
+    const blueFreqs = new Map<number, number>();
+    const alphaFreqs = new Map<number, number>();
 
     const numPixels = this.width * this.height;
-    for (let i = 0; i < numPixels; i++) {
-      const offset = i * 4;
-      redSymbols.add(this.data[offset]);
-      greenSymbols.add(this.data[offset + 1]);
-      blueSymbols.add(this.data[offset + 2]);
-      if (hasAlpha) {
-        alphaSymbols.add(this.data[offset + 3]);
-      }
-    }
-
-    // Write Huffman codes for each channel
-    this.writeSimpleHuffmanCode(writer, Array.from(greenSymbols));
-    this.writeSimpleHuffmanCode(writer, Array.from(redSymbols));
-    this.writeSimpleHuffmanCode(writer, Array.from(blueSymbols));
-    if (hasAlpha) {
-      this.writeSimpleHuffmanCode(writer, Array.from(alphaSymbols));
-    } else {
-      // Write a simple single-symbol code for alpha=255
-      this.writeSimpleHuffmanCode(writer, [255]);
-    }
-
-    // Encode pixels
     for (let i = 0; i < numPixels; i++) {
       const offset = i * 4;
       const r = this.data[offset];
@@ -229,41 +204,97 @@ export class WebPEncoder {
       const b = this.data[offset + 2];
       const a = this.data[offset + 3];
 
-      // Write literal pixel
-      // Green first
-      if (greenSymbols.size === 1) {
-        // Single symbol, no bits needed
-      } else {
-        // Two symbols, write 1 bit
-        writer.writeBits(Array.from(greenSymbols).indexOf(g), 1);
-      }
-
-      // Red
-      if (redSymbols.size === 1) {
-        // Single symbol, no bits needed
-      } else {
-        writer.writeBits(Array.from(redSymbols).indexOf(r), 1);
-      }
-
-      // Blue
-      if (blueSymbols.size === 1) {
-        // Single symbol, no bits needed
-      } else {
-        writer.writeBits(Array.from(blueSymbols).indexOf(b), 1);
-      }
-
-      // Alpha
+      greenFreqs.set(g, (greenFreqs.get(g) || 0) + 1);
+      redFreqs.set(r, (redFreqs.get(r) || 0) + 1);
+      blueFreqs.set(b, (blueFreqs.get(b) || 0) + 1);
       if (hasAlpha) {
-        if (alphaSymbols.size === 1) {
-          // Single symbol, no bits needed
-        } else {
-          writer.writeBits(Array.from(alphaSymbols).indexOf(a), 1);
-        }
+        alphaFreqs.set(a, (alphaFreqs.get(a) || 0) + 1);
+      }
+    }
+
+    // Build Huffman codes for each channel
+    // Use simple codes for 1-2 symbols, complex codes for more
+    const greenCodes = this.writeHuffmanCode(writer, greenFreqs, 256);
+    const redCodes = this.writeHuffmanCode(writer, redFreqs, 256);
+    const blueCodes = this.writeHuffmanCode(writer, blueFreqs, 256);
+    const alphaCodes = hasAlpha
+      ? this.writeHuffmanCode(writer, alphaFreqs, 256)
+      : this.writeHuffmanCode(writer, new Map([[255, numPixels]]), 256);
+
+    // Encode pixels using the Huffman codes
+    for (let i = 0; i < numPixels; i++) {
+      const offset = i * 4;
+      const r = this.data[offset];
+      const g = this.data[offset + 1];
+      const b = this.data[offset + 2];
+      const a = this.data[offset + 3];
+
+      // Write each channel using its Huffman code
+      this.writeSymbol(writer, greenCodes, g);
+      this.writeSymbol(writer, redCodes, r);
+      this.writeSymbol(writer, blueCodes, b);
+      if (hasAlpha) {
+        this.writeSymbol(writer, alphaCodes, a);
       }
     }
 
     writer.flush();
     return Array.from(writer.getBytes());
+  }
+
+  /**
+   * Write Huffman code for a channel (either simple or complex)
+   * Returns the Huffman codes for encoding pixels
+   */
+  private writeHuffmanCode(
+    writer: BitWriter,
+    frequencies: Map<number, number>,
+    maxSymbol: number,
+  ): Map<number, { code: number; length: number }> {
+    const symbols = Array.from(frequencies.keys()).sort((a, b) => a - b);
+
+    if (symbols.length === 0) {
+      // No symbols - shouldn't happen, write single symbol of 0
+      this.writeSimpleHuffmanCode(writer, [0]);
+      return new Map([[0, { code: 0, length: 0 }]]);
+    } else if (symbols.length === 1) {
+      // Single symbol - use simple code
+      this.writeSimpleHuffmanCode(writer, [symbols[0]]);
+      return new Map([[symbols[0], { code: 0, length: 0 }]]);
+    } else if (symbols.length === 2) {
+      // Two symbols - use simple code
+      this.writeSimpleHuffmanCode(writer, symbols);
+      return new Map([
+        [symbols[0], { code: 0, length: 1 }],
+        [symbols[1], { code: 1, length: 1 }],
+      ]);
+    } else {
+      // More than 2 symbols - use complex code
+      return this.writeComplexHuffmanCode(writer, frequencies, maxSymbol);
+    }
+  }
+
+  /**
+   * Write a symbol using its Huffman code
+   */
+  private writeSymbol(
+    writer: BitWriter,
+    codes: Map<number, { code: number; length: number }>,
+    symbol: number,
+  ): void {
+    const huffCode = codes.get(symbol);
+    if (!huffCode) {
+      throw new Error(`No Huffman code for symbol ${symbol}`);
+    }
+
+    // Code length 0 means single symbol (no bits to write)
+    if (huffCode.length === 0) return;
+
+    // Write the Huffman code bits from MSB to LSB
+    // This matches how the decoder's addCode builds the tree
+    for (let i = huffCode.length - 1; i >= 0; i--) {
+      writer.writeBits((huffCode.code >> i) & 1, 1);
+    }
   }
 
   private writeSimpleHuffmanCode(writer: BitWriter, symbols: number[]): void {
@@ -294,5 +325,309 @@ export class WebPEncoder {
       writer.writeBits(symbols[0], 8);
       writer.writeBits(symbols[1], 8);
     }
+  }
+
+  /**
+   * Calculate optimal code lengths for symbols using standard Huffman algorithm
+   * Returns an array where index is the symbol and value is the code length
+   */
+  private calculateCodeLengths(
+    frequencies: Map<number, number>,
+    maxSymbol: number,
+    maxCodeLength = 15,
+  ): number[] {
+    const codeLengths = new Array(maxSymbol).fill(0);
+
+    // Get symbols with non-zero frequencies
+    const symbols = Array.from(frequencies.keys()).sort((a, b) => a - b);
+    if (symbols.length === 0) return codeLengths;
+
+    // For a single symbol, use code length 0
+    if (symbols.length === 1) {
+      codeLengths[symbols[0]] = 0;
+      return codeLengths;
+    }
+
+    // For two symbols, use code length 1 for both
+    if (symbols.length === 2) {
+      codeLengths[symbols[0]] = 1;
+      codeLengths[symbols[1]] = 1;
+      return codeLengths;
+    }
+
+    // Build Huffman tree using standard algorithm
+    // Create leaf nodes for each symbol
+    interface Node {
+      freq: number;
+      symbol?: number;
+      left?: Node;
+      right?: Node;
+    }
+
+    const nodes: Node[] = symbols.map((symbol) => ({
+      freq: frequencies.get(symbol)!,
+      symbol,
+    }));
+
+    // Build tree by repeatedly combining two smallest nodes
+    while (nodes.length > 1) {
+      // Sort by frequency (smallest first)
+      nodes.sort((a, b) => a.freq - b.freq);
+
+      // Take two smallest nodes
+      const left = nodes.shift()!;
+      const right = nodes.shift()!;
+
+      // Create parent node
+      const parent: Node = {
+        freq: left.freq + right.freq,
+        left,
+        right,
+      };
+
+      nodes.push(parent);
+    }
+
+    // Calculate code lengths by traversing tree
+    const root = nodes[0];
+    const calculateDepth = (node: Node, depth: number) => {
+      if (node.symbol !== undefined) {
+        // Leaf node - set code length (limited to maxCodeLength)
+        codeLengths[node.symbol] = Math.min(depth, maxCodeLength);
+      } else {
+        // Internal node - recurse
+        if (node.left) calculateDepth(node.left, depth + 1);
+        if (node.right) calculateDepth(node.right, depth + 1);
+      }
+    };
+
+    calculateDepth(root, 0);
+
+    // Handle case where depth is 0 (single node tree)
+    for (const symbol of symbols) {
+      if (codeLengths[symbol] === 0) {
+        codeLengths[symbol] = 1;
+      }
+    }
+
+    return codeLengths;
+  }
+
+  /**
+   * Build canonical Huffman codes from code lengths
+   * Returns a map from symbol to {code, length}
+   */
+  private buildCanonicalCodes(
+    codeLengths: number[],
+  ): Map<number, { code: number; length: number }> {
+    const codes = new Map<number, { code: number; length: number }>();
+
+    // Find max code length
+    const maxLength = Math.max(...codeLengths);
+
+    // Count symbols at each length
+    const lengthCounts = new Array(maxLength + 1).fill(0);
+    for (let i = 0; i < codeLengths.length; i++) {
+      if (codeLengths[i] > 0) {
+        lengthCounts[codeLengths[i]]++;
+      }
+    }
+
+    // Generate first code for each length
+    let code = 0;
+    const nextCode = new Array(maxLength + 1).fill(0);
+    for (let len = 1; len <= maxLength; len++) {
+      code = (code + lengthCounts[len - 1]) << 1;
+      nextCode[len] = code;
+    }
+
+    // Assign codes to symbols
+    for (let symbol = 0; symbol < codeLengths.length; symbol++) {
+      const length = codeLengths[symbol];
+      if (length > 0) {
+        codes.set(symbol, { code: nextCode[length], length });
+        nextCode[length]++;
+      }
+    }
+
+    return codes;
+  }
+
+  /**
+   * RLE encode code lengths using special codes 16, 17, 18
+   */
+  private rleEncodeCodeLengths(codeLengths: number[]): number[] {
+    const encoded: number[] = [];
+    let i = 0;
+
+    while (i < codeLengths.length) {
+      const length = codeLengths[i];
+
+      if (length === 0) {
+        // Count consecutive zeros
+        let count = 0;
+        while (i + count < codeLengths.length && codeLengths[i + count] === 0) {
+          count++;
+        }
+
+        // Encode runs of zeros
+        while (count > 0) {
+          if (count >= 11) {
+            // Use code 18 for 11-138 zeros
+            const runLength = Math.min(count, 138);
+            encoded.push(18, runLength - 11);
+            count -= runLength;
+          } else if (count >= 3) {
+            // Use code 17 for 3-10 zeros
+            const runLength = Math.min(count, 10);
+            encoded.push(17, runLength - 3);
+            count -= runLength;
+          } else {
+            // Literal zero (1-2 zeros)
+            encoded.push(0);
+            count--;
+          }
+        }
+        // Move past all the zeros we just encoded
+        while (i < codeLengths.length && codeLengths[i] === 0) {
+          i++;
+        }
+      } else {
+        // Non-zero length
+        encoded.push(length);
+        i++;
+
+        // Check for repeating previous length
+        let count = 0;
+        while (
+          i + count < codeLengths.length &&
+          codeLengths[i + count] === length &&
+          count < 6
+        ) {
+          count++;
+        }
+
+        if (count >= 3) {
+          // Use code 16 for 3-6 repetitions
+          encoded.push(16, count - 3);
+          i += count;
+        }
+      }
+    }
+
+    return encoded;
+  }
+
+  /**
+   * Write complex Huffman code using code lengths
+   */
+  private writeComplexHuffmanCode(
+    writer: BitWriter,
+    frequencies: Map<number, number>,
+    maxSymbol: number,
+  ): Map<number, { code: number; length: number }> {
+    // Calculate optimal code lengths
+    const codeLengths = this.calculateCodeLengths(frequencies, maxSymbol);
+
+    // Build canonical codes
+    const codes = this.buildCanonicalCodes(codeLengths);
+
+    // Write complex code indicator
+    writer.writeBits(0, 1); // Not simple
+
+    // RLE encode code lengths
+    const rleEncoded = this.rleEncodeCodeLengths(codeLengths);
+
+    // Build code length codes - count frequency of each code in RLE stream
+    const codeLengthFreqs = new Map<number, number>();
+    for (let i = 0; i < rleEncoded.length; i++) {
+      const code = rleEncoded[i];
+      codeLengthFreqs.set(code, (codeLengthFreqs.get(code) || 0) + 1);
+      // Skip extra bits for codes 16, 17, 18
+      if (code === 16 || code === 17 || code === 18) {
+        i++; // Skip the extra parameter
+      }
+    }
+
+    // Calculate code lengths for the code length alphabet (max 19 symbols)
+    const codeLengthCodeLengths = this.calculateCodeLengths(
+      codeLengthFreqs,
+      19,
+      7,
+    ); // Max 7 bits
+
+    // Code length code order (matches decoder)
+    const codeLengthCodeOrder = [
+      17,
+      18,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      16,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+    ];
+
+    // Find number of code length codes to write (trim trailing zeros)
+    let numCodeLengthCodes = 19;
+    for (let i = 18; i >= 4; i--) {
+      if (codeLengthCodeLengths[codeLengthCodeOrder[i]] === 0) {
+        numCodeLengthCodes = i;
+      } else {
+        break;
+      }
+    }
+    numCodeLengthCodes = Math.max(4, numCodeLengthCodes);
+
+    // Write number of code length codes
+    writer.writeBits(numCodeLengthCodes - 4, 4);
+
+    // Write code length code lengths
+    for (let i = 0; i < numCodeLengthCodes; i++) {
+      writer.writeBits(codeLengthCodeLengths[codeLengthCodeOrder[i]], 3);
+    }
+
+    // Build canonical codes for code lengths
+    const codeLengthCodes = this.buildCanonicalCodes(codeLengthCodeLengths);
+
+    // Write RLE-encoded code lengths using code length codes
+    for (let i = 0; i < rleEncoded.length; i++) {
+      const code = rleEncoded[i];
+      const huffCode = codeLengthCodes.get(code);
+      if (!huffCode) {
+        throw new Error(`No Huffman code for symbol ${code}`);
+      }
+
+      // Write the Huffman code bits from MSB to LSB
+      // This matches how the decoder's addCode builds the tree
+      for (let bit = huffCode.length - 1; bit >= 0; bit--) {
+        writer.writeBits((huffCode.code >> bit) & 1, 1);
+      }
+
+      // Write extra bits for special codes
+      if (code === 16) {
+        // 2 extra bits for repeat count (3-6)
+        writer.writeBits(rleEncoded[++i], 2);
+      } else if (code === 17) {
+        // 3 extra bits for zero run (3-10)
+        writer.writeBits(rleEncoded[++i], 3);
+      } else if (code === 18) {
+        // 7 extra bits for zero run (11-138)
+        writer.writeBits(rleEncoded[++i], 7);
+      }
+    }
+
+    return codes;
   }
 }
