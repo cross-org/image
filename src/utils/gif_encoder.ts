@@ -45,6 +45,10 @@ export class GIFEncoder {
     const colorMap = new Map<string, number>();
     const colors: RGBColor[] = [];
 
+    // Precompute quantization constants for color reduction
+    const rgStep = 255 / 7; // For 3-bit channels (8 levels)
+    const bStep = 255 / 3; // For 2-bit channel (4 levels)
+
     // Collect unique colors
     for (let i = 0; i < this.data.length; i += 4) {
       const r = this.data[i];
@@ -73,9 +77,9 @@ export class GIFEncoder {
         // This gives us 8 bits total = 256 possible colors
         // Quantize to levels, rounding to nearest
         // 3 bits = 8 levels (0-7), 2 bits = 4 levels (0-3)
-        const r = Math.round(this.data[i] * 7 / 255) * (255 / 7);
-        const g = Math.round(this.data[i + 1] * 7 / 255) * (255 / 7);
-        const b = Math.round(this.data[i + 2] * 3 / 255) * (255 / 3);
+        const r = Math.round(this.data[i] * 7 / 255) * rgStep;
+        const g = Math.round(this.data[i + 1] * 7 / 255) * rgStep;
+        const b = Math.round(this.data[i + 2] * 3 / 255) * bStep;
         const key = `${r},${g},${b}`;
 
         if (!colorMap.has(key)) {
@@ -110,9 +114,9 @@ export class GIFEncoder {
 
       // Apply color reduction if it was used for building the palette
       if (useColorReduction) {
-        r = Math.round(r * 7 / 255) * (255 / 7);
-        g = Math.round(g * 7 / 255) * (255 / 7);
-        b = Math.round(b * 3 / 255) * (255 / 3);
+        r = Math.round(r * 7 / 255) * rgStep;
+        g = Math.round(g * 7 / 255) * rgStep;
+        b = Math.round(b * 3 / 255) * bStep;
       }
 
       const key = `${r},${g},${b}`;
