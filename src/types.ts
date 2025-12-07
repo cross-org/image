@@ -69,6 +69,23 @@ export interface ASCIIOptions {
 }
 
 /**
+ * Options for WebP encoding
+ */
+export interface WebPEncodeOptions {
+  /**
+   * Encoding quality (1-100, default: 90)
+   * - 100 = lossless (VP8L)
+   * - 1-99 = lossy (VP8 if OffscreenCanvas available, otherwise quantized VP8L)
+   */
+  quality?: number;
+  /**
+   * Force lossless encoding even with quality < 100
+   * Uses VP8L format with optional color quantization based on quality
+   */
+  lossless?: boolean;
+}
+
+/**
  * Image format handler interface
  */
 export interface ImageFormat {

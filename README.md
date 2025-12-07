@@ -116,6 +116,34 @@ const compressed = await image.save("tiff", { compression: "lzw" });
 await Deno.writeFile("output-compressed.tiff", compressed);
 ```
 
+### Using WebP with Quality Settings
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.read(data);
+
+// Save as lossless WebP (quality = 100)
+const lossless = await image.save("webp", { quality: 100 });
+await Deno.writeFile("output-lossless.webp", lossless);
+
+// Save as lossy WebP with high quality (smaller file size)
+const highQuality = await image.save("webp", { quality: 90 });
+await Deno.writeFile("output-hq.webp", highQuality);
+
+// Save as lossy WebP with medium quality (much smaller)
+const mediumQuality = await image.save("webp", { quality: 75 });
+await Deno.writeFile("output-med.webp", mediumQuality);
+
+// Force lossless even with quality < 100 (pure-JS VP8L)
+const forcedLossless = await image.save("webp", {
+  quality: 80,
+  lossless: true,
+});
+await Deno.writeFile("output-forced.webp", forcedLossless);
+```
+
 ### Converting to ASCII Art
 
 ```ts
@@ -164,16 +192,16 @@ await Deno.writeFile("output.webp", output);
 This table shows which image formats are supported and their implementation
 status:
 
-| Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                   |
-| ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | --------------------------------------- |
-| PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation         |
-| BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation         |
-| RAW    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Uncompressed RGBA (no metadata)         |
-| ASCII  | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation     |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only           |
-| GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation         |
-| WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for lossless (VP8L) only        |
-| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed & LZW RGB/RGBA |
+| Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                        |
+| ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | -------------------------------------------- |
+| PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| RAW    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Uncompressed RGBA (no metadata)              |
+| ASCII  | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation          |
+| JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only                |
+| GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
+| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed & LZW RGB/RGBA      |
 
 **Legend:**
 
@@ -207,6 +235,8 @@ This table shows which format standards and variants are supported:
 |        | - LZ77 backward references          | ❌ Not in encoder | -              |
 |        | - Color cache                       | ❌ Not in encoder | -              |
 |        | - Transforms (predictor, etc.)      | ❌ Not Yet        | -              |
+|        | WebP Lossy (VP8L with quantization) | ✅ Quality-based  | Pure-JS        |
+|        | - Color quantization for lossy      | ✅ Full           | Pure-JS        |
 |        | WebP Lossy (VP8)                    | ⚠️ Native only    | ImageDecoder   |
 |        | - EXIF, XMP metadata                | ✅ Full           | Pure-JS        |
 | TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS        |
@@ -348,6 +378,50 @@ const ascii = await image.save("ascii", {
   invert: false,
 });
 ```
+
+#### `WebPEncodeOptions`
+
+```ts
+interface WebPEncodeOptions {
+  quality?: number; // Encoding quality 1-100 (default: 90)
+  lossless?: boolean; // Force lossless encoding (default: false)
+}
+```
+
+**Quality levels:**
+
+- `100`: Lossless encoding (VP8L without quantization)
+- `90-99`: Very high quality with minimal quantization
+- `70-89`: High quality with light quantization
+- `50-69`: Medium quality with noticeable quantization
+- `30-49`: Lower quality with heavy quantization
+- `1-29`: Low quality with very heavy quantization
+
+**Lossless flag:**
+
+- When `lossless: true`, forces lossless VP8L encoding even if quality < 100
+- Useful when you want pure-JS encoding without quantization
+
+**Usage:**
+
+```ts
+// Lossless WebP
+const lossless = await image.save("webp", { quality: 100 });
+
+// Lossy WebP with high quality
+const lossy = await image.save("webp", { quality: 85 });
+
+// Force lossless in pure-JS
+const forcedLossless = await image.save("webp", {
+  quality: 80,
+  lossless: true,
+});
+```
+
+**Note:** When OffscreenCanvas is available (Deno, modern browsers, Bun), the
+runtime's native WebP encoder is used for better compression and quality. In
+pure-JS mode (Node.js without OffscreenCanvas), VP8L format with quality-based
+color quantization is used for lossy encoding.
 
 #### `TIFFEncodeOptions`
 

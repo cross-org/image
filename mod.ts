@@ -28,6 +28,7 @@ export type {
   ImageFormat,
   ImageMetadata,
   ResizeOptions,
+  WebPEncodeOptions,
 } from "./src/types.ts";
 export { PNGFormat } from "./src/formats/png.ts";
 export { JPEGFormat } from "./src/formats/jpeg.ts";

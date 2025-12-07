@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageFormat,
+  ImageMetadata,
+  WebPEncodeOptions,
+} from "../types.ts";
 
 /**
  * WebP format handler
@@ -100,8 +105,17 @@ export class WebPFormat implements ImageFormat {
     };
   }
 
-  async encode(imageData: ImageData): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    options?: WebPEncodeOptions,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
+    const quality = options?.quality ?? 90;
+    const forceLossless = options?.lossless ?? false;
+
+    // Determine if we should use lossless encoding
+    // Use lossless if: quality is 100, or lossless flag is set
+    const useLossless = quality === 100 || forceLossless;
 
     // Try to use runtime encoding if available (better quality and compression)
     if (typeof OffscreenCanvas !== "undefined") {
@@ -116,7 +130,7 @@ export class WebPFormat implements ImageFormat {
 
           const blob = await canvas.convertToBlob({
             type: "image/webp",
-            quality: 0.9,
+            quality: quality / 100, // Convert 1-100 to 0-1
           });
           const arrayBuffer = await blob.arrayBuffer();
           const encoded = new Uint8Array(arrayBuffer);
@@ -134,10 +148,11 @@ export class WebPFormat implements ImageFormat {
       }
     }
 
-    // Fallback to pure JavaScript VP8L (lossless) encoder
+    // Fallback to pure JavaScript encoder
+    // VP8L (lossless) encoder with optional quality-based quantization
     const { WebPEncoder } = await import("../utils/webp_encoder.ts");
     const encoder = new WebPEncoder(width, height, data);
-    const encoded = encoder.encode();
+    const encoded = encoder.encode(useLossless ? 100 : quality);
 
     // Inject metadata if present
     if (metadata && Object.keys(metadata).length > 0) {
