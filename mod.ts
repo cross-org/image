@@ -24,9 +24,12 @@
 export { Image } from "./src/image.ts";
 export type {
   ASCIIOptions,
+  FrameMetadata,
   ImageData,
   ImageFormat,
+  ImageFrame,
   ImageMetadata,
+  MultiFrameImageData,
   ResizeOptions,
   WebPEncodeOptions,
 } from "./src/types.ts";

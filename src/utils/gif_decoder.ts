@@ -11,6 +11,16 @@ interface GIFImage {
   data: Uint8Array; // RGBA data
 }
 
+interface GIFFrame {
+  width: number;
+  height: number;
+  left: number;
+  top: number;
+  data: Uint8Array; // RGBA data
+  delay: number; // in centiseconds (1/100 of a second)
+  disposal: number; // disposal method
+}
+
 export class GIFDecoder {
   private data: Uint8Array;
   private pos: number;
@@ -176,6 +186,184 @@ export class GIFDecoder {
     }
 
     throw new Error("No image data found in GIF");
+  }
+
+  /**
+   * Decode all frames from an animated GIF
+   * @returns Object with canvas dimensions and array of frames
+   */
+  decodeAllFrames(): {
+    width: number;
+    height: number;
+    frames: GIFFrame[];
+  } {
+    // Reset position
+    this.pos = 0;
+
+    // Verify GIF signature
+    const signature = this.readBytes(3);
+    const version = this.readBytes(3);
+
+    if (
+      signature[0] !== 0x47 || signature[1] !== 0x49 || signature[2] !== 0x46 ||
+      (version[0] !== 0x38) ||
+      (version[1] !== 0x37 && version[1] !== 0x39) ||
+      (version[2] !== 0x61)
+    ) {
+      throw new Error("Invalid GIF signature");
+    }
+
+    // Read Logical Screen Descriptor
+    const width = this.readUint16LE();
+    const height = this.readUint16LE();
+    const packed = this.readByte();
+    const _backgroundColorIndex = this.readByte();
+    const _aspectRatio = this.readByte();
+
+    const hasGlobalColorTable = (packed & 0x80) !== 0;
+    // Color table size: 2^(n+1) where n is the 3 least significant bits
+    const globalColorTableSize = 2 << (packed & 0x07);
+
+    let globalColorTable: Uint8Array | null = null;
+    if (hasGlobalColorTable) {
+      globalColorTable = this.readColorTable(globalColorTableSize);
+    }
+
+    const frames: GIFFrame[] = [];
+
+    // Parse data stream for all frames
+    let transparentColorIndex: number | null = null;
+    let delayTime = 0;
+    let disposalMethod = 0;
+
+    while (this.pos < this.data.length) {
+      const separator = this.readByte();
+
+      if (separator === 0x21) {
+        // Extension
+        const label = this.readByte();
+
+        if (label === 0xf9) {
+          // Graphic Control Extension
+          const _blockSize = this.readByte();
+          const packed = this.readByte();
+          disposalMethod = (packed >> 2) & 0x07;
+          const hasTransparent = (packed & 0x01) !== 0;
+          delayTime = this.readUint16LE();
+          const transparentIndex = this.readByte();
+          const _terminator = this.readByte();
+
+          if (hasTransparent) {
+            transparentColorIndex = transparentIndex;
+          }
+        } else {
+          // Skip other extensions
+          this.readDataSubBlocks();
+        }
+      } else if (separator === 0x2c) {
+        // Image Descriptor
+        const imageLeft = this.readUint16LE();
+        const imageTop = this.readUint16LE();
+        const imageWidth = this.readUint16LE();
+        const imageHeight = this.readUint16LE();
+        const packed = this.readByte();
+
+        const hasLocalColorTable = (packed & 0x80) !== 0;
+        const interlaced = (packed & 0x40) !== 0;
+        // Color table size: 2^(n+1) where n is the 3 least significant bits
+        const localColorTableSize = 2 << (packed & 0x07);
+
+        let localColorTable: Uint8Array | null = null;
+        if (hasLocalColorTable) {
+          localColorTable = this.readColorTable(localColorTableSize);
+        }
+
+        // Read image data
+        const minCodeSize = this.readByte();
+        const compressedData = this.readDataSubBlocks();
+
+        // Decompress using LZW
+        const decoder = new LZWDecoder(minCodeSize, compressedData);
+        const indexedData = decoder.decompress();
+
+        // Convert indexed to RGBA
+        const colorTable = localColorTable || globalColorTable;
+        if (!colorTable) {
+          throw new Error("No color table available");
+        }
+
+        // Deinterlace if necessary
+        const deinterlaced = interlaced
+          ? this.deinterlace(indexedData, imageWidth, imageHeight)
+          : indexedData;
+
+        // Create frame with just the image data (not full canvas)
+        const frameData = new Uint8Array(imageWidth * imageHeight * 4);
+
+        for (let y = 0; y < imageHeight; y++) {
+          for (let x = 0; x < imageWidth; x++) {
+            const srcIdx = y * imageWidth + x;
+            if (srcIdx >= deinterlaced.length) continue;
+
+            const colorIndex = deinterlaced[srcIdx];
+            const dstIdx = (y * imageWidth + x) * 4;
+
+            if (
+              transparentColorIndex !== null &&
+              colorIndex === transparentColorIndex
+            ) {
+              // Transparent pixel
+              frameData[dstIdx] = 0;
+              frameData[dstIdx + 1] = 0;
+              frameData[dstIdx + 2] = 0;
+              frameData[dstIdx + 3] = 0;
+            } else {
+              // Copy color from color table
+              const colorOffset = colorIndex * 3;
+              if (colorOffset + 2 < colorTable.length) {
+                frameData[dstIdx] = colorTable[colorOffset];
+                frameData[dstIdx + 1] = colorTable[colorOffset + 1];
+                frameData[dstIdx + 2] = colorTable[colorOffset + 2];
+                frameData[dstIdx + 3] = 255;
+              }
+            }
+          }
+        }
+
+        frames.push({
+          width: imageWidth,
+          height: imageHeight,
+          left: imageLeft,
+          top: imageTop,
+          data: frameData,
+          delay: delayTime,
+          disposal: disposalMethod,
+        });
+
+        // Reset graphic control extension state
+        transparentColorIndex = null;
+        delayTime = 0;
+        disposalMethod = 0;
+      } else if (separator === 0x3b) {
+        // Trailer - end of GIF
+        break;
+      } else if (separator === 0x00) {
+        // Skip null bytes
+        continue;
+      } else {
+        throw new Error(`Unknown separator: 0x${separator.toString(16)}`);
+      }
+    }
+
+    if (frames.length === 0) {
+      throw new Error("No image data found in GIF");
+    }
+
+    return {
+      width,
+      height,
+      frames,
+    };
   }
 
   private indexedToRGBA(
