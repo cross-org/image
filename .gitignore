@@ -44,6 +44,7 @@ local.ts
 
 # Lumocs generated site
 _site
+docs/_site
 
 # Test output
 test_output/

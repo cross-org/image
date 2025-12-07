@@ -1,0 +1,33 @@
+{
+  "metas": {
+    "title": "=title",
+    "site": "@cross/image",
+    "lang": "en",
+    "description": "Pure JavaScript, dependency-free, cross-runtime image processing library"
+  },
+  "substitute": {
+    "$IMAGE_VERSION": "0.1.1"
+  },
+  "top_links": [
+    {
+      "icon": "fab fa-github",
+      "title": "GitHub Repository",
+      "url": "https://github.com/cross-org/image"
+    },
+    {
+      "icon": "fas fa-cube",
+      "title": "JSR Package",
+      "url": "https://jsr.io/@cross/image"
+    }
+  ],
+  "nav_links": [
+    {
+      "title": "GitHub Repository",
+      "url": "https://github.com/cross-org/image"
+    },
+    {
+      "title": "JSR Package",
+      "url": "https://jsr.io/@cross/image"
+    }
+  ]
+}
