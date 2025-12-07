@@ -45,9 +45,12 @@ export class GIFEncoder {
     const colorMap = new Map<string, number>();
     const colors: RGBColor[] = [];
 
-    // Precompute quantization constants for color reduction
-    const rgStep = 255 / 7; // For 3-bit channels (8 levels)
-    const bStep = 255 / 3; // For 2-bit channel (4 levels)
+    // Color quantization parameters for 8-bit palette (256 colors)
+    // 3 bits for R/G = 8 levels, 2 bits for B = 4 levels (8*8*4=256)
+    const RG_LEVELS = 7; // Levels 0-7 (3 bits)
+    const B_LEVELS = 3; // Levels 0-3 (2 bits)
+    const rgStep = 255 / RG_LEVELS; // Step size for R/G quantization
+    const bStep = 255 / B_LEVELS; // Step size for B quantization
 
     // Collect unique colors
     for (let i = 0; i < this.data.length; i += 4) {
@@ -76,10 +79,15 @@ export class GIFEncoder {
         // Reduce color depth: 3 bits for R/G channels, 2 bits for B channel
         // This gives us 8 bits total = 256 possible colors
         // Quantize to levels, rounding to nearest
-        // 3 bits = 8 levels (0-7), 2 bits = 4 levels (0-3)
-        const r = Math.round(Math.round(this.data[i] * 7 / 255) * rgStep);
-        const g = Math.round(Math.round(this.data[i + 1] * 7 / 255) * rgStep);
-        const b = Math.round(Math.round(this.data[i + 2] * 3 / 255) * bStep);
+        const r = Math.round(
+          Math.round(this.data[i] * RG_LEVELS / 255) * rgStep,
+        );
+        const g = Math.round(
+          Math.round(this.data[i + 1] * RG_LEVELS / 255) * rgStep,
+        );
+        const b = Math.round(
+          Math.round(this.data[i + 2] * B_LEVELS / 255) * bStep,
+        );
         const key = `${r},${g},${b}`;
 
         if (!colorMap.has(key)) {
@@ -114,9 +122,9 @@ export class GIFEncoder {
 
       // Apply color reduction if it was used for building the palette
       if (useColorReduction) {
-        r = Math.round(Math.round(r * 7 / 255) * rgStep);
-        g = Math.round(Math.round(g * 7 / 255) * rgStep);
-        b = Math.round(Math.round(b * 3 / 255) * bStep);
+        r = Math.round(Math.round(r * RG_LEVELS / 255) * rgStep);
+        g = Math.round(Math.round(g * RG_LEVELS / 255) * rgStep);
+        b = Math.round(Math.round(b * B_LEVELS / 255) * bStep);
       }
 
       const key = `${r},${g},${b}`;
