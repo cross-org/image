@@ -38,12 +38,32 @@ export class GIFEncoder {
   }
 
   /**
+   * Quantize a color channel value to a specified number of levels
+   * @param value - The input color channel value (0-255)
+   * @param levels - Number of quantization levels minus 1 (e.g., 7 for 8 levels)
+   * @param step - Step size for quantization (e.g., 255/7)
+   * @returns Quantized integer value
+   */
+  private quantizeChannel(value: number, levels: number, step: number): number {
+    // First round to get quantization level (0-levels)
+    // Then multiply by step size and round to ensure integer result
+    return Math.round(Math.round(value * levels / 255) * step);
+  }
+
+  /**
    * Quantize RGBA image to 256 colors using median cut algorithm
    */
   private quantize(): { palette: Uint8Array; indexed: Uint8Array } {
     // Simple quantization: collect unique colors and build palette
     const colorMap = new Map<string, number>();
     const colors: RGBColor[] = [];
+
+    // Color quantization parameters for 8-bit palette (256 colors)
+    // R/G: 8 levels (0-7) using 3 bits, B: 4 levels (0-3) using 2 bits (8*8*4=256)
+    const RG_LEVELS = 7; // Max level for R/G (8 total levels: 0-7)
+    const B_LEVELS = 3; // Max level for B (4 total levels: 0-3)
+    const rgStep = 255 / RG_LEVELS; // Step size for R/G quantization
+    const bStep = 255 / B_LEVELS; // Step size for B quantization
 
     // Collect unique colors
     for (let i = 0; i < this.data.length; i += 4) {
@@ -71,9 +91,9 @@ export class GIFEncoder {
       for (let i = 0; i < this.data.length; i += 4) {
         // Reduce color depth: 3 bits for R/G channels, 2 bits for B channel
         // This gives us 8 bits total = 256 possible colors
-        const r = this.data[i] & 0xe0; // Keep top 3 bits (8 values)
-        const g = this.data[i + 1] & 0xe0; // Keep top 3 bits (8 values)
-        const b = this.data[i + 2] & 0xc0; // Keep top 2 bits (4 values)
+        const r = this.quantizeChannel(this.data[i], RG_LEVELS, rgStep);
+        const g = this.quantizeChannel(this.data[i + 1], RG_LEVELS, rgStep);
+        const b = this.quantizeChannel(this.data[i + 2], B_LEVELS, bStep);
         const key = `${r},${g},${b}`;
 
         if (!colorMap.has(key)) {
@@ -108,9 +128,9 @@ export class GIFEncoder {
 
       // Apply color reduction if it was used for building the palette
       if (useColorReduction) {
-        r = r & 0xe0;
-        g = g & 0xe0;
-        b = b & 0xc0;
+        r = this.quantizeChannel(r, RG_LEVELS, rgStep);
+        g = this.quantizeChannel(g, RG_LEVELS, rgStep);
+        b = this.quantizeChannel(b, B_LEVELS, bStep);
       }
 
       const key = `${r},${g},${b}`;
