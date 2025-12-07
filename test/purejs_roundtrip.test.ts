@@ -384,3 +384,34 @@ test("Pure-JS: decode pre-generated TIFF images", async () => {
     }
   }
 });
+
+// Test WebP (pure-JS basic lossless encoding)
+// Note: Currently uses simple Huffman codes (1-2 symbols per channel)
+// LZ77 and color cache are not yet implemented in the encoder
+test("Pure-JS WebP: encode and decode simple solid colors", async () => {
+  const { width, height, data } = testImages[0];
+  const image = Image.fromRGBA(width, height, data);
+
+  // Force pure-JS encoder by hiding OffscreenCanvas
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // Testing purposes - temporarily hiding OffscreenCanvas
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      undefined;
+
+    const encoded = await image.save("webp");
+    const decoded = await Image.read(encoded);
+
+    assertEquals(decoded.width, width);
+    assertEquals(decoded.height, height);
+    assertEquals(decoded.data.length, data.length);
+    // WebP lossless should preserve data exactly
+    for (let i = 0; i < data.length; i++) {
+      assertEquals(decoded.data[i], data[i], `Mismatch at byte ${i}`);
+    }
+  } finally {
+    // Testing purposes - restoring OffscreenCanvas
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      originalOffscreenCanvas;
+  }
+});
