@@ -17,6 +17,7 @@ LZ77 and color cache.
 ## Complex Huffman Codes - Implementation Details
 
 ### What Works
+
 - ✅ Standard Huffman tree construction from symbol frequencies
 - ✅ Canonical Huffman code generation
 - ✅ RLE encoding of code lengths (using codes 16, 17, 18 for runs)
@@ -25,13 +26,17 @@ LZ77 and color cache.
 - ✅ Images with patterns like checkerboards, solid colors, simple gradients
 
 ### Known Limitations
+
 - ⚠️ Large gradients with multiple channels having many unique values may fail
   - Example: 50x50 gradient where both R and G channels have 50 unique values
-  - Smaller gradients (e.g., 10x10) or patterns with fewer unique combinations work fine
+  - Smaller gradients (e.g., 10x10) or patterns with fewer unique combinations
+    work fine
 - ⚠️ This is a bit-level encoding challenge that requires additional debugging
 
 ### Technical Implementation
+
 The encoder now:
+
 1. Collects symbol frequencies for each color channel
 2. Builds optimal Huffman trees using standard algorithm
 3. Calculates canonical code lengths (limited to 15 bits per WebP spec)
@@ -40,7 +45,8 @@ The encoder now:
 6. Writes both the code length table and the main Huffman table
 7. Encodes pixels using the Huffman codes
 
-This matches the WebP specification and the decoder's expectations for most use cases.
+This matches the WebP specification and the decoder's expectations for most use
+cases.
 
 ## Implementation Roadmap
 

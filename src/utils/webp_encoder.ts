@@ -318,12 +318,10 @@ export class WebPEncoder {
       writer.writeBits(symbols[0], 8); // first symbol
       writer.writeBits(symbols[1], 8); // second symbol
     } else {
-      // More than 2 symbols - we need complex code
-      // For now, just use the first two symbols (this is a simplified encoder)
-      writer.writeBits(1, 1); // num_symbols = 2
-      writer.writeBits(0, 1); // is_first_8bits = 0
-      writer.writeBits(symbols[0], 8);
-      writer.writeBits(symbols[1], 8);
+      // Should not reach here - caller should use complex Huffman for >2 symbols
+      throw new Error(
+        `Simple Huffman code does not support ${symbols.length} symbols`,
+      );
     }
   }
 
@@ -403,7 +401,8 @@ export class WebPEncoder {
 
     calculateDepth(root, 0);
 
-    // Handle case where depth is 0 (single node tree)
+    // Handle edge case: depth 0 occurs when we have a single node tree (e.g., 2 symbols)
+    // In canonical Huffman coding, all symbols must have length >= 1
     for (const symbol of symbols) {
       if (codeLengths[symbol] === 0) {
         codeLengths[symbol] = 1;
@@ -422,8 +421,13 @@ export class WebPEncoder {
   ): Map<number, { code: number; length: number }> {
     const codes = new Map<number, { code: number; length: number }>();
 
-    // Find max code length
-    const maxLength = Math.max(...codeLengths);
+    // Find max code length (avoid spread operator for large arrays)
+    let maxLength = 0;
+    for (const length of codeLengths) {
+      if (length > maxLength) {
+        maxLength = length;
+      }
+    }
 
     // Count symbols at each length
     const lengthCounts = new Array(maxLength + 1).fill(0);
