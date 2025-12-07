@@ -1,13 +1,22 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
 
 // Constants for unit conversions
 const DEFAULT_DPI = 72;
 
 /**
+ * Options for TIFF encoding
+ */
+export interface TIFFEncodeOptions {
+  /** Compression method: "none" for uncompressed (default), "lzw" for LZW compression */
+  compression?: "none" | "lzw";
+}
+
+/**
  * TIFF format handler
- * Implements pure-JS TIFF decoder for uncompressed RGB/RGBA images
- * and encoder for uncompressed RGBA TIFFs. Falls back to ImageDecoder
- * for compressed TIFFs (LZW, JPEG, PackBits, etc.)
+ * Implements pure-JS TIFF decoder for uncompressed and LZW-compressed RGB/RGBA images
+ * and encoder for uncompressed and LZW-compressed RGBA TIFFs. Falls back to ImageDecoder
+ * for other compressed TIFFs (JPEG, PackBits, etc.)
  */
 export class TIFFFormat implements ImageFormat {
   readonly name = "tiff";
@@ -164,10 +173,26 @@ export class TIFFFormat implements ImageFormat {
     };
   }
 
-  encode(imageData: ImageData): Promise<Uint8Array> {
+  encode(imageData: ImageData, options?: unknown): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
+    const opts = options as TIFFEncodeOptions | undefined;
+    const compression = opts?.compression ?? "none";
 
-    // Create an uncompressed TIFF with RGBA
+    // Prepare pixel data (compress if needed)
+    let pixelData: Uint8Array;
+    let compressionCode: number;
+
+    if (compression === "lzw") {
+      // LZW compress the pixel data
+      const encoder = new TIFFLZWEncoder();
+      pixelData = encoder.compress(data);
+      compressionCode = 5;
+    } else {
+      // Uncompressed
+      pixelData = data;
+      compressionCode = 1;
+    }
+
     const result: number[] = [];
 
     // Header (8 bytes)
@@ -175,13 +200,13 @@ export class TIFFFormat implements ImageFormat {
     result.push(0x49, 0x49); // "II"
     result.push(0x2a, 0x00); // 42
 
-    // IFD offset (will be at byte 8)
-    const ifdOffset = 8 + width * height * 4; // After header and pixel data
+    // IFD offset (will be after header and pixel data)
+    const ifdOffset = 8 + pixelData.length;
     this.writeUint32LE(result, ifdOffset);
 
-    // Pixel data (RGBA, uncompressed)
-    for (let i = 0; i < data.length; i++) {
-      result.push(data[i]);
+    // Pixel data
+    for (let i = 0; i < pixelData.length; i++) {
+      result.push(pixelData[i]);
     }
 
     // IFD (Image File Directory)
@@ -210,8 +235,8 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
     dataOffset += 8; // 4 x 2-byte values
 
-    // Compression (0x0103) - 1 = uncompressed
-    this.writeIFDEntry(result, 0x0103, 3, 1, 1);
+    // Compression (0x0103) - 1 = uncompressed, 5 = LZW
+    this.writeIFDEntry(result, 0x0103, 3, 1, compressionCode);
 
     // PhotometricInterpretation (0x0106) - 2 = RGB
     this.writeIFDEntry(result, 0x0106, 3, 1, 2);
@@ -226,7 +251,7 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x0116, 4, 1, height);
 
     // StripByteCounts (0x0117)
-    this.writeIFDEntry(result, 0x0117, 4, 1, width * height * 4);
+    this.writeIFDEntry(result, 0x0117, 4, 1, pixelData.length);
 
     // XResolution (0x011a)
     const xResOffset = dataOffset;
@@ -482,7 +507,7 @@ export class TIFFFormat implements ImageFormat {
   }
 
   /**
-   * Pure JavaScript TIFF decoder for uncompressed RGB/RGBA images
+   * Pure JavaScript TIFF decoder for uncompressed and LZW-compressed RGB/RGBA images
    * Returns null if the TIFF uses unsupported features
    */
   private decodePureJS(
@@ -508,8 +533,8 @@ export class TIFFFormat implements ImageFormat {
       0x0103,
       isLittleEndian,
     );
-    if (compression !== 1) {
-      // Only support uncompressed (compression = 1)
+    if (compression !== 1 && compression !== 5) {
+      // Only support uncompressed (1) and LZW (5)
       return null;
     }
 
@@ -548,23 +573,50 @@ export class TIFFFormat implements ImageFormat {
       return null;
     }
 
-    // Read pixel data
+    // Get strip byte counts to know how much compressed data to read
+    const stripByteCount = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0117,
+      isLittleEndian,
+    );
+    if (!stripByteCount) {
+      return null;
+    }
+
+    // Read and decompress pixel data
+    let pixelData: Uint8Array;
+
+    if (compression === 5) {
+      // LZW compressed
+      const compressedData = data.slice(
+        stripOffset,
+        stripOffset + stripByteCount,
+      );
+      const decoder = new TIFFLZWDecoder(compressedData);
+      pixelData = decoder.decompress();
+    } else {
+      // Uncompressed
+      pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
+    }
+
+    // Convert to RGBA
     const rgba = new Uint8Array(width * height * 4);
-    let srcPos = stripOffset;
+    let srcPos = 0;
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const dstIdx = (y * width + x) * 4;
 
-        if (srcPos + samplesPerPixel > data.length) {
+        if (srcPos + samplesPerPixel > pixelData.length) {
           return null; // Not enough data
         }
 
         // TIFF stores RGB(A) in order
-        rgba[dstIdx] = data[srcPos++]; // R
-        rgba[dstIdx + 1] = data[srcPos++]; // G
-        rgba[dstIdx + 2] = data[srcPos++]; // B
-        rgba[dstIdx + 3] = samplesPerPixel === 4 ? data[srcPos++] : 255; // A
+        rgba[dstIdx] = pixelData[srcPos++]; // R
+        rgba[dstIdx + 1] = pixelData[srcPos++]; // G
+        rgba[dstIdx + 2] = pixelData[srcPos++]; // B
+        rgba[dstIdx + 3] = samplesPerPixel === 4 ? pixelData[srcPos++] : 255; // A
       }
     }
 
