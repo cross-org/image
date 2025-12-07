@@ -58,7 +58,7 @@ export class GIFEncoder {
       }
     }
 
-    // Track if we're using color reduction
+    // Track if color reduction was applied
     let useColorReduction = false;
 
     // If we have too many colors, use simple color reduction
@@ -106,7 +106,7 @@ export class GIFEncoder {
       let g = this.data[i + 1];
       let b = this.data[i + 2];
 
-      // Apply color reduction if it was used for palette
+      // Apply color reduction if it was used for building the palette
       if (useColorReduction) {
         r = r & 0xe0;
         g = g & 0xe0;
@@ -115,11 +115,11 @@ export class GIFEncoder {
 
       const key = `${r},${g},${b}`;
 
-      // Use colorMap for fast O(1) lookup
+      // Try fast O(1) lookup first
       if (colorMap.has(key)) {
         indexed[j] = colorMap.get(key)!;
       } else {
-        // Fallback: find closest color in palette
+        // Fallback: find closest color in palette (shouldn't happen often)
         let minDist = Infinity;
         let bestIdx = 0;
 
