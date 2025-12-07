@@ -140,6 +140,52 @@ console.log(new TextDecoder().decode(blocks));
 await Deno.writeFile("output.txt", ascii);
 ```
 
+### Working with Multi-Frame Images
+
+Read and manipulate animated GIFs and multi-page TIFFs:
+
+```ts
+import { Image } from "@cross/image";
+
+// Read all frames from an animated GIF
+const gifData = await Deno.readFile("animated.gif");
+const multiFrame = await Image.readFrames(gifData);
+
+console.log(`Canvas: ${multiFrame.width}x${multiFrame.height}`);
+console.log(`Number of frames: ${multiFrame.frames.length}`);
+
+// Access individual frames
+for (let i = 0; i < multiFrame.frames.length; i++) {
+  const frame = multiFrame.frames[i];
+  console.log(`Frame ${i}: ${frame.width}x${frame.height}`);
+  console.log(`  Delay: ${frame.frameMetadata?.delay}ms`);
+  console.log(`  Disposal: ${frame.frameMetadata?.disposal}`);
+}
+
+// Create a multi-page TIFF from multiple images
+const page1 = Image.fromRGBA(100, 100, new Uint8Array(100 * 100 * 4));
+const page2 = Image.fromRGBA(100, 100, new Uint8Array(100 * 100 * 4));
+
+const multiPageTiff = {
+  width: 100,
+  height: 100,
+  frames: [
+    { width: 100, height: 100, data: page1.data },
+    { width: 100, height: 100, data: page2.data },
+  ],
+};
+
+// Save as multi-page TIFF with LZW compression
+const tiffData = await Image.saveFrames("tiff", multiPageTiff, {
+  compression: "lzw",
+});
+await Deno.writeFile("multipage.tiff", tiffData);
+
+// Read all pages from a multi-page TIFF
+const pages = await Image.readFrames(tiffData);
+console.log(`Read ${pages.frames.length} pages from TIFF`);
+```
+
 ### Chaining Operations
 
 ```ts
@@ -212,14 +258,15 @@ This table shows which format standards and variants are supported:
 | TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS        |
 |        | TIFF 6.0 - LZW compressed RGB/RGBA  | ✅ Full           | Pure-JS        |
 |        | - JPEG, PackBits compression        | ⚠️ Native only    | ImageDecoder   |
-|        | - Multi-page/IFD                    | ❌ Not Yet        | -              |
+|        | - Multi-page/IFD (decode & encode)  | ✅ Full           | Pure-JS        |
 |        | - EXIF, Artist, Copyright metadata  | ✅ Full           | Pure-JS        |
 | GIF    | GIF87a, GIF89a                      | ✅ Full           | Pure-JS        |
 |        | - LZW compression/decompression     | ✅ Full           | Pure-JS        |
 |        | - Color quantization (encoding)     | ✅ Full           | Pure-JS        |
 |        | - Transparency support              | ✅ Full           | Pure-JS        |
 |        | - Interlacing support               | ✅ Full           | Pure-JS        |
-|        | - Animation (first frame only)      | ✅ Full           | Pure-JS        |
+|        | - Animation (multi-frame decode)    | ✅ Full           | Pure-JS        |
+|        | - Animation (encode first frame)    | ⚠️ Single frame   | Pure-JS        |
 |        | - Comment extensions, XMP           | ✅ Full           | Pure-JS        |
 | RAW    | Uncompressed RGBA                   | ✅ Full           | Pure-JS        |
 | ASCII  | Text-based ASCII art                | ✅ Full           | Pure-JS        |
@@ -290,6 +337,10 @@ The main class for working with images.
 
 - `Image.read(data: Uint8Array, format?: string): Promise<Image>` - Read an
   image from bytes
+- `Image.readFrames(data: Uint8Array, format?: string): Promise<MultiFrameImageData>` -
+  Read all frames from a multi-frame image (animated GIF or multi-page TIFF)
+- `Image.saveFrames(format: string, imageData: MultiFrameImageData, options?: unknown): Promise<Uint8Array>` -
+  Save multi-frame image data to bytes in the specified format
 - `Image.fromRGBA(width: number, height: number, data: Uint8Array): Image` -
   Create an image from raw RGBA data
 - `Image.registerFormat(format: ImageFormat): void` - Register a custom format
@@ -379,6 +430,40 @@ interface ImageData {
   width: number; // Image width in pixels
   height: number; // Image height in pixels
   data: Uint8Array; // Raw RGBA data (4 bytes per pixel)
+  metadata?: ImageMetadata; // Optional metadata
+}
+```
+
+#### `MultiFrameImageData`
+
+```ts
+interface MultiFrameImageData {
+  width: number; // Canvas width in pixels
+  height: number; // Canvas height in pixels
+  frames: ImageFrame[]; // Array of frames
+  metadata?: ImageMetadata; // Optional global metadata
+}
+```
+
+#### `ImageFrame`
+
+```ts
+interface ImageFrame {
+  width: number; // Frame width in pixels
+  height: number; // Frame height in pixels
+  data: Uint8Array; // Raw RGBA data (4 bytes per pixel)
+  frameMetadata?: FrameMetadata; // Optional frame-specific metadata
+}
+```
+
+#### `FrameMetadata`
+
+```ts
+interface FrameMetadata {
+  delay?: number; // Frame delay in milliseconds (for animations)
+  disposal?: "none" | "background" | "previous"; // Frame disposal method
+  left?: number; // X offset of frame within canvas
+  top?: number; // Y offset of frame within canvas
 }
 ```
 
@@ -391,6 +476,12 @@ interface ImageFormat {
   canDecode(data: Uint8Array): boolean; // Check if data is in this format
   decode(data: Uint8Array): Promise<ImageData>; // Decode to RGBA
   encode(imageData: ImageData): Promise<Uint8Array>; // Encode from RGBA
+  decodeFrames?(data: Uint8Array): Promise<MultiFrameImageData>; // Decode all frames
+  encodeFrames?(
+    imageData: MultiFrameImageData,
+    options?: unknown,
+  ): Promise<Uint8Array>; // Encode multi-frame
+  supportsMultipleFrames?(): boolean; // Check if format supports multiple frames
 }
 ```
 
