@@ -34,6 +34,8 @@ export class WebPFormat implements ImageFormat {
     let pos = 12; // Skip RIFF header
     let width = 0;
     let height = 0;
+    let isVP8Lossy = false;
+    let isVP8Lossless = false;
     const metadata: ImageMetadata = {};
 
     // Read all chunks to extract metadata
@@ -54,6 +56,7 @@ export class WebPFormat implements ImageFormat {
 
       if (chunkType === "VP8 ") {
         // Lossy format - extract dimensions
+        isVP8Lossy = true;
         if (chunkData.length >= 10) {
           const frameTag = chunkData[0] | (chunkData[1] << 8) |
             (chunkData[2] << 16);
@@ -68,6 +71,7 @@ export class WebPFormat implements ImageFormat {
         }
       } else if (chunkType === "VP8L") {
         // Lossless format - extract dimensions
+        isVP8Lossless = true;
         if (chunkData.length >= 5 && chunkData[0] === 0x2f) {
           const bits = this.readUint32LE(chunkData, 1);
           width = (bits & 0x3fff) + 1;
@@ -98,7 +102,13 @@ export class WebPFormat implements ImageFormat {
 
     // For a pure JS implementation, we'd need to implement full WebP decoding
     // which is very complex. Instead, we'll use the browser/runtime's decoder.
-    const rgba = await this.decodeUsingRuntime(data, width, height);
+    const rgba = await this.decodeUsingRuntime(
+      data,
+      width,
+      height,
+      isVP8Lossy,
+      isVP8Lossless,
+    );
 
     return {
       width,
@@ -178,6 +188,8 @@ export class WebPFormat implements ImageFormat {
     data: Uint8Array,
     _width: number,
     _height: number,
+    isVP8Lossy: boolean,
+    isVP8Lossless: boolean,
   ): Promise<Uint8Array> {
     // Try to use ImageDecoder API if available (Deno, modern browsers)
     if (typeof ImageDecoder !== "undefined") {
@@ -200,25 +212,49 @@ export class WebPFormat implements ImageFormat {
 
         return new Uint8Array(imageData.data.buffer);
       } catch (error) {
-        // ImageDecoder API failed, fall through to pure JS decoder
+        // ImageDecoder API failed
+        // If this is a VP8 (lossy) file, we can't fall back to pure JS
+        if (isVP8Lossy) {
+          throw new Error(
+            `WebP lossy (VP8) format requires ImageDecoder API, which failed: ${error}. ` +
+              `This format is not supported in pure JavaScript. ` +
+              `Consider using a runtime with ImageDecoder support (Deno, Node.js 20+, Bun) ` +
+              `or converting the image to VP8L (lossless) or another format.`,
+          );
+        }
+        // For VP8L, we can try pure JS decoder
         console.warn(
           "WebP decoding with ImageDecoder failed, using pure JS decoder:",
           error,
         );
       }
+    } else if (isVP8Lossy) {
+      // ImageDecoder not available and file is VP8 lossy
+      throw new Error(
+        `WebP lossy (VP8) format requires ImageDecoder API, which is not available in this runtime. ` +
+          `This format is not supported in pure JavaScript. ` +
+          `Consider using a runtime with ImageDecoder support (Deno, Node.js 20+, Bun) ` +
+          `or converting the image to VP8L (lossless) or another format.`,
+      );
     }
 
     // Fallback to pure JavaScript decoder (VP8L lossless only)
-    try {
-      const { WebPDecoder } = await import("../utils/webp_decoder.ts");
-      const decoder = new WebPDecoder(data);
-      const result = decoder.decode();
-      return result.data;
-    } catch (error) {
-      throw new Error(
-        `WebP decoding failed: ${error}`,
-      );
+    if (isVP8Lossless) {
+      try {
+        const { WebPDecoder } = await import("../utils/webp_decoder.ts");
+        const decoder = new WebPDecoder(data);
+        const result = decoder.decode();
+        return result.data;
+      } catch (error) {
+        throw new Error(
+          `WebP lossless (VP8L) decoding failed: ${error}`,
+        );
+      }
     }
+
+    throw new Error(
+      `WebP decoding failed: Unable to determine image format or no suitable decoder available`,
+    );
   }
 
   // Metadata parsing and injection methods
