@@ -77,9 +77,9 @@ export class GIFEncoder {
         // This gives us 8 bits total = 256 possible colors
         // Quantize to levels, rounding to nearest
         // 3 bits = 8 levels (0-7), 2 bits = 4 levels (0-3)
-        const r = Math.round(this.data[i] * 7 / 255) * rgStep;
-        const g = Math.round(this.data[i + 1] * 7 / 255) * rgStep;
-        const b = Math.round(this.data[i + 2] * 3 / 255) * bStep;
+        const r = Math.round(Math.round(this.data[i] * 7 / 255) * rgStep);
+        const g = Math.round(Math.round(this.data[i + 1] * 7 / 255) * rgStep);
+        const b = Math.round(Math.round(this.data[i + 2] * 3 / 255) * bStep);
         const key = `${r},${g},${b}`;
 
         if (!colorMap.has(key)) {
@@ -114,9 +114,9 @@ export class GIFEncoder {
 
       // Apply color reduction if it was used for building the palette
       if (useColorReduction) {
-        r = Math.round(r * 7 / 255) * rgStep;
-        g = Math.round(g * 7 / 255) * rgStep;
-        b = Math.round(b * 3 / 255) * bStep;
+        r = Math.round(Math.round(r * 7 / 255) * rgStep);
+        g = Math.round(Math.round(g * 7 / 255) * rgStep);
+        b = Math.round(Math.round(b * 3 / 255) * bStep);
       }
 
       const key = `${r},${g},${b}`;
