@@ -2,17 +2,51 @@
 
 ## Current Status
 
-The WebP VP8L (lossless) encoder currently implements a **simplified approach**
-that works correctly but produces larger files than optimal:
+The WebP VP8L (lossless) encoder now implements:
 
 - ✅ Simple Huffman coding (1-2 unique symbols per channel)
 - ✅ Literal pixel encoding (uncompressed)
-- ❌ Complex Huffman codes (>2 symbols) - **not yet implemented**
+- ✅ **Complex Huffman codes (>2 symbols) - NEWLY IMPLEMENTED**
 - ❌ LZ77 backward references - **not yet implemented**
 - ❌ Color cache - **not yet implemented**
 
-This produces valid, lossless WebP files that decode correctly, but without
-compression.
+This produces valid, lossless WebP files that decode correctly. Complex Huffman
+coding provides better compression than simple codes, though not as good as with
+LZ77 and color cache.
+
+## Complex Huffman Codes - Implementation Details
+
+### What Works
+
+- ✅ Standard Huffman tree construction from symbol frequencies
+- ✅ Canonical Huffman code generation
+- ✅ RLE encoding of code lengths (using codes 16, 17, 18 for runs)
+- ✅ Code length Huffman table generation and encoding
+- ✅ Single channel with many unique values (tested up to 50 colors)
+- ✅ Images with patterns like checkerboards, solid colors, simple gradients
+
+### Known Limitations
+
+- ⚠️ Large gradients with multiple channels having many unique values may fail
+  - Example: 50x50 gradient where both R and G channels have 50 unique values
+  - Smaller gradients (e.g., 10x10) or patterns with fewer unique combinations
+    work fine
+- ⚠️ This is a bit-level encoding challenge that requires additional debugging
+
+### Technical Implementation
+
+The encoder now:
+
+1. Collects symbol frequencies for each color channel
+2. Builds optimal Huffman trees using standard algorithm
+3. Calculates canonical code lengths (limited to 15 bits per WebP spec)
+4. RLE-encodes the code lengths for compactness
+5. Builds a secondary Huffman table for the code lengths themselves
+6. Writes both the code length table and the main Huffman table
+7. Encodes pixels using the Huffman codes
+
+This matches the WebP specification and the decoder's expectations for most use
+cases.
 
 ## Implementation Roadmap
 
