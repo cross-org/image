@@ -293,7 +293,11 @@ test("Pure-JS: decode pre-generated JPEG images", async () => {
         );
       } catch (e) {
         // If file doesn't exist, skip this test
-        if (e instanceof Deno.errors.NotFound) {
+        // Handle both Deno.errors.NotFound and ENOENT from Node/Bun
+        if (
+          (typeof Deno !== "undefined" && e instanceof Deno.errors.NotFound) ||
+          (e instanceof Error && (e as { code?: string }).code === "ENOENT")
+        ) {
           console.log(
             `Skipping ${file} - file not found (run generate_test_images.ts first)`,
           );
@@ -303,7 +307,10 @@ test("Pure-JS: decode pre-generated JPEG images", async () => {
       }
     }
   } catch (e) {
-    if (e instanceof Deno.errors.NotFound) {
+    if (
+      (typeof Deno !== "undefined" && e instanceof Deno.errors.NotFound) ||
+      (e instanceof Error && (e as { code?: string }).code === "ENOENT")
+    ) {
       console.log(
         "Skipping pre-generated image tests - run generate_test_images.ts first",
       );
@@ -333,7 +340,10 @@ test("Pure-JS: decode pre-generated PNG images", async () => {
           `${file} should have correct data length`,
         );
       } catch (e) {
-        if (e instanceof Deno.errors.NotFound) {
+        if (
+          (typeof Deno !== "undefined" && e instanceof Deno.errors.NotFound) ||
+          (e instanceof Error && (e as { code?: string }).code === "ENOENT")
+        ) {
           console.log(`Skipping ${file} - file not found`);
           continue;
         }
@@ -341,7 +351,10 @@ test("Pure-JS: decode pre-generated PNG images", async () => {
       }
     }
   } catch (e) {
-    if (e instanceof Deno.errors.NotFound) {
+    if (
+      (typeof Deno !== "undefined" && e instanceof Deno.errors.NotFound) ||
+      (e instanceof Error && (e as { code?: string }).code === "ENOENT")
+    ) {
       console.log("Skipping pre-generated image tests");
     } else {
       throw e;
@@ -369,7 +382,10 @@ test("Pure-JS: decode pre-generated TIFF images", async () => {
           `${file} should have correct data length`,
         );
       } catch (e) {
-        if (e instanceof Deno.errors.NotFound) {
+        if (
+          (typeof Deno !== "undefined" && e instanceof Deno.errors.NotFound) ||
+          (e instanceof Error && (e as { code?: string }).code === "ENOENT")
+        ) {
           console.log(`Skipping ${file} - file not found`);
           continue;
         }
@@ -377,7 +393,10 @@ test("Pure-JS: decode pre-generated TIFF images", async () => {
       }
     }
   } catch (e) {
-    if (e instanceof Deno.errors.NotFound) {
+    if (
+      (typeof Deno !== "undefined" && e instanceof Deno.errors.NotFound) ||
+      (e instanceof Error && (e as { code?: string }).code === "ENOENT")
+    ) {
       console.log("Skipping pre-generated image tests");
     } else {
       throw e;
