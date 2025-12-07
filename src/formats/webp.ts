@@ -5,6 +5,9 @@ import type {
   WebPEncodeOptions,
 } from "../types.ts";
 
+// Default quality for WebP encoding when not specified
+const DEFAULT_WEBP_QUALITY = 90;
+
 /**
  * WebP format handler
  * Implements a basic WebP decoder and encoder
@@ -110,7 +113,7 @@ export class WebPFormat implements ImageFormat {
     options?: WebPEncodeOptions,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
-    const quality = options?.quality ?? 90;
+    const quality = options?.quality ?? DEFAULT_WEBP_QUALITY;
     const forceLossless = options?.lossless ?? false;
 
     // Determine if we should use lossless encoding

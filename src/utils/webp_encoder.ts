@@ -209,11 +209,12 @@ export class WebPEncoder {
 
     // Create quantized copy of the image data
     const quantized = new Uint8Array(this.data.length);
+    const mask = 0xFF << shift; // Bitmask for quantization
     for (let i = 0; i < this.data.length; i += 4) {
-      // Quantize RGB channels
-      quantized[i] = (this.data[i] >> shift) << shift; // R
-      quantized[i + 1] = (this.data[i + 1] >> shift) << shift; // G
-      quantized[i + 2] = (this.data[i + 2] >> shift) << shift; // B
+      // Quantize RGB channels using bitwise AND with mask
+      quantized[i] = this.data[i] & mask; // R
+      quantized[i + 1] = this.data[i + 1] & mask; // G
+      quantized[i + 2] = this.data[i + 2] & mask; // B
       // Keep alpha channel unquantized for better transparency handling
       quantized[i + 3] = this.data[i + 3]; // A
     }
