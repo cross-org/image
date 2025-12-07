@@ -395,8 +395,9 @@ test("Pure-JS WebP: encode and decode simple solid colors", async () => {
   // Force pure-JS encoder by hiding OffscreenCanvas
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   try {
-    // @ts-ignore: Testing purposes - temporarily hiding OffscreenCanvas
-    globalThis.OffscreenCanvas = undefined;
+    // Testing purposes - temporarily hiding OffscreenCanvas
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      undefined;
 
     const encoded = await image.save("webp");
     const decoded = await Image.read(encoded);
@@ -409,7 +410,8 @@ test("Pure-JS WebP: encode and decode simple solid colors", async () => {
       assertEquals(decoded.data[i], data[i], `Mismatch at byte ${i}`);
     }
   } finally {
-    // @ts-ignore: Testing purposes - restoring OffscreenCanvas
-    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+    // Testing purposes - restoring OffscreenCanvas
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      originalOffscreenCanvas;
   }
 });
