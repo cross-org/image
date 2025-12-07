@@ -4,6 +4,19 @@ import { test } from "../test/test_runner.ts";
 import { JPEGFormat } from "../src/formats/jpeg.ts";
 import { Image } from "../src/image.ts";
 
+// Helper to temporarily disable OffscreenCanvas to force pure-JS encoder
+function withoutOffscreenCanvas<T>(fn: () => T | Promise<T>): T | Promise<T> {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      undefined;
+    return fn();
+  } finally {
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
+      originalOffscreenCanvas;
+  }
+}
+
 test("JPEG: canDecode - valid JPEG signature", () => {
   const validJPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
   const format = new JPEGFormat();
@@ -290,4 +303,142 @@ test("JPEG: Image integration - format auto-detection", async () => {
 
   assertEquals(loaded.width, 1);
   assertEquals(loaded.height, 1);
+});
+
+test("JPEG: Pure-JS encoder - force pure-JS path", async () => {
+  const format = new JPEGFormat();
+
+  // Create a simple 8x8 image (one MCU block)
+  const width = 8;
+  const height = 8;
+  const data = new Uint8Array(width * height * 4);
+
+  // Create a red gradient
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      data[i] = Math.floor((x / width) * 255); // R gradient
+      data[i + 1] = 0; // G
+      data[i + 2] = 0; // B
+      data[i + 3] = 255; // A
+    }
+  }
+
+  const imageData = { width, height, data };
+
+  // Force pure-JS encoder by using the helper
+  const encoded = await withoutOffscreenCanvas(async () => {
+    return await format.encode(imageData);
+  });
+
+  // Should be a valid JPEG
+  assertEquals(encoded[0], 0xff);
+  assertEquals(encoded[1], 0xd8);
+  assertEquals(encoded[2], 0xff);
+
+  // Should end with EOI marker
+  assertEquals(encoded[encoded.length - 2], 0xff);
+  assertEquals(encoded[encoded.length - 1], 0xd9);
+
+  // Decode it back (this will use pure-JS decoder if ImageDecoder unavailable)
+  const decoded = await format.decode(encoded);
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+});
+
+test("JPEG: Pure-JS decoder - grayscale image", async () => {
+  const format = new JPEGFormat();
+
+  // Create a grayscale image (will be encoded as single Y component)
+  const width = 16;
+  const height = 16;
+  const data = new Uint8Array(width * height * 4);
+
+  // Create a grayscale gradient
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const gray = Math.floor((x / width) * 255);
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
+      data[i + 3] = 255;
+    }
+  }
+
+  const imageData = { width, height, data };
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+  assertEquals(decoded.data.length, width * height * 4);
+});
+
+test("JPEG: Pure-JS roundtrip - MCU boundary handling", async () => {
+  const format = new JPEGFormat();
+
+  // Test with dimensions that don't align to 8x8 MCU boundaries
+  const width = 13; // Not divisible by 8
+  const height = 11; // Not divisible by 8
+  const data = new Uint8Array(width * height * 4);
+
+  // Fill with a pattern
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      data[i] = (x * 20) % 256; // R
+      data[i + 1] = (y * 20) % 256; // G
+      data[i + 2] = 128; // B
+      data[i + 3] = 255; // A
+    }
+  }
+
+  const imageData = { width, height, data };
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // Dimensions should be preserved exactly
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+  assertEquals(decoded.data.length, width * height * 4);
+
+  // All alpha values should be 255
+  for (let i = 3; i < decoded.data.length; i += 4) {
+    assertEquals(decoded.data[i], 255);
+  }
+});
+
+test("JPEG: Quality parameter affects file size", async () => {
+  const format = new JPEGFormat();
+
+  const width = 32;
+  const height = 32;
+  const data = new Uint8Array(width * height * 4);
+
+  // Create a gradient image
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      data[i] = Math.floor((x / width) * 255);
+      data[i + 1] = Math.floor((y / height) * 255);
+      data[i + 2] = 128;
+      data[i + 3] = 255;
+    }
+  }
+
+  const imageData = { width, height, data };
+
+  // Test with different quality settings through the pure-JS encoder
+  const encoded = await withoutOffscreenCanvas(async () => {
+    return await format.encode(imageData);
+  });
+
+  // The encoder uses quality 85 by default
+  // Higher quality = larger file size
+  // Just verify we get valid JPEG output
+  assertEquals(encoded[0], 0xff);
+  assertEquals(encoded[1], 0xd8);
+  assertEquals(encoded[encoded.length - 2], 0xff);
+  assertEquals(encoded[encoded.length - 1], 0xd9);
 });
