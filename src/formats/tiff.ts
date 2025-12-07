@@ -694,15 +694,21 @@ export class TIFFFormat implements ImageFormat {
    */
   private async decodePage(
     data: Uint8Array,
-    _ifdOffset: number,
+    ifdOffset: number,
     width: number,
     height: number,
   ): Promise<Uint8Array> {
-    const _isLittleEndian = data[0] === 0x49;
+    const isLittleEndian = data[0] === 0x49;
 
     // Try pure JavaScript decoder first
     try {
-      const pureJSResult = this.decodePureJS(data, width, height);
+      const pureJSResult = this.decodePureJSFromIFD(
+        data,
+        ifdOffset,
+        width,
+        height,
+        isLittleEndian,
+      );
       if (pureJSResult) {
         return pureJSResult;
       }
@@ -988,6 +994,114 @@ export class TIFFFormat implements ImageFormat {
     // Read IFD offset
     const ifdOffset = this.readUint32(data, 4, isLittleEndian);
 
+    // Check compression
+    const compression = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0103,
+      isLittleEndian,
+    );
+    if (compression !== 1 && compression !== 5) {
+      // Only support uncompressed (1) and LZW (5)
+      return null;
+    }
+
+    // Check photometric interpretation
+    const photometric = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0106,
+      isLittleEndian,
+    );
+    if (photometric !== 2) {
+      // Only support RGB (photometric = 2)
+      return null;
+    }
+
+    // Get samples per pixel
+    const samplesPerPixel = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0115,
+      isLittleEndian,
+    );
+    if (!samplesPerPixel || (samplesPerPixel !== 3 && samplesPerPixel !== 4)) {
+      // Only support RGB (3) or RGBA (4)
+      return null;
+    }
+
+    // Get strip offset
+    const stripOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0111,
+      isLittleEndian,
+    );
+    if (!stripOffset || stripOffset >= data.length) {
+      return null;
+    }
+
+    // Get strip byte counts to know how much compressed data to read
+    const stripByteCount = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0117,
+      isLittleEndian,
+    );
+    if (!stripByteCount) {
+      return null;
+    }
+
+    // Read and decompress pixel data
+    let pixelData: Uint8Array;
+
+    if (compression === 5) {
+      // LZW compressed
+      const compressedData = data.slice(
+        stripOffset,
+        stripOffset + stripByteCount,
+      );
+      const decoder = new TIFFLZWDecoder(compressedData);
+      pixelData = decoder.decompress();
+    } else {
+      // Uncompressed
+      pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
+    }
+
+    // Convert to RGBA
+    const rgba = new Uint8Array(width * height * 4);
+    let srcPos = 0;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const dstIdx = (y * width + x) * 4;
+
+        if (srcPos + samplesPerPixel > pixelData.length) {
+          return null; // Not enough data
+        }
+
+        // TIFF stores RGB(A) in order
+        rgba[dstIdx] = pixelData[srcPos++]; // R
+        rgba[dstIdx + 1] = pixelData[srcPos++]; // G
+        rgba[dstIdx + 2] = pixelData[srcPos++]; // B
+        rgba[dstIdx + 3] = samplesPerPixel === 4 ? pixelData[srcPos++] : 255; // A
+      }
+    }
+
+    return rgba;
+  }
+
+  /**
+   * Pure JavaScript TIFF decoder for a specific IFD
+   * Returns null if the TIFF uses unsupported features
+   */
+  private decodePureJSFromIFD(
+    data: Uint8Array,
+    ifdOffset: number,
+    width: number,
+    height: number,
+    isLittleEndian: boolean,
+  ): Uint8Array | null {
     // Check compression
     const compression = this.getIFDValue(
       data,
