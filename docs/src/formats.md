@@ -25,6 +25,7 @@ status:
 | GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
 | WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
 | TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed & LZW RGB/RGBA      |
+| AVIF   | ✅   | ✅    | ❌ Native only | ❌ Native only | ✅ ImageDecoder   | ✅ OffscreenCanvas | AV1 codec in HEIF container (native API)     |
 
 **Legend:**
 
@@ -39,51 +40,58 @@ status:
 
 This table shows which format standards and variants are supported:
 
-| Format | Specification/Variant               | Support Level     | Implementation |
-| ------ | ----------------------------------- | ----------------- | -------------- |
-| PNG    | PNG 1.2 (ISO/IEC 15948)             | ✅ Full           | Pure-JS        |
-|        | - Interlaced (Adam7)                | ❌ Not Yet        | -              |
-|        | - Color types: Grayscale, RGB, RGBA | ✅ Full           | Pure-JS        |
-|        | - Metadata: pHYs, tEXt, iTXt, eXIf  | ✅ Full           | Pure-JS        |
-| BMP    | Windows BMP (BITMAPINFOHEADER)      | ✅ Full           | Pure-JS        |
-|        | - 24-bit RGB                        | ✅ Full           | Pure-JS        |
-|        | - 32-bit RGBA                       | ✅ Full           | Pure-JS        |
-|        | - Compressed variants (RLE)         | ❌ Not Yet        | -              |
-| JPEG   | JPEG/JFIF Baseline DCT              | ✅ Full           | Pure-JS        |
-|        | Progressive DCT                     | ⚠️ Native only    | ImageDecoder   |
-|        | - EXIF metadata                     | ✅ Full           | Pure-JS        |
-|        | - JFIF (APP0) with DPI              | ✅ Full           | Pure-JS        |
-| WebP   | WebP Lossless (VP8L)                | ⚠️ Basic          | Pure-JS        |
-|        | - Simple Huffman coding             | ✅ Full           | Pure-JS        |
-|        | - LZ77 backward references          | ❌ Not in encoder | -              |
-|        | - Color cache                       | ❌ Not in encoder | -              |
-|        | - Transforms (predictor, etc.)      | ❌ Not Yet        | -              |
-|        | WebP Lossy (VP8L with quantization) | ✅ Quality-based  | Pure-JS        |
-|        | - Color quantization for lossy      | ✅ Full           | Pure-JS        |
-|        | WebP Lossy (VP8)                    | ⚠️ Native only    | ImageDecoder   |
-|        | - EXIF, XMP metadata                | ✅ Full           | Pure-JS        |
-| TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS        |
-|        | TIFF 6.0 - LZW compressed RGB/RGBA  | ✅ Full           | Pure-JS        |
-|        | - JPEG, PackBits compression        | ⚠️ Native only    | ImageDecoder   |
-|        | - Multi-page/IFD (decode & encode)  | ✅ Full           | Pure-JS        |
-|        | - EXIF, Artist, Copyright metadata  | ✅ Full           | Pure-JS        |
-| GIF    | GIF87a, GIF89a                      | ✅ Full           | Pure-JS        |
-|        | - LZW compression/decompression     | ✅ Full           | Pure-JS        |
-|        | - Color quantization (encoding)     | ✅ Full           | Pure-JS        |
-|        | - Transparency support              | ✅ Full           | Pure-JS        |
-|        | - Interlacing support               | ✅ Full           | Pure-JS        |
-|        | - Animation (multi-frame decode)    | ✅ Full           | Pure-JS        |
-|        | - Animation (encode first frame)    | ⚠️ Single frame   | Pure-JS        |
-|        | - Comment extensions, XMP           | ✅ Full           | Pure-JS        |
-| DNG    | Adobe DNG 1.6.0.0 (Linear)          | ✅ Full           | Pure-JS        |
-| PAM    | Netpbm PAM (Portable Arbitrary Map) | ✅ Full           | Pure-JS        |
-| PCX    | ZSoft PCX Version 5 (3.0)           | ✅ Full           | Pure-JS        |
-|        | - 24-bit RGB (3 planes)             | ✅ Full           | Pure-JS        |
-|        | - 8-bit Palette (1 plane)           | ✅ Decode only    | Pure-JS        |
-| ASCII  | Text-based ASCII art                | ✅ Full           | Pure-JS        |
-|        | - Multiple character sets           | ✅ Full           | Pure-JS        |
-|        | - Configurable width & aspect ratio | ✅ Full           | Pure-JS        |
-|        | - Brightness inversion              | ✅ Full           | Pure-JS        |
+| Format | Specification/Variant               | Support Level     | Implementation  |
+| ------ | ----------------------------------- | ----------------- | --------------- |
+| PNG    | PNG 1.2 (ISO/IEC 15948)             | ✅ Full           | Pure-JS         |
+|        | - Interlaced (Adam7)                | ❌ Not Yet        | -               |
+|        | - Color types: Grayscale, RGB, RGBA | ✅ Full           | Pure-JS         |
+|        | - Metadata: pHYs, tEXt, iTXt, eXIf  | ✅ Full           | Pure-JS         |
+| BMP    | Windows BMP (BITMAPINFOHEADER)      | ✅ Full           | Pure-JS         |
+|        | - 24-bit RGB                        | ✅ Full           | Pure-JS         |
+|        | - 32-bit RGBA                       | ✅ Full           | Pure-JS         |
+|        | - Compressed variants (RLE)         | ❌ Not Yet        | -               |
+| JPEG   | JPEG/JFIF Baseline DCT              | ✅ Full           | Pure-JS         |
+|        | Progressive DCT                     | ⚠️ Native only    | ImageDecoder    |
+|        | - EXIF metadata                     | ✅ Full           | Pure-JS         |
+|        | - JFIF (APP0) with DPI              | ✅ Full           | Pure-JS         |
+| WebP   | WebP Lossless (VP8L)                | ⚠️ Basic          | Pure-JS         |
+|        | - Simple Huffman coding             | ✅ Full           | Pure-JS         |
+|        | - LZ77 backward references          | ❌ Not in encoder | -               |
+|        | - Color cache                       | ❌ Not in encoder | -               |
+|        | - Transforms (predictor, etc.)      | ❌ Not Yet        | -               |
+|        | WebP Lossy (VP8L with quantization) | ✅ Quality-based  | Pure-JS         |
+|        | - Color quantization for lossy      | ✅ Full           | Pure-JS         |
+|        | WebP Lossy (VP8)                    | ⚠️ Native only    | ImageDecoder    |
+|        | - EXIF, XMP metadata                | ✅ Full           | Pure-JS         |
+| AVIF   | AVIF 1.1.0 (AV1 in HEIF)            | ⚠️ Native only    | ImageDecoder    |
+|        | - AV1 Baseline Profile              | ⚠️ Native only    | ImageDecoder    |
+|        | - AV1 Advanced Profile              | ⚠️ Native only    | ImageDecoder    |
+|        | - Lossless and Lossy compression    | ⚠️ Native only    | OffscreenCanvas |
+|        | - HDR and Wide Color Gamut          | ⚠️ Native only    | Native APIs     |
+|        | - 8/10/12-bit color depth           | ⚠️ Native only    | Native APIs     |
+|        | - Transparency (alpha channel)      | ⚠️ Native only    | Native APIs     |
+| TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS         |
+|        | TIFF 6.0 - LZW compressed RGB/RGBA  | ✅ Full           | Pure-JS         |
+|        | - JPEG, PackBits compression        | ⚠️ Native only    | ImageDecoder    |
+|        | - Multi-page/IFD (decode & encode)  | ✅ Full           | Pure-JS         |
+|        | - EXIF, Artist, Copyright metadata  | ✅ Full           | Pure-JS         |
+| GIF    | GIF87a, GIF89a                      | ✅ Full           | Pure-JS         |
+|        | - LZW compression/decompression     | ✅ Full           | Pure-JS         |
+|        | - Color quantization (encoding)     | ✅ Full           | Pure-JS         |
+|        | - Transparency support              | ✅ Full           | Pure-JS         |
+|        | - Interlacing support               | ✅ Full           | Pure-JS         |
+|        | - Animation (multi-frame decode)    | ✅ Full           | Pure-JS         |
+|        | - Animation (encode first frame)    | ⚠️ Single frame   | Pure-JS         |
+|        | - Comment extensions, XMP           | ✅ Full           | Pure-JS         |
+| DNG    | Adobe DNG 1.6.0.0 (Linear)          | ✅ Full           | Pure-JS         |
+| PAM    | Netpbm PAM (Portable Arbitrary Map) | ✅ Full           | Pure-JS         |
+| PCX    | ZSoft PCX Version 5 (3.0)           | ✅ Full           | Pure-JS         |
+|        | - 24-bit RGB (3 planes)             | ✅ Full           | Pure-JS         |
+|        | - 8-bit Palette (1 plane)           | ✅ Decode only    | Pure-JS         |
+| ASCII  | Text-based ASCII art                | ✅ Full           | Pure-JS         |
+|        | - Multiple character sets           | ✅ Full           | Pure-JS         |
+|        | - Configurable width & aspect ratio | ✅ Full           | Pure-JS         |
+|        | - Brightness inversion              | ✅ Full           | Pure-JS         |
 
 ## Runtime Compatibility by Format
 
@@ -98,9 +106,12 @@ This table shows which format standards and variants are supported:
 | JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
+| AVIF   | ✅       | ❌          | ✅          | ✅  | Requires native API support (Node 20+)       |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
-ASCII, PCX or DNG formats which have complete pure-JS implementations.
+ASCII, PCX or DNG formats which have complete pure-JS implementations. AVIF
+requires native API support and may not be available in all environments
+(requires Node.js 20+, Deno 2.x, or Bun).
 
 ## Implementation Details
 

@@ -20,6 +20,7 @@ import {
 import { PNGFormat } from "./formats/png.ts";
 import { JPEGFormat } from "./formats/jpeg.ts";
 import { WebPFormat } from "./formats/webp.ts";
+import { AVIFFormat } from "./formats/avif.ts";
 import { GIFFormat } from "./formats/gif.ts";
 import { TIFFFormat } from "./formats/tiff.ts";
 import { BMPFormat } from "./formats/bmp.ts";
@@ -38,6 +39,7 @@ export class Image {
     new PNGFormat(),
     new JPEGFormat(),
     new WebPFormat(),
+    new AVIFFormat(),
     new GIFFormat(),
     new TIFFFormat(),
     new BMPFormat(),
