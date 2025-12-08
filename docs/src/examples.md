@@ -62,7 +62,7 @@ import { readFile, writeFile } from "node:fs/promises";
 
 // Read an image (auto-detects format)
 const data = await readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
@@ -99,7 +99,7 @@ import { Image } from "cross-image";
 import { readFile, writeFile } from "node:fs/promises";
 
 const data = await readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 // Resize with bilinear interpolation (default)
 image.resize({ width: 800, height: 600 });
@@ -185,7 +185,7 @@ import { Image } from "cross-image";
 import { readFile, writeFile } from "node:fs/promises";
 
 const data = await readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 // Chain multiple operations
 image
@@ -224,7 +224,7 @@ import { Image } from "cross-image";
 import { readFile, writeFile } from "node:fs/promises";
 
 const data = await readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 // Save as uncompressed TIFF
 const uncompressed = await image.save("tiff");

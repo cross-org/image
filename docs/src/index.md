@@ -54,7 +54,7 @@ import { Image } from "@cross/image";
 
 // Read an image (auto-detects format)
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
@@ -74,7 +74,7 @@ import { readFile, writeFile } from "node:fs/promises";
 
 // Read an image (auto-detects format)
 const data = await readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
