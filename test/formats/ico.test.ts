@@ -10,6 +10,14 @@ test("ICO: canDecode - valid ICO signature", () => {
   assertEquals(format.canDecode(validICO), true);
 });
 
+test("ICO: canDecode - valid CUR signature", () => {
+  // CUR: reserved=0, type=2 (cursor), count=1
+  const validCUR = new Uint8Array([0x00, 0x00, 0x02, 0x00, 0x01, 0x00]);
+  const format = new ICOFormat();
+
+  assertEquals(format.canDecode(validCUR), true);
+});
+
 test("ICO: canDecode - invalid signature", () => {
   const invalid = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   const format = new ICOFormat();

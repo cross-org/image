@@ -17,6 +17,10 @@ export class ICOFormat implements ImageFormat {
 
   private pngFormat = new PNGFormat();
 
+  // Constants for signed/unsigned integer conversion
+  private static readonly INT32_MAX = 0x7fffffff;
+  private static readonly UINT32_RANGE = 0x100000000;
+
   /**
    * Check if the given data is an ICO image
    * @param data Raw image data to check
@@ -26,7 +30,7 @@ export class ICOFormat implements ImageFormat {
     // ICO signature: reserved=0, type=1 (icon) or 2 (cursor)
     return data.length >= 6 &&
       data[0] === 0 && data[1] === 0 && // Reserved
-      data[2] === 1 && data[3] === 0 && // Type = 1 (icon)
+      (data[2] === 1 || data[2] === 2) && data[3] === 0 && // Type = 1 (icon) or 2 (cursor)
       data[4] !== 0; // Count > 0
   }
 
@@ -136,7 +140,7 @@ export class ICOFormat implements ImageFormat {
     const compression = this.readUint32LE(data, 16);
 
     // Validate dimensions
-    validateImageDimensions(width, Math.abs(height) / 2); // Height is doubled in ICO
+    validateImageDimensions(width, Math.abs(height) / 2); // DIB height includes both XOR and AND mask data
 
     // ICO files store height as 2x actual height (for AND mask)
     const actualHeight = Math.abs(height) / 2;
@@ -262,7 +266,7 @@ export class ICOFormat implements ImageFormat {
 
   private readInt32LE(data: Uint8Array, offset: number): number {
     const value = this.readUint32LE(data, offset);
-    return value > 0x7fffffff ? value - 0x100000000 : value;
+    return value > ICOFormat.INT32_MAX ? value - ICOFormat.UINT32_RANGE : value;
   }
 
   private writeUint16LE(data: Uint8Array, offset: number, value: number): void {
