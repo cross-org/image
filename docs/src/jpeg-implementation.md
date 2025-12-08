@@ -27,8 +27,7 @@ encoder and decoder** that works correctly for the most common JPEG images:
 - ❌ Arithmetic coding - **not yet implemented**
 - ❌ Lossless JPEG - **not yet implemented**
 - ❌ Extended sequential DCT - **not yet implemented**
-- ⚠️ Chroma subsampling - **only 4:4:4 tested, 4:2:2 and 4:2:0 partially
-  supported**
+- ✅ Chroma subsampling - **4:4:4, 4:2:2, and 4:2:0 fully tested and supported**
 
 ### Encoder (Baseline DCT)
 
@@ -177,7 +176,7 @@ is rarely used due to patent concerns (now expired) and limited decoder support.
 
 ### Current Test Coverage
 
-✅ **Unit Tests** (`test/jpeg.test.ts`):
+✅ **Unit Tests** (`test/formats/jpeg.test.ts`):
 
 - Signature detection
 - Small image encoding/decoding (2x2, 1x1)
@@ -185,6 +184,15 @@ is rarely used due to patent concerns (now expired) and limited decoder support.
 - Metadata preservation (DPI, EXIF fields)
 - Format auto-detection
 - Image class integration
+
+✅ **Chroma Subsampling Tests** (`test/formats/jpeg_subsampling.test.ts`):
+
+- 4:4:4 (no subsampling) decoding
+- 4:2:2 (horizontal subsampling) decoding
+- 4:2:0 (horizontal and vertical subsampling) decoding
+- Various image sizes (32x32, 64x64)
+- Odd dimensions handling (33x17)
+- Roundtrip encoding/decoding with different subsampling modes
 
 ✅ **Roundtrip Tests** (`test/purejs_roundtrip.test.ts`):
 
@@ -200,12 +208,7 @@ To add when implementing new features:
    - Different spectral selections
    - Successive approximation levels
 
-2. **Chroma Subsampling**:
-   - 4:2:2 horizontal subsampling
-   - 4:2:0 horizontal and vertical subsampling
-   - Edge cases with odd dimensions
-
-3. **Optimized Huffman**:
+2. **Optimized Huffman**:
    - Images with varying color distributions
    - Verification that optimized tables decode correctly
 
