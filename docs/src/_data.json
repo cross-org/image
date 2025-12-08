@@ -18,6 +18,11 @@
       "icon": "fas fa-cube",
       "title": "JSR Package",
       "url": "https://jsr.io/@cross/image"
+    },
+    {
+      "icon": "fab fa-npm",
+      "title": "NPM Package",
+      "url": "https://www.npmjs.com/package/cross-image"
     }
   ],
   "nav_links": [
@@ -28,6 +33,10 @@
     {
       "title": "JSR Package",
       "url": "https://jsr.io/@cross/image"
+    },
+    {
+      "title": "NPM Package",
+      "url": "https://www.npmjs.com/package/cross-image"
     }
   ]
 }
