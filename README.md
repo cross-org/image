@@ -44,6 +44,8 @@ import { Image } from "@cross/image";
 
 ## Quick Start
 
+### Deno
+
 ```ts
 import { Image } from "@cross/image";
 
@@ -59,6 +61,26 @@ image.resize({ width: 800, height: 600 });
 // Save in a different format
 const jpeg = await image.save("jpeg");
 await Deno.writeFile("output.jpg", jpeg);
+```
+
+### Node.js
+
+```ts
+import { Image } from "cross-image";
+import { readFile, writeFile } from "node:fs/promises";
+
+// Read an image (auto-detects format)
+const data = await readFile("input.png");
+const image = await Image.read(data);
+
+console.log(`Image size: ${image.width}x${image.height}`);
+
+// Resize the image
+image.resize({ width: 800, height: 600 });
+
+// Save in a different format
+const jpeg = await image.save("jpeg");
+await writeFile("output.jpg", jpeg);
 ```
 
 ## Supported Formats
