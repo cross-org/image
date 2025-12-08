@@ -6,6 +6,17 @@ import type {
   ResizeOptions,
 } from "./types.ts";
 import { resizeBilinear, resizeNearest } from "./utils/resize.ts";
+import {
+  adjustBrightness,
+  adjustContrast,
+  adjustExposure,
+  adjustSaturation,
+  composite,
+  crop,
+  fillRect,
+  grayscale,
+  invert,
+} from "./utils/image_processing.ts";
 import { PNGFormat } from "./formats/png.ts";
 import { JPEGFormat } from "./formats/jpeg.ts";
 import { WebPFormat } from "./formats/webp.ts";
@@ -336,6 +347,42 @@ export class Image {
   }
 
   /**
+   * Create a blank image with the specified dimensions and color
+   * @param width Image width
+   * @param height Image height
+   * @param r Red component (0-255, default: 0)
+   * @param g Green component (0-255, default: 0)
+   * @param b Blue component (0-255, default: 0)
+   * @param a Alpha component (0-255, default: 255)
+   * @returns Image instance
+   */
+  static create(
+    width: number,
+    height: number,
+    r = 0,
+    g = 0,
+    b = 0,
+    a = 255,
+  ): Image {
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
+
+    const data = new Uint8Array(width * height * 4);
+
+    // Fill with the specified color
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = a;
+    }
+
+    const image = new Image();
+    image.imageData = { width, height, data };
+    return image;
+  }
+
+  /**
    * Resize the image
    * @param options Resize options
    * @returns This image instance for chaining
@@ -431,5 +478,250 @@ export class Image {
         : undefined,
     };
     return image;
+  }
+
+  /**
+   * Composite another image on top of this image at the specified position
+   * @param overlay Image to place on top
+   * @param x X position (can be negative)
+   * @param y Y position (can be negative)
+   * @param opacity Opacity of overlay (0-1, default: 1)
+   * @returns This image instance for chaining
+   */
+  composite(overlay: Image, x: number, y: number, opacity = 1): this {
+    if (!this.imageData) throw new Error("No image loaded");
+    if (!overlay.imageData) throw new Error("Overlay has no image loaded");
+
+    this.imageData.data = composite(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      overlay.imageData.data,
+      overlay.imageData.width,
+      overlay.imageData.height,
+      x,
+      y,
+      opacity,
+    );
+
+    return this;
+  }
+
+  /**
+   * Adjust brightness of the image
+   * @param amount Brightness adjustment (-1 to 1, where 0 is no change)
+   * @returns This image instance for chaining
+   */
+  brightness(amount: number): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = adjustBrightness(this.imageData.data, amount);
+
+    return this;
+  }
+
+  /**
+   * Adjust contrast of the image
+   * @param amount Contrast adjustment (-1 to 1, where 0 is no change)
+   * @returns This image instance for chaining
+   */
+  contrast(amount: number): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = adjustContrast(this.imageData.data, amount);
+
+    return this;
+  }
+
+  /**
+   * Adjust exposure of the image
+   * @param amount Exposure adjustment in stops (-3 to 3, where 0 is no change)
+   * @returns This image instance for chaining
+   */
+  exposure(amount: number): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = adjustExposure(this.imageData.data, amount);
+
+    return this;
+  }
+
+  /**
+   * Adjust saturation of the image
+   * @param amount Saturation adjustment (-1 to 1, where 0 is no change)
+   * @returns This image instance for chaining
+   */
+  saturation(amount: number): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = adjustSaturation(this.imageData.data, amount);
+
+    return this;
+  }
+
+  /**
+   * Invert colors of the image
+   * @returns This image instance for chaining
+   */
+  invert(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = invert(this.imageData.data);
+
+    return this;
+  }
+
+  /**
+   * Convert the image to grayscale
+   * @returns This image instance for chaining
+   */
+  grayscale(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = grayscale(this.imageData.data);
+
+    return this;
+  }
+
+  /**
+   * Fill a rectangular region with a color
+   * @param x Starting X position
+   * @param y Starting Y position
+   * @param width Width of the fill region
+   * @param height Height of the fill region
+   * @param r Red component (0-255)
+   * @param g Green component (0-255)
+   * @param b Blue component (0-255)
+   * @param a Alpha component (0-255, default: 255)
+   * @returns This image instance for chaining
+   */
+  fillRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    r: number,
+    g: number,
+    b: number,
+    a = 255,
+  ): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = fillRect(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      x,
+      y,
+      width,
+      height,
+      r,
+      g,
+      b,
+      a,
+    );
+
+    return this;
+  }
+
+  /**
+   * Crop the image to a rectangular region
+   * @param x Starting X position
+   * @param y Starting Y position
+   * @param width Width of the crop region
+   * @param height Height of the crop region
+   * @returns This image instance for chaining
+   */
+  crop(x: number, y: number, width: number, height: number): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    const result = crop(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      x,
+      y,
+      width,
+      height,
+    );
+
+    this.imageData.width = result.width;
+    this.imageData.height = result.height;
+    this.imageData.data = result.data;
+
+    // Update physical dimensions if DPI is set
+    if (this.imageData.metadata) {
+      const metadata = this.imageData.metadata;
+      if (metadata.dpiX) {
+        this.imageData.metadata.physicalWidth = result.width / metadata.dpiX;
+      }
+      if (metadata.dpiY) {
+        this.imageData.metadata.physicalHeight = result.height / metadata.dpiY;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Get the pixel color at the specified position
+   * @param x X position
+   * @param y Y position
+   * @returns Object with r, g, b, a components (0-255) or undefined if out of bounds
+   */
+  getPixel(
+    x: number,
+    y: number,
+  ): { r: number; g: number; b: number; a: number } | undefined {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    if (
+      x < 0 || x >= this.imageData.width || y < 0 || y >= this.imageData.height
+    ) {
+      return undefined;
+    }
+
+    const idx = (y * this.imageData.width + x) * 4;
+    return {
+      r: this.imageData.data[idx],
+      g: this.imageData.data[idx + 1],
+      b: this.imageData.data[idx + 2],
+      a: this.imageData.data[idx + 3],
+    };
+  }
+
+  /**
+   * Set the pixel color at the specified position
+   * @param x X position
+   * @param y Y position
+   * @param r Red component (0-255)
+   * @param g Green component (0-255)
+   * @param b Blue component (0-255)
+   * @param a Alpha component (0-255, default: 255)
+   * @returns This image instance for chaining
+   */
+  setPixel(
+    x: number,
+    y: number,
+    r: number,
+    g: number,
+    b: number,
+    a = 255,
+  ): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    if (
+      x < 0 || x >= this.imageData.width || y < 0 || y >= this.imageData.height
+    ) {
+      return this;
+    }
+
+    const idx = (y * this.imageData.width + x) * 4;
+    this.imageData.data[idx] = r;
+    this.imageData.data[idx + 1] = g;
+    this.imageData.data[idx + 2] = b;
+    this.imageData.data[idx + 3] = a;
+
+    return this;
   }
 }

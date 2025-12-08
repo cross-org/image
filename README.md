@@ -11,7 +11,9 @@ Deno, Node.js, and Bun.
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
 - 🎨 **Multiple formats** - PNG, JPEG, WebP, GIF, TIFF, BMP, and RAW support
-- ✂️ **Image manipulation** - Resize with multiple algorithms
+- ✂️ **Image manipulation** - Resize, crop, composite, and more
+- 🎛️ **Image processing** - Adjust brightness, contrast, saturation, exposure
+- 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
 - 🔧 **Simple API** - Easy to use, intuitive interface
 
 ## Installation
@@ -55,11 +57,20 @@ const image = await Image.decode(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
-// Resize the image
-image.resize({ width: 800, height: 600 });
+// Create a new blank image
+const canvas = Image.create(800, 600, 255, 255, 255); // white background
+
+// Composite the loaded image on top
+canvas.composite(image, 50, 50);
+
+// Apply image processing
+canvas
+  .brightness(0.1)
+  .contrast(0.2)
+  .saturation(-0.1);
 
 // Encode in a different format
-const jpeg = await image.encode("jpeg");
+const jpeg = await canvas.encode("jpeg");
 await Deno.writeFile("output.jpg", jpeg);
 ```
 
