@@ -3,7 +3,7 @@ import { test } from "@cross/test";
 
 import { JPEGFormat } from "../../src/formats/jpeg.ts";
 import { Image } from "../../src/image.ts";
-import { withoutOffscreenCanvas } from "../test_utils.ts";
+import { readFile, withoutOffscreenCanvas } from "../test_utils.ts";
 
 /**
  * Tests for JPEG chroma subsampling support (4:4:4, 4:2:2, 4:2:0)
@@ -13,7 +13,7 @@ import { withoutOffscreenCanvas } from "../test_utils.ts";
  */
 
 test("JPEG subsampling: decode 4:4:4 (no subsampling)", async () => {
-  const data = await Deno.readFile("test/fixtures/jpeg/test_444.jpg");
+  const data = await readFile("test/fixtures/jpeg/test_444.jpg");
   const format = new JPEGFormat();
 
   const decoded = await withoutOffscreenCanvas(async () => {
@@ -50,7 +50,7 @@ test("JPEG subsampling: decode 4:4:4 (no subsampling)", async () => {
 });
 
 test("JPEG subsampling: decode 4:2:2 (horizontal subsampling)", async () => {
-  const data = await Deno.readFile("test/fixtures/jpeg/test_422.jpg");
+  const data = await readFile("test/fixtures/jpeg/test_422.jpg");
   const format = new JPEGFormat();
 
   const decoded = await withoutOffscreenCanvas(async () => {
@@ -92,7 +92,7 @@ test("JPEG subsampling: decode 4:2:2 (horizontal subsampling)", async () => {
 });
 
 test("JPEG subsampling: decode 4:2:0 (horizontal and vertical subsampling)", async () => {
-  const data = await Deno.readFile("test/fixtures/jpeg/test_420.jpg");
+  const data = await readFile("test/fixtures/jpeg/test_420.jpg");
   const format = new JPEGFormat();
 
   const decoded = await withoutOffscreenCanvas(async () => {
@@ -137,7 +137,7 @@ test("JPEG subsampling: decode 4:2:0 (horizontal and vertical subsampling)", asy
 });
 
 test("JPEG subsampling: decode 4:2:0 larger image (64x64)", async () => {
-  const data = await Deno.readFile("test/fixtures/jpeg/test_420_64x64.jpg");
+  const data = await readFile("test/fixtures/jpeg/test_420_64x64.jpg");
   const format = new JPEGFormat();
 
   const decoded = await withoutOffscreenCanvas(async () => {
@@ -175,7 +175,7 @@ test("JPEG subsampling: decode 4:2:0 larger image (64x64)", async () => {
 });
 
 test("JPEG subsampling: decode 4:2:0 with odd dimensions (33x17)", async () => {
-  const data = await Deno.readFile("test/fixtures/jpeg/test_420_odd.jpg");
+  const data = await readFile("test/fixtures/jpeg/test_420_odd.jpg");
   const format = new JPEGFormat();
 
   const decoded = await withoutOffscreenCanvas(async () => {
@@ -212,7 +212,7 @@ test("JPEG subsampling: decode 4:2:0 with odd dimensions (33x17)", async () => {
 });
 
 test("JPEG subsampling: Image class integration with 4:2:0", async () => {
-  const data = await Deno.readFile("test/fixtures/jpeg/test_420.jpg");
+  const data = await readFile("test/fixtures/jpeg/test_420.jpg");
 
   const image = await withoutOffscreenCanvas(async () => {
     return await Image.read(data);
@@ -234,7 +234,7 @@ test("JPEG subsampling: Image class integration with 4:2:0", async () => {
 
 test("JPEG subsampling: roundtrip 4:2:0 to 4:4:4 and back", async () => {
   // Load a 4:2:0 image
-  const data420 = await Deno.readFile("test/fixtures/jpeg/test_420.jpg");
+  const data420 = await readFile("test/fixtures/jpeg/test_420.jpg");
 
   const image = await withoutOffscreenCanvas(async () => {
     return await Image.read(data420);
