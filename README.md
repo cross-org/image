@@ -102,7 +102,9 @@ await writeFile("output.jpg", jpeg);
 | PNG    | ✅ Full     | Complete pure-JS implementation |
 | BMP    | ✅ Full     | Complete pure-JS implementation |
 | GIF    | ✅ Full     | Complete pure-JS implementation |
-| RAW    | ✅ Full     | Uncompressed RGBA               |
+| DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)  |
+| PAM    | ✅ Full     | Netpbm PAM format               |
+| PCX    | ✅ Full     | ZSoft PCX (RLE compressed)      |
 | ASCII  | ✅ Full     | Text-based ASCII art            |
 | JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only       |
 | WebP   | ⚠️ Lossless | Pure-JS lossless VP8L           |
