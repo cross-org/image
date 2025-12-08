@@ -536,4 +536,111 @@ export abstract class PNGBase {
 
     return new Uint8Array(exif);
   }
+
+  /**
+   * Concatenate multiple byte arrays into a single Uint8Array
+   */
+  protected concatenateChunks(
+    chunks: { type: string; data: Uint8Array }[],
+  ): Uint8Array {
+    const totalLength = chunks.reduce(
+      (sum, chunk) => sum + chunk.data.length,
+      0,
+    );
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk.data, offset);
+      offset += chunk.data.length;
+    }
+    return result;
+  }
+
+  /**
+   * Concatenate multiple Uint8Arrays into a single Uint8Array
+   */
+  protected concatenateArrays(arrays: Uint8Array[]): Uint8Array {
+    const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const arr of arrays) {
+      result.set(arr, offset);
+      offset += arr.length;
+    }
+    return result;
+  }
+
+  /**
+   * Add metadata chunks to the chunks array
+   * Shared method to avoid duplication between PNG and APNG encoding
+   */
+  protected addMetadataChunks(
+    chunks: Uint8Array[],
+    metadata: ImageMetadata | undefined,
+  ): void {
+    if (!metadata) return;
+
+    // Add pHYs chunk for DPI information
+    if (metadata.dpiX !== undefined || metadata.dpiY !== undefined) {
+      const physChunk = this.createPhysChunk(metadata);
+      chunks.push(this.createChunk("pHYs", physChunk));
+    }
+
+    // Add tEXt chunks for standard metadata
+    if (metadata.title !== undefined) {
+      chunks.push(
+        this.createChunk(
+          "tEXt",
+          this.createTextChunk("Title", metadata.title),
+        ),
+      );
+    }
+    if (metadata.author !== undefined) {
+      chunks.push(
+        this.createChunk(
+          "tEXt",
+          this.createTextChunk("Author", metadata.author),
+        ),
+      );
+    }
+    if (metadata.description !== undefined) {
+      chunks.push(
+        this.createChunk(
+          "tEXt",
+          this.createTextChunk("Description", metadata.description),
+        ),
+      );
+    }
+    if (metadata.copyright !== undefined) {
+      chunks.push(
+        this.createChunk(
+          "tEXt",
+          this.createTextChunk("Copyright", metadata.copyright),
+        ),
+      );
+    }
+
+    // Add custom metadata fields
+    if (metadata.custom) {
+      for (const [key, value] of Object.entries(metadata.custom)) {
+        chunks.push(
+          this.createChunk(
+            "tEXt",
+            this.createTextChunk(key, String(value)),
+          ),
+        );
+      }
+    }
+
+    // Add EXIF chunk for GPS data and creation date
+    if (
+      metadata.latitude !== undefined || metadata.longitude !== undefined ||
+      metadata.creationDate !== undefined
+    ) {
+      const exifChunk = this.createExifChunk(metadata);
+      if (exifChunk) {
+        chunks.push(this.createChunk("eXIf", exifChunk));
+      }
+    }
+  }
 }
