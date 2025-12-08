@@ -47,8 +47,6 @@ import { Image } from "@cross/image";
 
 ## Quick Start
 
-### Reading and Saving Images
-
 ```ts
 import { Image } from "@cross/image";
 
@@ -58,76 +56,40 @@ const image = await Image.read(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
-// Save as different format
+// Resize the image
+image.resize({ width: 800, height: 600 });
+
+// Save in a different format
 const jpeg = await image.save("jpeg");
 await Deno.writeFile("output.jpg", jpeg);
 ```
 
-### Resizing Images
+## Documentation
 
-```ts
-import { Image } from "@cross/image";
-
-const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
-
-// Resize with bilinear interpolation (default)
-image.resize({ width: 800, height: 600 });
-
-// Or use nearest neighbor for faster, pixelated results
-image.resize({ width: 400, height: 300, method: "nearest" });
-
-// Save the result
-const output = await image.save("png");
-await Deno.writeFile("resized.png", output);
-```
+- **[API Reference](api.md)** - Complete API documentation
+- **[Format Support](formats.md)** - Supported formats and specifications
+- **[Examples](examples.md)** - Usage examples for common tasks
+- **[JPEG Implementation](jpeg-implementation.md)** - Technical details for JPEG
+- **[WebP Implementation](webp-implementation.md)** - Technical details for WebP
 
 ## Supported Formats
 
-This table shows which image formats are supported and their implementation
-status:
+@cross/image supports 8 image formats with varying levels of pure-JS
+implementation:
 
-| Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Notes                                        |
-| ------ | ---- | ----- | -------------- | -------------- | -------------------------------------------- |
-| PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | Complete pure-JS implementation              |
-| BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | Complete pure-JS implementation              |
-| RAW    | ✅   | ✅    | ✅ Full        | ✅ Full        | Uncompressed RGBA (no metadata)              |
-| ASCII  | ✅   | ✅    | ✅ Full        | ✅ Full        | Text-based ASCII art representation          |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | Pure-JS for baseline DCT only                |
-| GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | Complete pure-JS implementation              |
-| WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | Pure-JS VP8L with quality-based quantization |
-| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | Pure-JS for uncompressed & LZW RGB/RGBA      |
+- **PNG, BMP, GIF, RAW, ASCII** - Full pure-JS implementation
+- **JPEG** - Pure-JS baseline DCT, native API for progressive
+- **WebP** - Pure-JS lossless, native API for lossy VP8
+- **TIFF** - Pure-JS uncompressed + LZW, native API for other compressions
 
-**Legend:**
-
-- ✅ **Full support** - Complete implementation with all common features
-- ⚠️ **Limited support** - Partial implementation with restrictions
-- **Pure-JS** - Works in all JavaScript runtimes without native dependencies
-
-## Runtime Compatibility
-
-| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                        |
-| ------ | -------- | ----------- | ----------- | --- | -------------------------------------------- |
-| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| BMP    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| RAW    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
-| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
-| TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
-
-**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
-ASCII or RAW formats which have complete pure-JS implementations.
-
-## API Reference
-
-See the [API documentation](api.md) for detailed information about classes,
-methods, and types.
+See the [Format Support](formats.md) page for detailed compatibility
+information.
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see
+[LICENSE](https://github.com/cross-org/image/blob/main/LICENSE) file for
+details.
 
 ## Contributing
 

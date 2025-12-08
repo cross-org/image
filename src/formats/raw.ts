@@ -11,12 +11,19 @@ import type { ImageData, ImageFormat } from "../types.ts";
  * - RGBA pixel data (width * height * 4 bytes)
  */
 export class RAWFormat implements ImageFormat {
+  /** Format name identifier */
   readonly name = "raw";
+  /** MIME type for RAW images */
   readonly mimeType = "image/raw";
 
   private readonly MAGIC_BYTES = new Uint8Array([0x52, 0x47, 0x42, 0x41]); // "RGBA"
   private readonly HEADER_SIZE = 12; // 4 bytes magic + 4 bytes width + 4 bytes height
 
+  /**
+   * Check if the given data is a RAW image
+   * @param data Raw image data to check
+   * @returns true if data has RAW signature
+   */
   canDecode(data: Uint8Array): boolean {
     // Check if data has at least header size and matches magic bytes
     if (data.length < this.HEADER_SIZE) {
@@ -29,6 +36,11 @@ export class RAWFormat implements ImageFormat {
       data[3] === this.MAGIC_BYTES[3];
   }
 
+  /**
+   * Decode RAW image data to RGBA
+   * @param data Raw RAW image data
+   * @returns Decoded image data with RGBA pixels
+   */
   decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid RAW signature");
@@ -59,6 +71,11 @@ export class RAWFormat implements ImageFormat {
     return Promise.resolve({ width, height, data: pixelData });
   }
 
+  /**
+   * Encode RGBA image data to RAW format
+   * @param imageData Image data to encode
+   * @returns Encoded RAW image bytes
+   */
   encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data } = imageData;
 

@@ -8,15 +8,27 @@ const CM_PER_INCH = 2.54;
  * Implements a basic JPEG decoder and encoder
  */
 export class JPEGFormat implements ImageFormat {
+  /** Format name identifier */
   readonly name = "jpeg";
+  /** MIME type for JPEG images */
   readonly mimeType = "image/jpeg";
 
+  /**
+   * Check if the given data is a JPEG image
+   * @param data Raw image data to check
+   * @returns true if data has JPEG signature
+   */
   canDecode(data: Uint8Array): boolean {
     // JPEG signature: FF D8 FF
     return data.length >= 3 &&
       data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
   }
 
+  /**
+   * Decode JPEG image data to RGBA
+   * @param data Raw JPEG image data
+   * @returns Decoded image data with RGBA pixels
+   */
   async decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid JPEG signature");
@@ -92,6 +104,11 @@ export class JPEGFormat implements ImageFormat {
     };
   }
 
+  /**
+   * Encode RGBA image data to JPEG format
+   * @param imageData Image data to encode
+   * @returns Encoded JPEG image bytes
+   */
   async encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 

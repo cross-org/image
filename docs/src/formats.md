@@ -1,0 +1,103 @@
+---
+title: Format Support
+order: 2
+---
+
+# Format Support
+
+This page details the image formats supported by @cross/image, their features,
+and runtime compatibility.
+
+## Format Support Matrix
+
+This table shows which image formats are supported and their implementation
+status:
+
+| Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                        |
+| ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | -------------------------------------------- |
+| PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| RAW    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Uncompressed RGBA (no metadata)              |
+| ASCII  | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation          |
+| JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only                |
+| GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
+| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed & LZW RGB/RGBA      |
+
+**Legend:**
+
+- ✅ **Full support** - Complete implementation with all common features
+- ⚠️ **Limited support** - Partial implementation with restrictions
+- ❌ **Not supported** - Feature not available in pure-JS, requires native APIs
+- **Pure-JS** - Works in all JavaScript runtimes without native dependencies
+- **Native API** - Uses runtime APIs like ImageDecoder (decode) or
+  OffscreenCanvas (encode)
+
+## Format Specifications Supported
+
+This table shows which format standards and variants are supported:
+
+| Format | Specification/Variant               | Support Level     | Implementation |
+| ------ | ----------------------------------- | ----------------- | -------------- |
+| PNG    | PNG 1.2 (ISO/IEC 15948)             | ✅ Full           | Pure-JS        |
+|        | - Interlaced (Adam7)                | ❌ Not Yet        | -              |
+|        | - Color types: Grayscale, RGB, RGBA | ✅ Full           | Pure-JS        |
+|        | - Metadata: pHYs, tEXt, iTXt, eXIf  | ✅ Full           | Pure-JS        |
+| BMP    | Windows BMP (BITMAPINFOHEADER)      | ✅ Full           | Pure-JS        |
+|        | - 24-bit RGB                        | ✅ Full           | Pure-JS        |
+|        | - 32-bit RGBA                       | ✅ Full           | Pure-JS        |
+|        | - Compressed variants (RLE)         | ❌ Not Yet        | -              |
+| JPEG   | JPEG/JFIF Baseline DCT              | ✅ Full           | Pure-JS        |
+|        | Progressive DCT                     | ⚠️ Native only    | ImageDecoder   |
+|        | - EXIF metadata                     | ✅ Full           | Pure-JS        |
+|        | - JFIF (APP0) with DPI              | ✅ Full           | Pure-JS        |
+| WebP   | WebP Lossless (VP8L)                | ⚠️ Basic          | Pure-JS        |
+|        | - Simple Huffman coding             | ✅ Full           | Pure-JS        |
+|        | - LZ77 backward references          | ❌ Not in encoder | -              |
+|        | - Color cache                       | ❌ Not in encoder | -              |
+|        | - Transforms (predictor, etc.)      | ❌ Not Yet        | -              |
+|        | WebP Lossy (VP8L with quantization) | ✅ Quality-based  | Pure-JS        |
+|        | - Color quantization for lossy      | ✅ Full           | Pure-JS        |
+|        | WebP Lossy (VP8)                    | ⚠️ Native only    | ImageDecoder   |
+|        | - EXIF, XMP metadata                | ✅ Full           | Pure-JS        |
+| TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS        |
+|        | TIFF 6.0 - LZW compressed RGB/RGBA  | ✅ Full           | Pure-JS        |
+|        | - JPEG, PackBits compression        | ⚠️ Native only    | ImageDecoder   |
+|        | - Multi-page/IFD (decode & encode)  | ✅ Full           | Pure-JS        |
+|        | - EXIF, Artist, Copyright metadata  | ✅ Full           | Pure-JS        |
+| GIF    | GIF87a, GIF89a                      | ✅ Full           | Pure-JS        |
+|        | - LZW compression/decompression     | ✅ Full           | Pure-JS        |
+|        | - Color quantization (encoding)     | ✅ Full           | Pure-JS        |
+|        | - Transparency support              | ✅ Full           | Pure-JS        |
+|        | - Interlacing support               | ✅ Full           | Pure-JS        |
+|        | - Animation (multi-frame decode)    | ✅ Full           | Pure-JS        |
+|        | - Animation (encode first frame)    | ⚠️ Single frame   | Pure-JS        |
+|        | - Comment extensions, XMP           | ✅ Full           | Pure-JS        |
+| RAW    | Uncompressed RGBA                   | ✅ Full           | Pure-JS        |
+| ASCII  | Text-based ASCII art                | ✅ Full           | Pure-JS        |
+|        | - Multiple character sets           | ✅ Full           | Pure-JS        |
+|        | - Configurable width & aspect ratio | ✅ Full           | Pure-JS        |
+|        | - Brightness inversion              | ✅ Full           | Pure-JS        |
+
+## Runtime Compatibility by Format
+
+| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                        |
+| ------ | -------- | ----------- | ----------- | --- | -------------------------------------------- |
+| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| BMP    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| RAW    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
+| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
+| TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
+
+**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
+ASCII or RAW formats which have complete pure-JS implementations.
+
+## Implementation Details
+
+For detailed technical information about specific format implementations:
+
+- [JPEG Implementation Details](jpeg-implementation.md)
+- [WebP Implementation Details](webp-implementation.md)

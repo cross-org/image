@@ -13,9 +13,16 @@ const DEFAULT_WEBP_QUALITY = 90;
  * Implements a basic WebP decoder and encoder
  */
 export class WebPFormat implements ImageFormat {
+  /** Format name identifier */
   readonly name = "webp";
+  /** MIME type for WebP images */
   readonly mimeType = "image/webp";
 
+  /**
+   * Check if the given data is a WebP image
+   * @param data Raw image data to check
+   * @returns true if data has WebP signature
+   */
   canDecode(data: Uint8Array): boolean {
     // WebP signature: "RIFF" + size + "WEBP"
     return data.length >= 12 &&
@@ -25,6 +32,11 @@ export class WebPFormat implements ImageFormat {
       data[10] === 0x42 && data[11] === 0x50; // "BP"
   }
 
+  /**
+   * Decode WebP image data to RGBA
+   * @param data Raw WebP image data
+   * @returns Decoded image data with RGBA pixels
+   */
   async decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid WebP signature");
@@ -108,6 +120,12 @@ export class WebPFormat implements ImageFormat {
     };
   }
 
+  /**
+   * Encode RGBA image data to WebP format
+   * @param imageData Image data to encode
+   * @param options Optional WebP encoding options
+   * @returns Encoded WebP image bytes
+   */
   async encode(
     imageData: ImageData,
     options?: WebPEncodeOptions,
