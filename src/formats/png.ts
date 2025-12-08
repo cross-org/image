@@ -141,99 +141,12 @@ export class PNGFormat extends PNGBase implements ImageFormat {
     chunks.push(this.createChunk("IHDR", ihdr));
 
     // Add metadata chunks if available
-    if (metadata) {
-      // Add pHYs chunk for DPI information
-      if (metadata.dpiX !== undefined || metadata.dpiY !== undefined) {
-        const physChunk = this.createPhysChunk(metadata);
-        chunks.push(this.createChunk("pHYs", physChunk));
-      }
-
-      // Add tEXt chunks for standard metadata
-      if (metadata.title !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Title", metadata.title),
-          ),
-        );
-      }
-      if (metadata.author !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Author", metadata.author),
-          ),
-        );
-      }
-      if (metadata.description !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Description", metadata.description),
-          ),
-        );
-      }
-      if (metadata.copyright !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Copyright", metadata.copyright),
-          ),
-        );
-      }
-
-      // Add custom metadata fields
-      if (metadata.custom) {
-        for (const [key, value] of Object.entries(metadata.custom)) {
-          chunks.push(
-            this.createChunk(
-              "tEXt",
-              this.createTextChunk(key, String(value)),
-            ),
-          );
-        }
-      }
-
-      // Add EXIF chunk for GPS data and creation date
-      if (
-        metadata.latitude !== undefined || metadata.longitude !== undefined ||
-        metadata.creationDate !== undefined
-      ) {
-        const exifChunk = this.createExifChunk(metadata);
-        if (exifChunk) {
-          chunks.push(this.createChunk("eXIf", exifChunk));
-        }
-      }
-    }
+    this.addMetadataChunks(chunks, metadata);
 
     chunks.push(this.createChunk("IDAT", compressed));
     chunks.push(this.createChunk("IEND", new Uint8Array(0)));
 
     // Concatenate all chunks
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const result = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      result.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    return result;
-  }
-
-  private concatenateChunks(
-    chunks: { type: string; data: Uint8Array }[],
-  ): Uint8Array {
-    const totalLength = chunks.reduce(
-      (sum, chunk) => sum + chunk.data.length,
-      0,
-    );
-    const result = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      result.set(chunk.data, offset);
-      offset += chunk.data.length;
-    }
-    return result;
+    return this.concatenateArrays(chunks);
   }
 }

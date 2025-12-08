@@ -360,66 +360,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     chunks.push(this.createChunk("acTL", actl));
 
     // Add metadata chunks if available
-    if (metadata) {
-      if (metadata.dpiX !== undefined || metadata.dpiY !== undefined) {
-        const physChunk = this.createPhysChunk(metadata);
-        chunks.push(this.createChunk("pHYs", physChunk));
-      }
-
-      if (metadata.title !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Title", metadata.title),
-          ),
-        );
-      }
-      if (metadata.author !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Author", metadata.author),
-          ),
-        );
-      }
-      if (metadata.description !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Description", metadata.description),
-          ),
-        );
-      }
-      if (metadata.copyright !== undefined) {
-        chunks.push(
-          this.createChunk(
-            "tEXt",
-            this.createTextChunk("Copyright", metadata.copyright),
-          ),
-        );
-      }
-
-      if (metadata.custom) {
-        for (const [key, value] of Object.entries(metadata.custom)) {
-          chunks.push(
-            this.createChunk(
-              "tEXt",
-              this.createTextChunk(key, String(value)),
-            ),
-          );
-        }
-      }
-
-      if (
-        metadata.latitude !== undefined || metadata.longitude !== undefined ||
-        metadata.creationDate !== undefined
-      ) {
-        const exifChunk = this.createExifChunk(metadata);
-        if (exifChunk) {
-          chunks.push(this.createChunk("eXIf", exifChunk));
-        }
-      }
-    }
+    this.addMetadataChunks(chunks, metadata);
 
     // Add frames
     let sequenceNumber = 0;
@@ -471,15 +412,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     chunks.push(this.createChunk("IEND", new Uint8Array(0)));
 
     // Concatenate all chunks
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const result = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      result.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    return result;
+    return this.concatenateArrays(chunks);
   }
 
   // Helper methods for frame decoding
@@ -492,13 +425,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     colorType: number,
   ): Promise<Uint8Array> {
     // Concatenate chunks
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const idatData = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      idatData.set(chunk, offset);
-      offset += chunk.length;
-    }
+    const idatData = this.concatenateArrays(chunks);
 
     // Decompress data
     const decompressed = await this.inflate(idatData);

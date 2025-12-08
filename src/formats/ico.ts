@@ -1,6 +1,13 @@
 import type { ImageData, ImageFormat } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { PNGFormat } from "./png.ts";
+import {
+  readInt32LE,
+  readUint16LE,
+  readUint32LE,
+  writeUint16LE,
+  writeUint32LE,
+} from "../utils/byte_utils.ts";
 
 /**
  * ICO format handler
@@ -16,10 +23,6 @@ export class ICOFormat implements ImageFormat {
   readonly mimeType = "image/x-icon";
 
   private pngFormat = new PNGFormat();
-
-  // Constants for signed/unsigned integer conversion
-  private static readonly INT32_MAX = 0x7fffffff;
-  private static readonly UINT32_RANGE = 0x100000000;
 
   /**
    * Check if the given data is an ICO image
@@ -46,7 +49,7 @@ export class ICOFormat implements ImageFormat {
     }
 
     // Read ICONDIR header
-    const count = this.readUint16LE(data, 4);
+    const count = readUint16LE(data, 4);
 
     if (count === 0) {
       throw new Error("ICO file contains no images");
@@ -74,8 +77,8 @@ export class ICOFormat implements ImageFormat {
       if (width === 0) width = 256;
       if (height === 0) height = 256;
 
-      const size = this.readUint32LE(data, entryOffset + 8);
-      const offset = this.readUint32LE(data, entryOffset + 12);
+      const size = readUint32LE(data, entryOffset + 8);
+      const offset = readUint32LE(data, entryOffset + 12);
 
       entries.push({ width, height, size, offset });
     }
@@ -124,16 +127,16 @@ export class ICOFormat implements ImageFormat {
    */
   private decodeDIB(data: Uint8Array): Promise<ImageData> {
     // Read DIB header
-    const dibHeaderSize = this.readUint32LE(data, 0);
+    const dibHeaderSize = readUint32LE(data, 0);
 
     if (dibHeaderSize < 40) {
       throw new Error("Unsupported DIB header size");
     }
 
-    const width = this.readInt32LE(data, 4);
-    const height = this.readInt32LE(data, 8);
-    const bitDepth = this.readUint16LE(data, 14);
-    const compression = this.readUint32LE(data, 16);
+    const width = readInt32LE(data, 4);
+    const height = readInt32LE(data, 8);
+    const bitDepth = readUint16LE(data, 14);
+    const compression = readUint32LE(data, 16);
 
     // Validate dimensions
     validateImageDimensions(width, Math.abs(height) / 2); // DIB height includes both XOR and AND mask data
@@ -240,40 +243,14 @@ export class ICOFormat implements ImageFormat {
     result[entryOffset + 1] = height >= 256 ? 0 : height; // Height (0 = 256)
     result[entryOffset + 2] = 0; // Color count (0 = no palette)
     result[entryOffset + 3] = 0; // Reserved
-    this.writeUint16LE(result, entryOffset + 4, 1); // Color planes
-    this.writeUint16LE(result, entryOffset + 6, 32); // Bits per pixel
-    this.writeUint32LE(result, entryOffset + 8, pngData.length); // Image size
-    this.writeUint32LE(result, entryOffset + 12, 22); // Image offset (6 + 16)
+    writeUint16LE(result, entryOffset + 4, 1); // Color planes
+    writeUint16LE(result, entryOffset + 6, 32); // Bits per pixel
+    writeUint32LE(result, entryOffset + 8, pngData.length); // Image size
+    writeUint32LE(result, entryOffset + 12, 22); // Image offset (6 + 16)
 
     // Write PNG data
     result.set(pngData, 22);
 
     return result;
-  }
-
-  private readUint16LE(data: Uint8Array, offset: number): number {
-    return data[offset] | (data[offset + 1] << 8);
-  }
-
-  private readUint32LE(data: Uint8Array, offset: number): number {
-    return data[offset] | (data[offset + 1] << 8) |
-      (data[offset + 2] << 16) | (data[offset + 3] << 24);
-  }
-
-  private readInt32LE(data: Uint8Array, offset: number): number {
-    const value = this.readUint32LE(data, offset);
-    return value > ICOFormat.INT32_MAX ? value - ICOFormat.UINT32_RANGE : value;
-  }
-
-  private writeUint16LE(data: Uint8Array, offset: number, value: number): void {
-    data[offset] = value & 0xff;
-    data[offset + 1] = (value >>> 8) & 0xff;
-  }
-
-  private writeUint32LE(data: Uint8Array, offset: number, value: number): void {
-    data[offset] = value & 0xff;
-    data[offset + 1] = (value >>> 8) & 0xff;
-    data[offset + 2] = (value >>> 16) & 0xff;
-    data[offset + 3] = (value >>> 24) & 0xff;
   }
 }
