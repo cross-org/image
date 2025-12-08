@@ -4,6 +4,10 @@
  * in little-endian byte order, commonly used in BMP, ICO, GIF, and other formats.
  */
 
+// Constants for signed/unsigned integer conversion
+const INT32_MAX = 0x7fffffff;
+const UINT32_RANGE = 0x100000000;
+
 /**
  * Read a 16-bit unsigned integer in little-endian format
  */
@@ -24,7 +28,7 @@ export function readUint32LE(data: Uint8Array, offset: number): number {
  */
 export function readInt32LE(data: Uint8Array, offset: number): number {
   const value = readUint32LE(data, offset);
-  return value > 0x7fffffff ? value - 0x100000000 : value;
+  return value > INT32_MAX ? value - UINT32_RANGE : value;
 }
 
 /**
@@ -61,5 +65,5 @@ export function writeInt32LE(
   offset: number,
   value: number,
 ): void {
-  writeUint32LE(data, offset, value < 0 ? value + 0x100000000 : value);
+  writeUint32LE(data, offset, value < 0 ? value + UINT32_RANGE : value);
 }
