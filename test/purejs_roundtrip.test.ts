@@ -9,8 +9,8 @@
  * 4. The pixel data is reasonable (accounting for lossy compression)
  */
 
-import { assertEquals } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals } from "@std/assert";
+import { test } from "@cross/test";
 import { Image } from "../src/image.ts";
 
 // Helper to check if an error is a file not found error (cross-runtime)

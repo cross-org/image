@@ -5,6 +5,9 @@
  * Creates WebP files and validates them structurally
  */
 
+import { dir } from "@cross/dir";
+import { writeFile } from "@cross/fs";
+import { join } from "@std/path";
 import { WebPEncoder } from "../src/utils/webp_encoder.ts";
 
 interface TestCase {
@@ -210,6 +213,9 @@ async function runEncoderTests() {
   console.log("=".repeat(70));
   console.log("Testing encoder WITHOUT using our decoder\n");
 
+  // Get cross-platform temp directory
+  const tmpDir = await dir("tmp");
+
   let passCount = 0;
   let failCount = 0;
 
@@ -217,10 +223,9 @@ async function runEncoderTests() {
     const encoder = new WebPEncoder(test.width, test.height, test.data);
     const encoded = encoder.encode(100); // quality 100 = lossless
 
-    // Save to file for external validation
-    // Note: Using /tmp for test files (Unix/Linux/macOS). On Windows, tests may need adjustment.
-    const filename = `/tmp/encoder_test_${test.name}.webp`;
-    await Deno.writeFile(filename, encoded);
+    // Save to file for external validation (cross-platform)
+    const filename = join(tmpDir, `encoder_test_${test.name}.webp`);
+    await writeFile(filename, encoded);
     console.log(`Saved to: ${filename}`);
 
     const valid = validateWebPStructure(encoded, test);
@@ -243,9 +248,15 @@ async function runEncoderTests() {
     console.log("\n✓ All encoder tests PASSED");
     console.log("\nYou can validate these files with external tools:");
     console.log("  - Open in a web browser");
-    console.log("  - Use: file /tmp/encoder_test_*.webp");
-    console.log("  - Use: dwebp /tmp/encoder_test_*.webp -o /tmp/test_*.png");
-    console.log("  - Use: identify /tmp/encoder_test_*.webp  (ImageMagick)");
+    console.log(`  - Use: file ${join(tmpDir, "encoder_test_*.webp")}`);
+    console.log(
+      `  - Use: dwebp ${join(tmpDir, "encoder_test_*.webp")} -o ${
+        join(tmpDir, "test_*.png")
+      }`,
+    );
+    console.log(
+      `  - Use: identify ${join(tmpDir, "encoder_test_*.webp")}  (ImageMagick)`,
+    );
   } else {
     console.log("\n✗ Some encoder tests FAILED");
     console.log("Review the output above for details");

@@ -1,5 +1,5 @@
-import { assertEquals } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals } from "@std/assert";
+import { test } from "@cross/test";
 import { Image } from "../src/image.ts";
 
 // Note: These tests verify metadata handling for runtime API-based formats

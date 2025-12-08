@@ -16,9 +16,12 @@
     "lib": ["deno.ns", "deno.unstable", "esnext", "dom", "dom.iterable"]
   },
   "imports": {
+    "@cross/dir": "jsr:@cross/dir@^1.1.0",
+    "@cross/fs": "jsr:@cross/fs@^0.1.13",
     "@cross/test": "jsr:@cross/test@^0.0.14",
     "@deno/dnt": "npm:@deno/dnt@^0.41.3",
-    "@std/assert": "jsr:@std/assert@^1"
+    "@std/assert": "jsr:@std/assert@^1",
+    "@std/path": "jsr:@std/path@^1"
   },
   "publish": {
     "exclude": [".github", "test/*", "test_output/*", "docs/*"]

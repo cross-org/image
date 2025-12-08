@@ -1,5 +1,5 @@
-import { assertEquals, assertRejects } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals, assertRejects } from "@std/assert";
+import { test } from "@cross/test";
 import { BMPFormat } from "../src/formats/bmp.ts";
 
 test("BMP: canDecode - valid BMP signature", () => {

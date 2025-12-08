@@ -1,5 +1,5 @@
-import { assertEquals, assertRejects } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals, assertRejects } from "@std/assert";
+import { test } from "@cross/test";
 import { Image } from "../src/image.ts";
 
 test("Image: fromRGBA - create image from raw data", () => {
