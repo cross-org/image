@@ -13,75 +13,91 @@ import {
 } from "../src/utils/security.ts";
 
 test("Security - validateImageDimensions rejects zero dimensions", () => {
-  assertRejects(
-    () => {
-      validateImageDimensions(0, 100);
-    },
-    Error,
-    "dimensions must be positive",
-  );
+  try {
+    validateImageDimensions(0, 100);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions must be positive"),
+      true,
+    );
+  }
 
-  assertRejects(
-    () => {
-      validateImageDimensions(100, 0);
-    },
-    Error,
-    "dimensions must be positive",
-  );
+  try {
+    validateImageDimensions(100, 0);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions must be positive"),
+      true,
+    );
+  }
 });
 
 test("Security - validateImageDimensions rejects negative dimensions", () => {
-  assertRejects(
-    () => {
-      validateImageDimensions(-100, 100);
-    },
-    Error,
-    "dimensions must be positive",
-  );
+  try {
+    validateImageDimensions(-100, 100);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions must be positive"),
+      true,
+    );
+  }
 
-  assertRejects(
-    () => {
-      validateImageDimensions(100, -100);
-    },
-    Error,
-    "dimensions must be positive",
-  );
+  try {
+    validateImageDimensions(100, -100);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions must be positive"),
+      true,
+    );
+  }
 });
 
 test("Security - validateImageDimensions rejects non-integer dimensions", () => {
-  assertRejects(
-    () => {
-      validateImageDimensions(100.5, 100);
-    },
-    Error,
-    "dimensions must be integers",
-  );
+  try {
+    validateImageDimensions(100.5, 100);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions must be integers"),
+      true,
+    );
+  }
 
-  assertRejects(
-    () => {
-      validateImageDimensions(100, 100.5);
-    },
-    Error,
-    "dimensions must be integers",
-  );
+  try {
+    validateImageDimensions(100, 100.5);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions must be integers"),
+      true,
+    );
+  }
 });
 
 test("Security - validateImageDimensions rejects dimensions that are too large", () => {
-  assertRejects(
-    () => {
-      validateImageDimensions(MAX_IMAGE_DIMENSION + 1, 100);
-    },
-    Error,
-    "dimensions too large",
-  );
+  try {
+    validateImageDimensions(MAX_IMAGE_DIMENSION + 1, 100);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions too large"),
+      true,
+    );
+  }
 
-  assertRejects(
-    () => {
-      validateImageDimensions(100, MAX_IMAGE_DIMENSION + 1);
-    },
-    Error,
-    "dimensions too large",
-  );
+  try {
+    validateImageDimensions(100, MAX_IMAGE_DIMENSION + 1);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions too large"),
+      true,
+    );
+  }
 });
 
 test("Security - validateImageDimensions rejects dimensions with excessive pixel count", () => {
@@ -89,13 +105,15 @@ test("Security - validateImageDimensions rejects dimensions with excessive pixel
   // Use square dimensions for simplicity: sqrt(MAX_IMAGE_PIXELS + 1)
   const excessiveSize = Math.ceil(Math.sqrt(MAX_IMAGE_PIXELS + 1));
 
-  assertRejects(
-    () => {
-      validateImageDimensions(excessiveSize, excessiveSize);
-    },
-    Error,
-    "exceeds",
-  );
+  try {
+    validateImageDimensions(excessiveSize, excessiveSize);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("exceeds"),
+      true,
+    );
+  }
 });
 
 test("Security - validateImageDimensions accepts valid dimensions", () => {
@@ -110,21 +128,25 @@ test("Security - validateImageDimensions accepts valid dimensions", () => {
 test("Security - Image.fromRGBA rejects invalid dimensions", () => {
   const data = new Uint8Array(100 * 100 * 4);
 
-  assertRejects(
-    () => {
-      Image.fromRGBA(0, 100, data);
-    },
-    Error,
-    "dimensions must be positive",
-  );
+  try {
+    Image.fromRGBA(0, 100, data);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions must be positive"),
+      true,
+    );
+  }
 
-  assertRejects(
-    () => {
-      Image.fromRGBA(MAX_IMAGE_DIMENSION + 1, 100, data);
-    },
-    Error,
-    "dimensions too large",
-  );
+  try {
+    Image.fromRGBA(MAX_IMAGE_DIMENSION + 1, 100, data);
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions too large"),
+      true,
+    );
+  }
 });
 
 test("Security - Image.fromRGBA accepts valid dimensions", () => {
@@ -273,21 +295,25 @@ test("Security - resize rejects oversized target dimensions", () => {
   const image = Image.fromRGBA(width, height, data);
 
   // Try to resize to dimensions that are too large
-  assertRejects(
-    () => {
-      image.resize({ width: MAX_IMAGE_DIMENSION + 1, height: 100 });
-    },
-    Error,
-    "dimensions too large",
-  );
+  try {
+    image.resize({ width: MAX_IMAGE_DIMENSION + 1, height: 100 });
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions too large"),
+      true,
+    );
+  }
 
-  assertRejects(
-    () => {
-      image.resize({ width: 100, height: MAX_IMAGE_DIMENSION + 1 });
-    },
-    Error,
-    "dimensions too large",
-  );
+  try {
+    image.resize({ width: 100, height: MAX_IMAGE_DIMENSION + 1 });
+    throw new Error("Should have thrown");
+  } catch (e) {
+    assertEquals(
+      (e as Error).message.includes("dimensions too large"),
+      true,
+    );
+  }
 });
 
 test("Security - maximum dimensions are reasonable", () => {
