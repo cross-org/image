@@ -2,21 +2,21 @@
  * @module @cross/image
  *
  * A pure JavaScript, dependency-free, cross-runtime image processing library.
- * Supports reading, resizing, and saving common image formats (PNG, JPEG, WebP, GIF, TIFF, BMP, RAW).
+ * Supports decoding, resizing, and encoding common image formats (PNG, JPEG, WebP, GIF, TIFF, BMP, RAW).
  *
  * @example
  * ```ts
  * import { Image } from "@cross/image";
  *
- * // Read an image
+ * // Decode an image
  * const data = await Deno.readFile("input.png");
- * const image = await Image.read(data);
+ * const image = await Image.decode(data);
  *
  * // Resize it
  * image.resize({ width: 200, height: 200 });
  *
- * // Save as different format
- * const output = await image.save("jpeg");
+ * // Encode as different format
+ * const output = await image.encode("jpeg");
  * await Deno.writeFile("output.jpg", output);
  * ```
  */

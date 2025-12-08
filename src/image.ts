@@ -185,12 +185,12 @@ export class Image {
   }
 
   /**
-   * Read an image from bytes
+   * Decode an image from bytes
    * @param data Raw image data
    * @param format Optional format hint (e.g., "png", "jpeg", "webp")
    * @returns Image instance
    */
-  static async read(data: Uint8Array, format?: string): Promise<Image> {
+  static async decode(data: Uint8Array, format?: string): Promise<Image> {
     const image = new Image();
 
     // Try specified format first
@@ -214,12 +214,23 @@ export class Image {
   }
 
   /**
-   * Read all frames from a multi-frame image (GIF animation, multi-page TIFF)
+   * Read an image from bytes
+   * @deprecated Use `decode()` instead. This method will be removed in a future version.
+   * @param data Raw image data
+   * @param format Optional format hint (e.g., "png", "jpeg", "webp")
+   * @returns Image instance
+   */
+  static read(data: Uint8Array, format?: string): Promise<Image> {
+    return Image.decode(data, format);
+  }
+
+  /**
+   * Decode all frames from a multi-frame image (GIF animation, multi-page TIFF)
    * @param data Raw image data
    * @param format Optional format hint (e.g., "gif", "tiff")
    * @returns MultiFrameImageData with all frames
    */
-  static async readFrames(
+  static async decodeFrames(
     data: Uint8Array,
     format?: string,
   ): Promise<MultiFrameImageData> {
@@ -244,13 +255,27 @@ export class Image {
   }
 
   /**
-   * Save multi-frame image data to bytes in the specified format
+   * Read all frames from a multi-frame image (GIF animation, multi-page TIFF)
+   * @deprecated Use `decodeFrames()` instead. This method will be removed in a future version.
+   * @param data Raw image data
+   * @param format Optional format hint (e.g., "gif", "tiff")
+   * @returns MultiFrameImageData with all frames
+   */
+  static readFrames(
+    data: Uint8Array,
+    format?: string,
+  ): Promise<MultiFrameImageData> {
+    return Image.decodeFrames(data, format);
+  }
+
+  /**
+   * Encode multi-frame image data to bytes in the specified format
    * @param format Format name (e.g., "gif", "tiff")
-   * @param imageData Multi-frame image data to save
+   * @param imageData Multi-frame image data to encode
    * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
-  static async saveFrames(
+  static async encodeFrames(
     format: string,
     imageData: MultiFrameImageData,
     options?: unknown,
@@ -268,6 +293,22 @@ export class Image {
     }
 
     return await handler.encodeFrames(imageData, options);
+  }
+
+  /**
+   * Save multi-frame image data to bytes in the specified format
+   * @deprecated Use `encodeFrames()` instead. This method will be removed in a future version.
+   * @param format Format name (e.g., "gif", "tiff")
+   * @param imageData Multi-frame image data to save
+   * @param options Optional format-specific encoding options
+   * @returns Encoded image bytes
+   */
+  static saveFrames(
+    format: string,
+    imageData: MultiFrameImageData,
+    options?: unknown,
+  ): Promise<Uint8Array> {
+    return Image.encodeFrames(format, imageData, options);
   }
 
   /**
@@ -341,12 +382,12 @@ export class Image {
   }
 
   /**
-   * Save the image to bytes in the specified format
+   * Encode the image to bytes in the specified format
    * @param format Format name (e.g., "png", "jpeg", "webp", "ascii")
    * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
-  async save(format: string, options?: unknown): Promise<Uint8Array> {
+  async encode(format: string, options?: unknown): Promise<Uint8Array> {
     if (!this.imageData) throw new Error("No image loaded");
 
     const handler = Image.formats.find((f) => f.name === format);
@@ -355,6 +396,17 @@ export class Image {
     }
 
     return await handler.encode(this.imageData, options);
+  }
+
+  /**
+   * Save the image to bytes in the specified format
+   * @deprecated Use `encode()` instead. This method will be removed in a future version.
+   * @param format Format name (e.g., "png", "jpeg", "webp", "ascii")
+   * @param options Optional format-specific encoding options
+   * @returns Encoded image bytes
+   */
+  save(format: string, options?: unknown): Promise<Uint8Array> {
+    return this.encode(format, options);
   }
 
   /**

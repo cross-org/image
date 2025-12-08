@@ -13,9 +13,9 @@ The main class for working with images.
 
 ### Static Methods
 
-#### `Image.read(data: Uint8Array, format?: string): Promise<Image>`
+#### `Image.decode(data: Uint8Array, format?: string): Promise<Image>`
 
-Read an image from bytes. Automatically detects format if not specified.
+Decode an image from bytes. Automatically detects format if not specified.
 
 **Parameters:**
 
@@ -28,12 +28,19 @@ Read an image from bytes. Automatically detects format if not specified.
 
 ```ts
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 ```
 
-#### `Image.readFrames(data: Uint8Array, format?: string): Promise<MultiFrameImageData>`
+#### `Image.read(data: Uint8Array, format?: string): Promise<Image>` ⚠️ Deprecated
 
-Read all frames from a multi-frame image (animated GIF or multi-page TIFF).
+**Deprecated:** Use `decode()` instead. This method will be removed in a future
+version.
+
+Read an image from bytes. Automatically detects format if not specified.
+
+#### `Image.decodeFrames(data: Uint8Array, format?: string): Promise<MultiFrameImageData>`
+
+Decode all frames from a multi-frame image (animated GIF or multi-page TIFF).
 
 **Parameters:**
 
@@ -46,18 +53,25 @@ Read all frames from a multi-frame image (animated GIF or multi-page TIFF).
 
 ```ts
 const gifData = await Deno.readFile("animated.gif");
-const multiFrame = await Image.readFrames(gifData);
+const multiFrame = await Image.decodeFrames(gifData);
 console.log(`Number of frames: ${multiFrame.frames.length}`);
 ```
 
-#### `Image.saveFrames(format: string, imageData: MultiFrameImageData, options?: unknown): Promise<Uint8Array>`
+#### `Image.readFrames(data: Uint8Array, format?: string): Promise<MultiFrameImageData>` ⚠️ Deprecated
 
-Save multi-frame image data to bytes in the specified format.
+**Deprecated:** Use `decodeFrames()` instead. This method will be removed in a
+future version.
+
+Read all frames from a multi-frame image (animated GIF or multi-page TIFF).
+
+#### `Image.encodeFrames(format: string, imageData: MultiFrameImageData, options?: unknown): Promise<Uint8Array>`
+
+Encode multi-frame image data to bytes in the specified format.
 
 **Parameters:**
 
 - `format` - Format name (e.g., "gif", "tiff")
-- `imageData` - Multi-frame image data to save
+- `imageData` - Multi-frame image data to encode
 - `options` - Optional format-specific encoding options
 
 **Returns:** Promise that resolves to encoded image bytes
@@ -65,10 +79,17 @@ Save multi-frame image data to bytes in the specified format.
 **Example:**
 
 ```ts
-const tiffData = await Image.saveFrames("tiff", multiPageTiff, {
+const tiffData = await Image.encodeFrames("tiff", multiPageTiff, {
   compression: "lzw",
 });
 ```
+
+#### `Image.saveFrames(format: string, imageData: MultiFrameImageData, options?: unknown): Promise<Uint8Array>` ⚠️ Deprecated
+
+**Deprecated:** Use `encodeFrames()` instead. This method will be removed in a
+future version.
+
+Save multi-frame image data to bytes in the specified format.
 
 #### `Image.fromRGBA(width: number, height: number, data: Uint8Array): Image`
 
@@ -151,9 +172,9 @@ image.resize({ width: 800, height: 600 });
 image.resize({ width: 400, height: 300, method: "nearest" });
 ```
 
-#### `save(format: string, options?: unknown): Promise<Uint8Array>`
+#### `encode(format: string, options?: unknown): Promise<Uint8Array>`
 
-Save image to bytes in the specified format with optional format-specific
+Encode image to bytes in the specified format with optional format-specific
 options.
 
 **Parameters:**
@@ -166,9 +187,17 @@ options.
 **Example:**
 
 ```ts
-const png = await image.save("png");
-const jpeg = await image.save("jpeg", { quality: 90 });
+const png = await image.encode("png");
+const jpeg = await image.encode("jpeg", { quality: 90 });
 ```
+
+#### `save(format: string, options?: unknown): Promise<Uint8Array>` ⚠️ Deprecated
+
+**Deprecated:** Use `encode()` instead. This method will be removed in a future
+version.
+
+Save image to bytes in the specified format with optional format-specific
+options.
 
 #### `clone(): Image`
 

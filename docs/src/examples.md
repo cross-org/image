@@ -10,19 +10,19 @@ processing tasks.
 
 ## Basic Operations
 
-### Reading and Saving Images
+### Decoding and Encoding Images
 
 ```ts
 import { Image } from "@cross/image";
 
-// Read an image (auto-detects format)
+// Decode an image (auto-detects format)
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
-// Save as different format
-const jpeg = await image.save("jpeg");
+// Encode as different format
+const jpeg = await image.encode("jpeg");
 await Deno.writeFile("output.jpg", jpeg);
 ```
 
@@ -32,7 +32,7 @@ await Deno.writeFile("output.jpg", jpeg);
 import { Image } from "@cross/image";
 
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 // Resize with bilinear interpolation (default)
 image.resize({ width: 800, height: 600 });
@@ -40,8 +40,8 @@ image.resize({ width: 800, height: 600 });
 // Or use nearest neighbor for faster, pixelated results
 image.resize({ width: 400, height: 300, method: "nearest" });
 
-// Save the result
-const output = await image.save("png");
+// Encode the result
+const output = await image.encode("png");
 await Deno.writeFile("resized.png", output);
 ```
 
@@ -63,7 +63,7 @@ for (let i = 0; i < data.length; i += 4) {
 }
 
 const image = Image.fromRGBA(width, height, data);
-const png = await image.save("png");
+const png = await image.encode("png");
 await Deno.writeFile("red-square.png", png);
 ```
 
@@ -73,14 +73,14 @@ await Deno.writeFile("red-square.png", png);
 import { Image } from "@cross/image";
 
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 // Chain multiple operations
 image
   .resize({ width: 1920, height: 1080 })
   .resize({ width: 800, height: 600 });
 
-const output = await image.save("webp");
+const output = await image.encode("webp");
 await Deno.writeFile("output.webp", output);
 ```
 
@@ -92,14 +92,14 @@ await Deno.writeFile("output.webp", output);
 import { Image } from "@cross/image";
 
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
-// Save as uncompressed TIFF
-const uncompressed = await image.save("tiff");
+// Encode as uncompressed TIFF
+const uncompressed = await image.encode("tiff");
 await Deno.writeFile("output.tiff", uncompressed);
 
-// Save with LZW compression (smaller file size)
-const compressed = await image.save("tiff", { compression: "lzw" });
+// Encode with LZW compression (smaller file size)
+const compressed = await image.encode("tiff", { compression: "lzw" });
 await Deno.writeFile("output-compressed.tiff", compressed);
 ```
 
@@ -109,22 +109,22 @@ await Deno.writeFile("output-compressed.tiff", compressed);
 import { Image } from "@cross/image";
 
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
-// Save as lossless WebP (quality = 100)
-const lossless = await image.save("webp", { quality: 100 });
+// Encode as lossless WebP (quality = 100)
+const lossless = await image.encode("webp", { quality: 100 });
 await Deno.writeFile("output-lossless.webp", lossless);
 
-// Save as lossy WebP with high quality (smaller file size)
-const highQuality = await image.save("webp", { quality: 90 });
+// Encode as lossy WebP with high quality (smaller file size)
+const highQuality = await image.encode("webp", { quality: 90 });
 await Deno.writeFile("output-hq.webp", highQuality);
 
-// Save as lossy WebP with medium quality (much smaller)
-const mediumQuality = await image.save("webp", { quality: 75 });
+// Encode as lossy WebP with medium quality (much smaller)
+const mediumQuality = await image.encode("webp", { quality: 75 });
 await Deno.writeFile("output-med.webp", mediumQuality);
 
 // Force lossless even with quality < 100 (pure-JS VP8L)
-const forcedLossless = await image.save("webp", {
+const forcedLossless = await image.encode("webp", {
   quality: 80,
   lossless: true,
 });
@@ -137,14 +137,14 @@ await Deno.writeFile("output-forced.webp", forcedLossless);
 import { type ASCIIOptions, Image } from "@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 // Convert to ASCII art with simple characters
-const ascii = await image.save("ascii", { width: 80, charset: "simple" });
+const ascii = await image.encode("ascii", { width: 80, charset: "simple" });
 console.log(new TextDecoder().decode(ascii));
 
 // Or use block characters for better gradients
-const blocks = await image.save("ascii", {
+const blocks = await image.encode("ascii", {
   width: 60,
   charset: "blocks",
   aspectRatio: 0.5,
@@ -162,9 +162,9 @@ await Deno.writeFile("output.txt", ascii);
 ```ts
 import { Image } from "@cross/image";
 
-// Read all frames from an animated GIF
+// Decode all frames from an animated GIF
 const gifData = await Deno.readFile("animated.gif");
-const multiFrame = await Image.readFrames(gifData);
+const multiFrame = await Image.decodeFrames(gifData);
 
 console.log(`Canvas: ${multiFrame.width}x${multiFrame.height}`);
 console.log(`Number of frames: ${multiFrame.frames.length}`);
@@ -196,14 +196,14 @@ const multiPageTiff = {
   ],
 };
 
-// Save as multi-page TIFF with LZW compression
-const tiffData = await Image.saveFrames("tiff", multiPageTiff, {
+// Encode as multi-page TIFF with LZW compression
+const tiffData = await Image.encodeFrames("tiff", multiPageTiff, {
   compression: "lzw",
 });
 await Deno.writeFile("multipage.tiff", tiffData);
 
-// Read all pages from a multi-page TIFF
-const pages = await Image.readFrames(tiffData);
+// Decode all pages from a multi-page TIFF
+const pages = await Image.decodeFrames(tiffData);
 console.log(`Read ${pages.frames.length} pages from TIFF`);
 ```
 
@@ -240,8 +240,8 @@ class MyCustomFormat implements ImageFormat {
 Image.registerFormat(new MyCustomFormat());
 
 // Now you can use it
-const image = await Image.read(customData, "custom");
-const output = await image.save("custom");
+const image = await Image.decode(customData, "custom");
+const output = await image.encode("custom");
 ```
 
 ## Cross-Runtime Examples
@@ -253,9 +253,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { Image } from "@cross/image";
 
 const data = await readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 image.resize({ width: 400, height: 300 });
-const output = await image.save("png");
+const output = await image.encode("png");
 await writeFile("output.png", output);
 ```
 
@@ -266,8 +266,8 @@ import { Image } from "@cross/image";
 
 const file = Bun.file("input.png");
 const data = new Uint8Array(await file.arrayBuffer());
-const image = await Image.read(data);
+const image = await Image.decode(data);
 image.resize({ width: 400, height: 300 });
-const output = await image.save("png");
+const output = await image.encode("png");
 await Bun.write("output.png", output);
 ```

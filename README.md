@@ -47,17 +47,17 @@ import { Image } from "@cross/image";
 ```ts
 import { Image } from "@cross/image";
 
-// Read an image (auto-detects format)
+// Decode an image (auto-detects format)
 const data = await Deno.readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
 // Resize the image
 image.resize({ width: 800, height: 600 });
 
-// Save in a different format
-const jpeg = await image.save("jpeg");
+// Encode in a different format
+const jpeg = await image.encode("jpeg");
 await Deno.writeFile("output.jpg", jpeg);
 ```
 
