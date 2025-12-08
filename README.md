@@ -103,7 +103,7 @@ await writeFile("output.jpg", jpeg);
 | APNG   | ✅ Full     | Animated PNG with multi-frame   |
 | BMP    | ✅ Full     | Complete pure-JS implementation |
 | ICO    | ✅ Full     | Windows Icon format             |
-| GIF    | ✅ Full     | Complete pure-JS implementation |
+| GIF    | ✅ Full     | Animated GIF with multi-frame   |
 | DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)  |
 | PAM    | ✅ Full     | Netpbm PAM format               |
 | PCX    | ✅ Full     | ZSoft PCX (RLE compressed)      |

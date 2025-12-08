@@ -436,9 +436,15 @@ export class APNGFormat extends PNGBase implements ImageFormat {
 
       // Convert delay from milliseconds to fraction
       const delay = frame.frameMetadata?.delay ?? 100;
-      const delayNum = Math.round(delay / 10);
-      this.writeUint16(fctl, 20, delayNum); // delay_num
-      this.writeUint16(fctl, 22, 100); // delay_den (1/100 sec)
+      // Use milliseconds directly if possible (up to ~65 seconds)
+      if (delay < 65536) {
+        this.writeUint16(fctl, 20, delay); // delay_num
+        this.writeUint16(fctl, 22, 1000); // delay_den (1/1000 sec)
+      } else {
+        // Fallback to 1/100 sec for longer delays
+        this.writeUint16(fctl, 20, Math.round(delay / 10)); // delay_num
+        this.writeUint16(fctl, 22, 100); // delay_den (1/100 sec)
+      }
 
       // Disposal method
       let disposeOp = 0; // APNG_DISPOSE_OP_NONE

@@ -80,7 +80,7 @@ This table shows which format standards and variants are supported:
 |        | - Transparency support              | ✅ Full           | Pure-JS        |
 |        | - Interlacing support               | ✅ Full           | Pure-JS        |
 |        | - Animation (multi-frame decode)    | ✅ Full           | Pure-JS        |
-|        | - Animation (encode first frame)    | ⚠️ Single frame   | Pure-JS        |
+|        | - Animation (multi-frame encode)    | ✅ Full           | Pure-JS        |
 |        | - Comment extensions, XMP           | ✅ Full           | Pure-JS        |
 | DNG    | Adobe DNG 1.6.0.0 (Linear)          | ✅ Full           | Pure-JS        |
 | PAM    | Netpbm PAM (Portable Arbitrary Map) | ✅ Full           | Pure-JS        |
