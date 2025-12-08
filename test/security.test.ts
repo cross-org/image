@@ -84,9 +84,11 @@ Deno.test("Security - validateImageDimensions rejects dimensions that are too la
 });
 
 Deno.test("Security - validateImageDimensions rejects dimensions with excessive pixel count", () => {
-  // Try to create an image that would overflow when calculating width * height * 4
-  const largeWidth = 50000;
-  const largeHeight = 50000; // 2.5 billion pixels, would overflow
+  // MAX_IMAGE_PIXELS is ~179 megapixels
+  // Try to create images that exceed this practical limit
+  // 14000 x 14000 = 196 million pixels > 179 million
+  const largeWidth = 14000;
+  const largeHeight = 14000;
 
   assertRejects(
     () => {
@@ -263,7 +265,7 @@ Deno.test("Security - BMP decoder rejects oversized images", async () => {
   );
 });
 
-Deno.test("Security - resize rejects oversized target dimensions", async () => {
+Deno.test("Security - resize rejects oversized target dimensions", () => {
   // Create a small valid image
   const width = 10;
   const height = 10;
