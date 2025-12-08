@@ -84,15 +84,13 @@ Deno.test("Security - validateImageDimensions rejects dimensions that are too la
 });
 
 Deno.test("Security - validateImageDimensions rejects dimensions with excessive pixel count", () => {
-  // MAX_IMAGE_PIXELS is ~179 megapixels
-  // Try to create images that exceed this practical limit
-  // 14000 x 14000 = 196 million pixels > 179 million
-  const largeWidth = 14000;
-  const largeHeight = 14000;
+  // Calculate dimensions that exceed MAX_IMAGE_PIXELS
+  // Use square dimensions for simplicity: sqrt(MAX_IMAGE_PIXELS + 1)
+  const excessiveSize = Math.ceil(Math.sqrt(MAX_IMAGE_PIXELS + 1));
 
   assertRejects(
     () => {
-      validateImageDimensions(largeWidth, largeHeight);
+      validateImageDimensions(excessiveSize, excessiveSize);
     },
     Error,
     "exceeds",

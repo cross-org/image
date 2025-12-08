@@ -1094,6 +1094,9 @@ export class TIFFFormat implements ImageFormat {
       pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
     }
 
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
+
     // Convert to RGBA
     const rgba = new Uint8Array(width * height * 4);
     let srcPos = 0;
@@ -1202,12 +1205,12 @@ export class TIFFFormat implements ImageFormat {
       pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
     }
 
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
+
     // Convert to RGBA
     const rgba = new Uint8Array(width * height * 4);
     let srcPos = 0;
-
-    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
-    validateImageDimensions(width, height);
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
