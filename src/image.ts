@@ -24,6 +24,7 @@ import { WebPFormat } from "./formats/webp.ts";
 import { GIFFormat } from "./formats/gif.ts";
 import { TIFFFormat } from "./formats/tiff.ts";
 import { BMPFormat } from "./formats/bmp.ts";
+import { ICOFormat } from "./formats/ico.ts";
 import { DNGFormat } from "./formats/dng.ts";
 import { PAMFormat } from "./formats/pam.ts";
 import { PCXFormat } from "./formats/pcx.ts";
@@ -43,6 +44,7 @@ export class Image {
     new GIFFormat(),
     new TIFFFormat(),
     new BMPFormat(),
+    new ICOFormat(),
     new DNGFormat(),
     new PAMFormat(),
     new PCXFormat(),

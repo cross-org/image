@@ -10,8 +10,8 @@ Deno, Node.js, and Bun.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
-- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, DNG, PAM, and
-  PCX support
+- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
+  PAM, and PCX support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
 - 🎛️ **Image processing** - Adjust brightness, contrast, saturation, exposure
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
@@ -102,6 +102,7 @@ await writeFile("output.jpg", jpeg);
 | PNG    | ✅ Full     | Complete pure-JS implementation |
 | APNG   | ✅ Full     | Animated PNG with multi-frame   |
 | BMP    | ✅ Full     | Complete pure-JS implementation |
+| ICO    | ✅ Full     | Windows Icon format             |
 | GIF    | ✅ Full     | Complete pure-JS implementation |
 | DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)  |
 | PAM    | ✅ Full     | Netpbm PAM format               |
