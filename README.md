@@ -25,21 +25,21 @@ import { Image } from "jsr:@cross/image";
 ### Node.js
 
 ```bash
-npx jsr add @cross/image
+npm install cross-image
 ```
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 ```
 
 ### Bun
 
 ```bash
-bunx jsr add @cross/image
+bun add cross-image
 ```
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 ```
 
 ## Quick Start
