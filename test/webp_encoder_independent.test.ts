@@ -5,7 +5,9 @@
  * Creates WebP files and validates them structurally
  */
 
+import { dir } from "@cross/dir";
 import { writeFile } from "@cross/fs";
+import { join } from "@std/path";
 import { WebPEncoder } from "../src/utils/webp_encoder.ts";
 
 interface TestCase {
@@ -211,6 +213,9 @@ async function runEncoderTests() {
   console.log("=".repeat(70));
   console.log("Testing encoder WITHOUT using our decoder\n");
 
+  // Get cross-platform temp directory
+  const tmpDir = await dir("tmp");
+
   let passCount = 0;
   let failCount = 0;
 
@@ -218,9 +223,8 @@ async function runEncoderTests() {
     const encoder = new WebPEncoder(test.width, test.height, test.data);
     const encoded = encoder.encode(100); // quality 100 = lossless
 
-    // Save to file for external validation
-    // Note: Using /tmp for test files (Unix/Linux/macOS). On Windows, tests may need adjustment.
-    const filename = `/tmp/encoder_test_${test.name}.webp`;
+    // Save to file for external validation (cross-platform)
+    const filename = join(tmpDir, `encoder_test_${test.name}.webp`);
     await writeFile(filename, encoded);
     console.log(`Saved to: ${filename}`);
 
