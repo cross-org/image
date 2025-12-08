@@ -1,5 +1,5 @@
-import { assertEquals } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals } from "@std/assert";
+import { test } from "@cross/test";
 import { LZWDecoder, LZWEncoder } from "../src/utils/lzw.ts";
 
 test("LZW: 4-color pattern synchronization (edge case)", () => {

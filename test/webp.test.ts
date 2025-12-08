@@ -1,5 +1,5 @@
-import { assertEquals, assertRejects } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals, assertRejects } from "@std/assert";
+import { test } from "@cross/test";
 import { WebPFormat } from "../src/formats/webp.ts";
 
 const webpFormat = new WebPFormat();

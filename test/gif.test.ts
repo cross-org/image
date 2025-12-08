@@ -1,5 +1,5 @@
-import { assertEquals, assertRejects } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals, assertRejects } from "@std/assert";
+import { test } from "@cross/test";
 import { GIFFormat } from "../src/formats/gif.ts";
 import type { ImageData } from "../src/types.ts";
 
