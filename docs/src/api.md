@@ -1,6 +1,6 @@
 ---
-title: API Reference
-order: 1
+title: "API Reference"
+nav_order: 2
 ---
 
 # API Reference
