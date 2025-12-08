@@ -5,6 +5,7 @@
  * Creates WebP files and validates them structurally
  */
 
+import { writeFile } from "@cross/fs";
 import { WebPEncoder } from "../src/utils/webp_encoder.ts";
 
 interface TestCase {
@@ -220,7 +221,7 @@ async function runEncoderTests() {
     // Save to file for external validation
     // Note: Using /tmp for test files (Unix/Linux/macOS). On Windows, tests may need adjustment.
     const filename = `/tmp/encoder_test_${test.name}.webp`;
-    await Deno.writeFile(filename, encoded);
+    await writeFile(filename, encoded);
     console.log(`Saved to: ${filename}`);
 
     const valid = validateWebPStructure(encoded, test);
@@ -252,7 +253,6 @@ async function runEncoderTests() {
   }
 }
 
-// Only run in Deno (this test uses Deno.writeFile)
-if (typeof Deno !== "undefined" && import.meta.main) {
+if (import.meta.main) {
   await runEncoderTests();
 }
