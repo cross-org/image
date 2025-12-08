@@ -248,9 +248,15 @@ async function runEncoderTests() {
     console.log("\n✓ All encoder tests PASSED");
     console.log("\nYou can validate these files with external tools:");
     console.log("  - Open in a web browser");
-    console.log("  - Use: file /tmp/encoder_test_*.webp");
-    console.log("  - Use: dwebp /tmp/encoder_test_*.webp -o /tmp/test_*.png");
-    console.log("  - Use: identify /tmp/encoder_test_*.webp  (ImageMagick)");
+    console.log(`  - Use: file ${join(tmpDir, "encoder_test_*.webp")}`);
+    console.log(
+      `  - Use: dwebp ${join(tmpDir, "encoder_test_*.webp")} -o ${
+        join(tmpDir, "test_*.png")
+      }`,
+    );
+    console.log(
+      `  - Use: identify ${join(tmpDir, "encoder_test_*.webp")}  (ImageMagick)`,
+    );
   } else {
     console.log("\n✗ Some encoder tests FAILED");
     console.log("Review the output above for details");
