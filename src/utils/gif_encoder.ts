@@ -14,12 +14,18 @@ interface RGBColor {
 export class GIFEncoder {
   private width: number;
   private height: number;
-  private data: Uint8Array;
+  private frames: { data: Uint8Array; delay: number }[] = [];
 
-  constructor(width: number, height: number, data: Uint8Array) {
+  constructor(width: number, height: number, data?: Uint8Array) {
     this.width = width;
     this.height = height;
-    this.data = data;
+    if (data) {
+      this.addFrame(data);
+    }
+  }
+
+  addFrame(data: Uint8Array, delay: number = 0): void {
+    this.frames.push({ data, delay });
   }
 
   private writeBytes(output: number[], bytes: Uint8Array | number[]): void {
@@ -53,7 +59,9 @@ export class GIFEncoder {
   /**
    * Quantize RGBA image to 256 colors using median cut algorithm
    */
-  private quantize(): { palette: Uint8Array; indexed: Uint8Array } {
+  private quantize(
+    data: Uint8Array,
+  ): { palette: Uint8Array; indexed: Uint8Array } {
     // Simple quantization: collect unique colors and build palette
     const colorMap = new Map<string, number>();
     const colors: RGBColor[] = [];
@@ -66,10 +74,10 @@ export class GIFEncoder {
     const bStep = 255 / B_LEVELS; // Step size for B quantization
 
     // Collect unique colors
-    for (let i = 0; i < this.data.length; i += 4) {
-      const r = this.data[i];
-      const g = this.data[i + 1];
-      const b = this.data[i + 2];
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
       const key = `${r},${g},${b}`;
 
       if (!colorMap.has(key) && colors.length < 256) {
@@ -88,12 +96,12 @@ export class GIFEncoder {
       colors.length = 0;
       useColorReduction = true;
 
-      for (let i = 0; i < this.data.length; i += 4) {
+      for (let i = 0; i < data.length; i += 4) {
         // Reduce color depth: 3 bits for R/G channels, 2 bits for B channel
         // This gives us 8 bits total = 256 possible colors
-        const r = this.quantizeChannel(this.data[i], RG_LEVELS, rgStep);
-        const g = this.quantizeChannel(this.data[i + 1], RG_LEVELS, rgStep);
-        const b = this.quantizeChannel(this.data[i + 2], B_LEVELS, bStep);
+        const r = this.quantizeChannel(data[i], RG_LEVELS, rgStep);
+        const g = this.quantizeChannel(data[i + 1], RG_LEVELS, rgStep);
+        const b = this.quantizeChannel(data[i + 2], B_LEVELS, bStep);
         const key = `${r},${g},${b}`;
 
         if (!colorMap.has(key)) {
@@ -121,10 +129,10 @@ export class GIFEncoder {
 
     // Create indexed data
     const indexed = new Uint8Array(this.width * this.height);
-    for (let i = 0, j = 0; i < this.data.length; i += 4, j++) {
-      let r = this.data[i];
-      let g = this.data[i + 1];
-      let b = this.data[i + 2];
+    for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
 
       // Apply color reduction if it was used for building the palette
       if (useColorReduction) {
@@ -179,11 +187,18 @@ export class GIFEncoder {
   }
 
   encode(): Uint8Array {
+    if (this.frames.length === 0) {
+      throw new Error("No frames to encode");
+    }
+
     const output: number[] = [];
 
-    // Quantize image
-    const { palette, indexed } = this.quantize();
-    const paletteSize = palette.length / 3;
+    // Quantize first frame for Global Color Table
+    const firstFrame = this.frames[0];
+    const { palette: globalPalette, indexed: firstIndexed } = this.quantize(
+      firstFrame.data,
+    );
+    const paletteSize = globalPalette.length / 3;
     const bitsPerColor = this.getBitsPerColor(paletteSize);
 
     // Header
@@ -212,45 +227,113 @@ export class GIFEncoder {
     // So we need to write that many colors, padding if necessary
     const gctSize = 1 << bitsPerColor;
     const paddedPalette = new Uint8Array(gctSize * 3);
-    paddedPalette.set(palette);
+    paddedPalette.set(globalPalette);
     this.writeBytes(output, paddedPalette);
 
-    // Image Descriptor
-    output.push(0x2c); // Image Separator
-
-    // Image position and dimensions
-    this.writeUint16LE(output, 0); // Left
-    this.writeUint16LE(output, 0); // Top
-    this.writeUint16LE(output, this.width);
-    this.writeUint16LE(output, this.height);
-
-    // Packed field:
-    // - Local Color Table Flag (1 bit): 0
-    // - Interlace Flag (1 bit): 0
-    // - Sort Flag (1 bit): 0
-    // - Reserved (2 bits): 0
-    // - Size of Local Color Table (3 bits): 0
-    output.push(0);
-
-    // LZW Minimum Code Size
-    const minCodeSize = Math.max(2, bitsPerColor);
-    output.push(minCodeSize);
-
-    // Compress image data with LZW
-    const encoder = new LZWEncoder(minCodeSize);
-    const compressed = encoder.compress(indexed);
-
-    // Write compressed data in sub-blocks (max 255 bytes per block)
-    for (let i = 0; i < compressed.length; i += 255) {
-      const blockSize = Math.min(255, compressed.length - i);
-      output.push(blockSize);
-      for (let j = 0; j < blockSize; j++) {
-        output.push(compressed[i + j]);
-      }
+    // Netscape Application Extension (Looping)
+    if (this.frames.length > 1) {
+      output.push(0x21); // Extension Introducer
+      output.push(0xff); // Application Extension Label
+      output.push(11); // Block Size
+      this.writeString(output, "NETSCAPE2.0");
+      output.push(3); // Sub-block Size
+      output.push(1); // Loop Indicator (1 = loop)
+      this.writeUint16LE(output, 0); // Loop Count (0 = infinite)
+      output.push(0); // Block Terminator
     }
 
-    // Block Terminator
-    output.push(0);
+    // Encode frames
+    for (let i = 0; i < this.frames.length; i++) {
+      const frame = this.frames[i];
+      let indexed: Uint8Array;
+      let useLocalPalette = false;
+      let localPalette: Uint8Array | null = null;
+      let localBitsPerColor = bitsPerColor;
+
+      if (i === 0) {
+        indexed = firstIndexed;
+      } else {
+        // Quantize subsequent frames
+        // For simplicity, we use a Local Color Table for each frame to ensure colors are correct
+        const result = this.quantize(frame.data);
+        indexed = result.indexed;
+        localPalette = result.palette;
+        useLocalPalette = true;
+
+        const localPaletteSize = localPalette.length / 3;
+        localBitsPerColor = this.getBitsPerColor(localPaletteSize);
+      }
+
+      // Graphic Control Extension
+      output.push(0x21); // Extension Introducer
+      output.push(0xf9); // Graphic Control Label
+      output.push(4); // Byte Size
+
+      // Packed Field
+      // Reserved (3 bits)
+      // Disposal Method (3 bits): 2 (Restore to background) - usually safe for animation
+      // User Input Flag (1 bit): 0
+      // Transparent Color Flag (1 bit): 0
+      output.push(0x08); // Disposal method 2 (Restore to background)
+
+      // Delay Time (1/100ths of a second)
+      // Default to 10 (100ms) if not specified
+      const delay = frame.delay > 0 ? Math.round(frame.delay / 10) : 10;
+      this.writeUint16LE(output, delay);
+
+      // Transparent Color Index
+      output.push(0);
+
+      output.push(0); // Block Terminator
+
+      // Image Descriptor
+      output.push(0x2c); // Image Separator
+      this.writeUint16LE(output, 0); // Left
+      this.writeUint16LE(output, 0); // Top
+      this.writeUint16LE(output, this.width);
+      this.writeUint16LE(output, this.height);
+
+      // Packed Field
+      if (useLocalPalette && localPalette) {
+        // LCT Flag: 1
+        // Interlace: 0
+        // Sort: 0
+        // Reserved: 0
+        // Size of LCT: localBitsPerColor - 1
+        const lctPacked = 0x80 | (localBitsPerColor - 1);
+        output.push(lctPacked);
+
+        // Write Local Color Table
+        const lctSize = 1 << localBitsPerColor;
+        const paddedLct = new Uint8Array(lctSize * 3);
+        paddedLct.set(localPalette);
+        this.writeBytes(output, paddedLct);
+      } else {
+        output.push(0); // No LCT
+      }
+
+      // LZW Minimum Code Size
+      const minCodeSize = Math.max(
+        2,
+        useLocalPalette ? localBitsPerColor : bitsPerColor,
+      );
+      output.push(minCodeSize);
+
+      // Compress image data with LZW
+      const encoder = new LZWEncoder(minCodeSize);
+      const compressed = encoder.compress(indexed);
+
+      // Write compressed data in sub-blocks (max 255 bytes per block)
+      for (let k = 0; k < compressed.length; k += 255) {
+        const blockSize = Math.min(255, compressed.length - k);
+        output.push(blockSize);
+        for (let j = 0; j < blockSize; j++) {
+          output.push(compressed[k + j]);
+        }
+      }
+
+      output.push(0); // Block Terminator
+    }
 
     // Trailer
     output.push(0x3b);

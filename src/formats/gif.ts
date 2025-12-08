@@ -260,27 +260,24 @@ export class GIFFormat implements ImageFormat {
 
   /**
    * Encode multi-frame image data to animated GIF
-   * Note: Currently not implemented, will encode only first frame
    */
   encodeFrames(
     imageData: MultiFrameImageData,
     _options?: unknown,
   ): Promise<Uint8Array> {
-    // For now, just encode the first frame using the existing encoder
-    // Full multi-frame encoding would require a more complex GIFEncoder
     if (imageData.frames.length === 0) {
       throw new Error("No frames to encode");
     }
 
-    const firstFrame = imageData.frames[0];
-    const singleFrameData: ImageData = {
-      width: firstFrame.width,
-      height: firstFrame.height,
-      data: firstFrame.data,
-      metadata: imageData.metadata,
-    };
+    const encoder = new GIFEncoder(imageData.width, imageData.height);
 
-    return this.encode(singleFrameData);
+    for (const frame of imageData.frames) {
+      // Get delay from metadata (default to 100ms if not set)
+      const delay = frame.frameMetadata?.delay ?? 100;
+      encoder.addFrame(frame.data, delay);
+    }
+
+    return Promise.resolve(encoder.encode());
   }
 
   private mapDisposalMethod(

@@ -1,6 +1,6 @@
 ---
-title: Home
-order: 0
+title: "Overview"
+nav_order: 1
 ---
 
 # @cross/image
@@ -95,8 +95,10 @@ await writeFile("output.jpg", jpeg);
 - **[API Reference](api.md)** - Complete API documentation
 - **[Format Support](formats.md)** - Supported formats and specifications
 - **[Examples](examples.md)** - Usage examples for common tasks
-- **[JPEG Implementation](jpeg-implementation.md)** - Technical details for JPEG
-- **[WebP Implementation](webp-implementation.md)** - Technical details for WebP
+- **[JPEG Implementation](implementation/jpeg-implementation.md)** - Technical
+  details for JPEG
+- **[WebP Implementation](implementation/webp-implementation.md)** - Technical
+  details for WebP
 
 ## Supported Formats
 

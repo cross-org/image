@@ -1,6 +1,7 @@
 ---
-title: WebP Implementation
-order: 11
+title: "WebP"
+parent: "Implementation Notes"
+nav_order: 2
 ---
 
 # WebP VP8L Encoder Implementation Notes
