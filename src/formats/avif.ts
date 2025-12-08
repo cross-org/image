@@ -172,14 +172,4 @@ export class AVIFFormat implements ImageFormat {
       );
     }
   }
-
-  /**
-   * Helper method to read uint32 in big-endian format
-   */
-  private readUint32BE(data: Uint8Array, offset: number): number {
-    return (data[offset] << 24) |
-      (data[offset + 1] << 16) |
-      (data[offset + 2] << 8) |
-      data[offset + 3];
-  }
 }
