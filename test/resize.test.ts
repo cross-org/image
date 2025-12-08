@@ -1,5 +1,5 @@
-import { assertEquals, assertExists } from "../test/assert.ts";
-import { test } from "../test/test_runner.ts";
+import { assertEquals, assertExists } from "@std/assert";
+import { test } from "@cross/test";
 import { resizeBilinear, resizeNearest } from "../src/utils/resize.ts";
 
 test("resize: nearest neighbor - simple 2x2 to 1x1", () => {
