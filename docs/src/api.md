@@ -127,6 +127,31 @@ for (let i = 0; i < data.length; i += 4) {
 const image = Image.fromRGBA(100, 100, data);
 ```
 
+#### `Image.create(width: number, height: number, r?: number, g?: number, b?: number, a?: number): Image`
+
+Create a blank image with the specified dimensions and color.
+
+**Parameters:**
+
+- `width` - Image width in pixels
+- `height` - Image height in pixels
+- `r` - Red component (0-255, default: 0)
+- `g` - Green component (0-255, default: 0)
+- `b` - Blue component (0-255, default: 0)
+- `a` - Alpha component (0-255, default: 255)
+
+**Returns:** New Image instance
+
+**Example:**
+
+```ts
+// Create a 400x300 white canvas
+const canvas = Image.create(400, 300, 255, 255, 255);
+
+// Create a 200x200 transparent canvas
+const transparent = Image.create(200, 200, 0, 0, 0, 0);
+```
+
 #### `Image.registerFormat(format: ImageFormat): void`
 
 Register a custom format handler.
@@ -280,6 +305,206 @@ Set DPI and calculate physical dimensions. Returns `this` for method chaining.
 - `dpiY` - Dots per inch (vertical), defaults to dpiX if not provided
 
 **Returns:** `this` for chaining
+
+#### `composite(overlay: Image, x: number, y: number, opacity?: number): this`
+
+Composite another image on top of this image at the specified position.
+
+**Parameters:**
+
+- `overlay` - Image to place on top
+- `x` - X position (can be negative)
+- `y` - Y position (can be negative)
+- `opacity` - Opacity of overlay (0-1, default: 1)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+const background = Image.create(800, 600, 255, 255, 255);
+const logo = await Image.decode(await Deno.readFile("logo.png"));
+background.composite(logo, 10, 10, 0.8);
+```
+
+#### `brightness(amount: number): this`
+
+Adjust the brightness of the image.
+
+**Parameters:**
+
+- `amount` - Brightness adjustment (-1 to 1, where 0 is no change)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.brightness(0.2); // Increase brightness by 20%
+image.brightness(-0.1); // Decrease brightness by 10%
+```
+
+#### `contrast(amount: number): this`
+
+Adjust the contrast of the image.
+
+**Parameters:**
+
+- `amount` - Contrast adjustment (-1 to 1, where 0 is no change)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.contrast(0.3); // Increase contrast
+image.contrast(-0.2); // Decrease contrast
+```
+
+#### `exposure(amount: number): this`
+
+Adjust the exposure of the image in photographic stops.
+
+**Parameters:**
+
+- `amount` - Exposure adjustment in stops (-3 to 3, where 0 is no change)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.exposure(1); // Increase exposure by 1 stop (2x brighter)
+image.exposure(-1); // Decrease exposure by 1 stop (0.5x darker)
+```
+
+#### `saturation(amount: number): this`
+
+Adjust the color saturation of the image.
+
+**Parameters:**
+
+- `amount` - Saturation adjustment (-1 to 1, where 0 is no change, -1 is grayscale)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.saturation(0.5); // Increase saturation
+image.saturation(-0.3); // Desaturate
+image.saturation(-1); // Full grayscale (same as image.grayscale())
+```
+
+#### `invert(): this`
+
+Invert all colors in the image (negative effect).
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.invert(); // Create a color negative
+```
+
+#### `grayscale(): this`
+
+Convert the image to grayscale.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.grayscale(); // Convert to black and white
+```
+
+#### `fillRect(x: number, y: number, width: number, height: number, r: number, g: number, b: number, a?: number): this`
+
+Fill a rectangular region with a solid color.
+
+**Parameters:**
+
+- `x` - Starting X position
+- `y` - Starting Y position
+- `width` - Width of the fill region
+- `height` - Height of the fill region
+- `r` - Red component (0-255)
+- `g` - Green component (0-255)
+- `b` - Blue component (0-255)
+- `a` - Alpha component (0-255, default: 255)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+const canvas = Image.create(400, 300, 255, 255, 255);
+canvas.fillRect(50, 50, 100, 100, 255, 0, 0); // Red rectangle
+canvas.fillRect(200, 100, 150, 80, 0, 0, 255, 128); // Semi-transparent blue
+```
+
+#### `crop(x: number, y: number, width: number, height: number): this`
+
+Crop the image to a rectangular region.
+
+**Parameters:**
+
+- `x` - Starting X position
+- `y` - Starting Y position
+- `width` - Width of the crop region
+- `height` - Height of the crop region
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.crop(100, 100, 200, 150); // Crop to 200x150 region starting at (100, 100)
+```
+
+#### `getPixel(x: number, y: number): { r: number; g: number; b: number; a: number } | undefined`
+
+Get the color of a pixel at the specified position.
+
+**Parameters:**
+
+- `x` - X position
+- `y` - Y position
+
+**Returns:** Object with r, g, b, a components (0-255) or undefined if out of bounds
+
+**Example:**
+
+```ts
+const color = image.getPixel(50, 100);
+if (color) {
+  console.log(`Pixel color: rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`);
+}
+```
+
+#### `setPixel(x: number, y: number, r: number, g: number, b: number, a?: number): this`
+
+Set the color of a pixel at the specified position.
+
+**Parameters:**
+
+- `x` - X position
+- `y` - Y position
+- `r` - Red component (0-255)
+- `g` - Green component (0-255)
+- `b` - Blue component (0-255)
+- `a` - Alpha component (0-255, default: 255)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.setPixel(50, 100, 255, 0, 0); // Set pixel to red
+image.setPixel(51, 100, 0, 255, 0, 128); // Set pixel to semi-transparent green
+```
 
 ## Type Definitions
 

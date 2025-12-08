@@ -173,6 +173,9 @@ const image = await Image.decode(data);
 // Chain multiple operations
 image
   .resize({ width: 1920, height: 1080 })
+  .brightness(0.1)
+  .contrast(0.2)
+  .saturation(-0.1)
   .resize({ width: 800, height: 600 });
 
 const output = await image.encode("webp");
@@ -191,10 +194,107 @@ const image = await Image.decode(data);
 // Chain multiple operations
 image
   .resize({ width: 1920, height: 1080 })
+  .brightness(0.1)
+  .contrast(0.2)
+  .saturation(-0.1)
   .resize({ width: 800, height: 600 });
 
 const output = await image.save("webp");
 await writeFile("output.webp", output);
+```
+
+## Image Processing
+
+### Adjusting Image Properties
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Adjust brightness (-1 to 1)
+image.brightness(0.2); // Increase brightness by 20%
+
+// Adjust contrast (-1 to 1)
+image.contrast(0.3); // Increase contrast
+
+// Adjust saturation (-1 to 1, -1 = grayscale)
+image.saturation(0.5); // Boost color saturation
+
+// Adjust exposure in stops (-3 to 3)
+image.exposure(1); // Increase exposure by 1 stop (2x brighter)
+
+// Convert to grayscale
+image.grayscale();
+
+// Invert colors (negative effect)
+image.invert();
+
+const output = await image.encode("jpeg");
+await Deno.writeFile("adjusted.jpg", output);
+```
+
+### Creating and Drawing on Images
+
+```ts
+import { Image } from "@cross/image";
+
+// Create a blank white canvas
+const canvas = Image.create(800, 600, 255, 255, 255);
+
+// Draw a red rectangle
+canvas.fillRect(100, 100, 200, 150, 255, 0, 0);
+
+// Draw a semi-transparent blue rectangle
+canvas.fillRect(250, 200, 300, 200, 0, 0, 255, 128);
+
+// Set individual pixels
+canvas.setPixel(50, 50, 0, 255, 0); // Green pixel
+
+// Get pixel color
+const color = canvas.getPixel(50, 50);
+console.log(`Pixel: rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`);
+
+const output = await canvas.encode("png");
+await Deno.writeFile("canvas.png", output);
+```
+
+### Compositing Images
+
+```ts
+import { Image } from "@cross/image";
+
+// Load background image
+const background = await Image.decode(await Deno.readFile("background.jpg"));
+
+// Load overlay/logo
+const logo = await Image.decode(await Deno.readFile("logo.png"));
+
+// Composite logo on background at position (50, 50) with 80% opacity
+background.composite(logo, 50, 50, 0.8);
+
+// Can also composite at negative positions (partial overlay)
+const watermark = await Image.decode(await Deno.readFile("watermark.png"));
+background.composite(watermark, -10, -10, 0.5);
+
+const output = await background.encode("png");
+await Deno.writeFile("composited.png", output);
+```
+
+### Cropping Images
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Crop to a 400x400 region starting at (100, 50)
+image.crop(100, 50, 400, 400);
+
+const output = await image.encode("png");
+await Deno.writeFile("cropped.png", output);
 ```
 
 ## Format-Specific Examples

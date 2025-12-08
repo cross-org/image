@@ -13,8 +13,10 @@ Deno, Node.js, and Bun.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
-- 🎨 **Multiple formats** - PNG, JPEG, WebP, GIF, TIFF, BMP, and RAW support
-- ✂️ **Image manipulation** - Resize with multiple algorithms
+- 🎨 **Multiple formats** - PNG, JPEG, WebP, GIF, TIFF, BMP, DNG, PAM, PCX, and ASCII support
+- ✂️ **Image manipulation** - Resize, crop, and composite images
+- 🎛️ **Image processing** - Adjust brightness, contrast, saturation, exposure
+- 🖌️ **Drawing operations** - Fill rectangles, get/set pixels, create images from scratch
 - 🔧 **Simple API** - Easy to use, intuitive interface
 
 ## Installation
@@ -96,10 +98,10 @@ await writeFile("output.jpg", jpeg);
 
 ## Supported Formats
 
-@cross/image supports 8 image formats with varying levels of pure-JS
+@cross/image supports 10 image formats with varying levels of pure-JS
 implementation:
 
-- **PNG, BMP, GIF, RAW, ASCII** - Full pure-JS implementation
+- **PNG, BMP, GIF, DNG, PAM, PCX, ASCII** - Full pure-JS implementation
 - **JPEG** - Pure-JS baseline DCT, native API for progressive
 - **WebP** - Pure-JS lossless, native API for lossy VP8
 - **TIFF** - Pure-JS uncompressed + LZW, native API for other compressions
