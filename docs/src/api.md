@@ -27,8 +27,14 @@ Decode an image from bytes. Automatically detects format if not specified.
 **Example:**
 
 ```ts
+// Deno
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
+
+// Node.js
+// import { readFile } from "node:fs/promises";
+// const data = await readFile("input.png");
+// const image = await Image.decode(data);
 ```
 
 #### `Image.read(data: Uint8Array, format?: string): Promise<Image>` ⚠️ Deprecated
@@ -52,8 +58,15 @@ Decode all frames from a multi-frame image (animated GIF or multi-page TIFF).
 **Example:**
 
 ```ts
+// Deno
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
+
+// Node.js
+// import { readFile } from "node:fs/promises";
+// const gifData = await readFile("animated.gif");
+// const multiFrame = await Image.decodeFrames(gifData);
+
 console.log(`Number of frames: ${multiFrame.frames.length}`);
 ```
 
