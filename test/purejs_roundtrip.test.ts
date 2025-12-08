@@ -258,34 +258,34 @@ test("Pure-JS TIFF: encode and decode gradient", async () => {
   }
 });
 
-// Test RAW (pure-JS, lossless)
-test("Pure-JS RAW: encode and decode solid colors", async () => {
+// Test DNG (pure-JS, lossless)
+test("Pure-JS DNG: encode and decode solid colors", async () => {
   const { width, height, data } = testImages[0];
   const image = Image.fromRGBA(width, height, data);
 
-  const encoded = await image.save("raw");
+  const encoded = await image.save("dng");
   const decoded = await Image.read(encoded);
 
   assertEquals(decoded.width, width);
   assertEquals(decoded.height, height);
   assertEquals(decoded.data.length, data.length);
-  // RAW is lossless, compare byte-by-byte
+  // DNG is lossless, compare byte-by-byte
   for (let i = 0; i < data.length; i++) {
     assertEquals(decoded.data[i], data[i], `Mismatch at byte ${i}`);
   }
 });
 
-test("Pure-JS RAW: encode and decode checkerboard", async () => {
+test("Pure-JS DNG: encode and decode checkerboard", async () => {
   const { width, height, data } = testImages[2];
   const image = Image.fromRGBA(width, height, data);
 
-  const encoded = await image.save("raw");
+  const encoded = await image.save("dng");
   const decoded = await Image.read(encoded);
 
   assertEquals(decoded.width, width);
   assertEquals(decoded.height, height);
   assertEquals(decoded.data.length, data.length);
-  // RAW is lossless, compare byte-by-byte
+  // DNG is lossless, compare byte-by-byte
   for (let i = 0; i < data.length; i++) {
     assertEquals(decoded.data[i], data[i], `Mismatch at byte ${i}`);
   }

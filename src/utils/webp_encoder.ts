@@ -63,10 +63,10 @@ class BitWriter {
       this.bits = 0;
       // Do not reset bitCount here as it tracks total bits written
     } else if (this.bitCount > 0 && this.bytes.length * 8 < this.bitCount) {
-       // Edge case: if we just finished a byte but haven't pushed it yet
-       // (The loop pushes at the START of the next bit, so we might have a full byte pending)
-       this.bytes.push(this.bits);
-       this.bits = 0;
+      // Edge case: if we just finished a byte but haven't pushed it yet
+      // (The loop pushes at the START of the next bit, so we might have a full byte pending)
+      this.bytes.push(this.bits);
+      this.bits = 0;
     }
   }
 
@@ -459,24 +459,27 @@ export class WebPEncoder {
     while (maxDepth > maxCodeLength && attempts < 5) {
       // console.log(`Tree too deep (${maxDepth} > ${maxCodeLength}), flattening...`);
       attempts++;
-      
+
       // Add bias to frequencies to flatten the tree
       // Increase bias with each attempt
-      const bias = (Math.ceil(root.freq / (symbols.length * 2)) || 1) * attempts;
-      
+      const bias = (Math.ceil(root.freq / (symbols.length * 2)) || 1) *
+        attempts;
+
       nodes = symbols.map((symbol) => ({
         freq: frequencies.get(symbol)! + bias,
         symbol,
       }));
       root = buildTree(nodes);
-      
+
       // Re-check depth
       maxDepth = 0;
       checkDepth(root, 0);
     }
 
     if (maxDepth > maxCodeLength) {
-      console.warn(`Failed to reduce Huffman tree depth to ${maxCodeLength} (current: ${maxDepth})`);
+      console.warn(
+        `Failed to reduce Huffman tree depth to ${maxCodeLength} (current: ${maxDepth})`,
+      );
       // Force hard limit by sorting and assigning lengths?
       // For now, let's just see if this is happening.
     }
@@ -714,7 +717,7 @@ export class WebPEncoder {
     for (const len of codeLengthCodeLengths) {
       if (len > 0) nonZeroCount++;
     }
-    
+
     if (nonZeroCount === 1) {
       // If only one symbol is used in the code length alphabet,
       // we don't write any bits for the code itself in the RLE stream.

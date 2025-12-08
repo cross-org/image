@@ -545,7 +545,9 @@ The library exports format classes that can be used for advanced scenarios:
 - `GIFFormat` - GIF format handler
 - `TIFFFormat` - TIFF format handler
 - `BMPFormat` - BMP format handler
-- `RAWFormat` - RAW format handler
+- `DNGFormat` - DNG format handler
+- `PAMFormat` - PAM format handler
+- `PCXFormat` - PCX format handler
 - `ASCIIFormat` - ASCII art format handler
 
 These are primarily for internal use and custom format registration. Most users

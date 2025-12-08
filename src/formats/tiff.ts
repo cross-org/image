@@ -27,9 +27,9 @@ export interface TIFFEncodeOptions {
  */
 export class TIFFFormat implements ImageFormat {
   /** Format name identifier */
-  readonly name = "tiff";
+  readonly name: string = "tiff";
   /** MIME type for TIFF images */
-  readonly mimeType = "image/tiff";
+  readonly mimeType: string = "image/tiff";
 
   /**
    * Check if this format supports multiple frames (pages)
@@ -854,7 +854,7 @@ export class TIFFFormat implements ImageFormat {
     return metadata;
   }
 
-  private readUint16(
+  protected readUint16(
     data: Uint8Array,
     offset: number,
     isLittleEndian: boolean,
@@ -869,7 +869,7 @@ export class TIFFFormat implements ImageFormat {
     }
   }
 
-  private readUint32(
+  protected readUint32(
     data: Uint8Array,
     offset: number,
     isLittleEndian: boolean,
@@ -886,11 +886,11 @@ export class TIFFFormat implements ImageFormat {
     }
   }
 
-  private writeUint16LE(result: number[], value: number): void {
+  protected writeUint16LE(result: number[], value: number): void {
     result.push(value & 0xff, (value >>> 8) & 0xff);
   }
 
-  private writeUint32LE(result: number[], value: number): void {
+  protected writeUint32LE(result: number[], value: number): void {
     result.push(
       value & 0xff,
       (value >>> 8) & 0xff,
@@ -899,7 +899,7 @@ export class TIFFFormat implements ImageFormat {
     );
   }
 
-  private writeIFDEntry(
+  protected writeIFDEntry(
     result: number[],
     tag: number,
     type: number,

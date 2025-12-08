@@ -71,7 +71,7 @@ class HuffmanTable {
     // This matches how we build the tree (left=0, right=1).
     // Wait, addCode uses (code >> i) & 1. This is MSB first.
     // So we expect the first bit read to be the MSB of the code.
-    
+
     let node = this.root;
     for (let i = codeLength - 1; i >= 0; i--) {
       const bit = (code >> i) & 1;
@@ -147,7 +147,7 @@ class BitReader {
     if (this.bitPos !== 8) {
       this.bitPos = 8; // Skip remaining bits in current byte
     }
-    
+
     if (this.pos + count > this.data.length) {
       throw new Error("Unexpected end of data");
     }
@@ -400,7 +400,7 @@ export class WebPDecoder {
 
     // Read the main Huffman codes
     // There are 5 Huffman code groups: green, red, blue, alpha, distance
-    
+
     const tables = {
       green: new HuffmanTable(),
       red: new HuffmanTable(),

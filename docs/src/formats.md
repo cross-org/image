@@ -17,7 +17,9 @@ status:
 | ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | -------------------------------------------- |
 | PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
 | BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
-| RAW    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Uncompressed RGBA (no metadata)              |
+| DNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Linear DNG (Uncompressed RGBA)               |
+| PAM    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Netpbm PAM (Portable Arbitrary Map)          |
+| PCX    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | ZSoft PCX (RLE compressed)                   |
 | ASCII  | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation          |
 | JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only                |
 | GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
@@ -73,7 +75,11 @@ This table shows which format standards and variants are supported:
 |        | - Animation (multi-frame decode)    | ✅ Full           | Pure-JS        |
 |        | - Animation (encode first frame)    | ⚠️ Single frame   | Pure-JS        |
 |        | - Comment extensions, XMP           | ✅ Full           | Pure-JS        |
-| RAW    | Uncompressed RGBA                   | ✅ Full           | Pure-JS        |
+| DNG    | Adobe DNG 1.6.0.0 (Linear)          | ✅ Full           | Pure-JS        |
+| PAM    | Netpbm PAM (Portable Arbitrary Map) | ✅ Full           | Pure-JS        |
+| PCX    | ZSoft PCX Version 5 (3.0)           | ✅ Full           | Pure-JS        |
+|        | - 24-bit RGB (3 planes)             | ✅ Full           | Pure-JS        |
+|        | - 8-bit Palette (1 plane)           | ✅ Decode only    | Pure-JS        |
 | ASCII  | Text-based ASCII art                | ✅ Full           | Pure-JS        |
 |        | - Multiple character sets           | ✅ Full           | Pure-JS        |
 |        | - Configurable width & aspect ratio | ✅ Full           | Pure-JS        |
@@ -84,8 +90,9 @@ This table shows which format standards and variants are supported:
 | Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                        |
 | ------ | -------- | ----------- | ----------- | --- | -------------------------------------------- |
 | PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| BMP    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| RAW    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| DNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| PAM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
 | ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
 | GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
 | JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
@@ -93,7 +100,7 @@ This table shows which format standards and variants are supported:
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
-ASCII or RAW formats which have complete pure-JS implementations.
+ASCII, PCX or DNG formats which have complete pure-JS implementations.
 
 ## Implementation Details
 
