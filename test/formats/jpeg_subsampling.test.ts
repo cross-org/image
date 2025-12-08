@@ -3,6 +3,7 @@ import { test } from "@cross/test";
 
 import { JPEGFormat } from "../../src/formats/jpeg.ts";
 import { Image } from "../../src/image.ts";
+import { withoutOffscreenCanvas } from "../test_utils.ts";
 
 /**
  * Tests for JPEG chroma subsampling support (4:4:4, 4:2:2, 4:2:0)
@@ -10,24 +11,6 @@ import { Image } from "../../src/image.ts";
  * These tests verify that the pure-JS JPEG decoder correctly handles
  * images with different chroma subsampling modes.
  */
-
-// Helper to temporarily disable OffscreenCanvas to force pure-JS decoder
-function withoutOffscreenCanvas<T>(fn: () => T | Promise<T>): T | Promise<T> {
-  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
-  const originalImageDecoder = globalThis.ImageDecoder;
-  try {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
-    (globalThis as unknown as { ImageDecoder?: unknown }).ImageDecoder =
-      undefined;
-    return fn();
-  } finally {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      originalOffscreenCanvas;
-    (globalThis as unknown as { ImageDecoder?: unknown }).ImageDecoder =
-      originalImageDecoder;
-  }
-}
 
 test("JPEG subsampling: decode 4:4:4 (no subsampling)", async () => {
   const data = await Deno.readFile("test/fixtures/jpeg/test_444.jpg");

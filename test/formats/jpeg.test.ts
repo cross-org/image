@@ -3,19 +3,7 @@ import { test } from "@cross/test";
 
 import { JPEGFormat } from "../../src/formats/jpeg.ts";
 import { Image } from "../../src/image.ts";
-
-// Helper to temporarily disable OffscreenCanvas to force pure-JS encoder
-function withoutOffscreenCanvas<T>(fn: () => T | Promise<T>): T | Promise<T> {
-  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
-  try {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
-    return fn();
-  } finally {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      originalOffscreenCanvas;
-  }
-}
+import { withoutOffscreenCanvas } from "../test_utils.ts";
 
 test("JPEG: canDecode - valid JPEG signature", () => {
   const validJPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
