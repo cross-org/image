@@ -12,7 +12,7 @@ await build({
   entryPoints: ["./mod.ts"],
   outDir: outputDir,
   shims: {
-    deno: true,
+    deno: false,
   },
   package: {
     name: "cross-image",
@@ -43,13 +43,22 @@ await build({
       "bun",
     ],
   },
-  postBuild() {
+  async postBuild() {
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
     Deno.copyFileSync("README.md", "npm/README.md");
+    const npmIgnore = "npm/.npmignore";
+    try {
+      const content = await Deno.readTextFile(npmIgnore);
+      await Deno.writeTextFile(npmIgnore, content + "\n*.map");
+    } catch {
+      await Deno.writeTextFile(npmIgnore, "*.map");
+    }
   },
   typeCheck: "both",
   test: false,
   compilerOptions: {
     lib: ["ESNext", "DOM", "DOM.Iterable"],
+    sourceMap: false,
+    inlineSources: false,
   },
 });
