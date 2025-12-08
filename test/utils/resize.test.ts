@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { test } from "@cross/test";
-import { resizeBilinear, resizeNearest } from "../src/utils/resize.ts";
+import { resizeBilinear, resizeNearest } from "../../src/utils/resize.ts";
 
 test("resize: nearest neighbor - simple 2x2 to 1x1", () => {
   const src = new Uint8Array([

@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { test } from "@cross/test";
-import { LZWDecoder, LZWEncoder } from "../src/utils/lzw.ts";
+import { LZWDecoder, LZWEncoder } from "../../src/utils/lzw.ts";
 
 test("LZW: 4-color pattern synchronization (edge case)", () => {
   // This test specifically targets the code size increase synchronization issue

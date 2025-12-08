@@ -8,7 +8,7 @@
 import { dir } from "@cross/dir";
 import { writeFile } from "@cross/fs";
 import { join } from "@std/path";
-import { WebPEncoder } from "../src/utils/webp_encoder.ts";
+import { WebPEncoder } from "../../src/utils/webp_encoder.ts";
 
 interface TestCase {
   name: string;

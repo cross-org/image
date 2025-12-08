@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { test } from "@cross/test";
-import { Image } from "../src/image.ts";
+import { Image } from "../../src/image.ts";
 
 test("Image: create blank image", () => {
   const image = Image.create(10, 10);

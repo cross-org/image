@@ -384,7 +384,8 @@ Adjust the color saturation of the image.
 
 **Parameters:**
 
-- `amount` - Saturation adjustment (-1 to 1, where 0 is no change, -1 is grayscale)
+- `amount` - Saturation adjustment (-1 to 1, where 0 is no change, -1 is
+  grayscale)
 
 **Returns:** `this` for chaining
 
@@ -473,14 +474,17 @@ Get the color of a pixel at the specified position.
 - `x` - X position
 - `y` - Y position
 
-**Returns:** Object with r, g, b, a components (0-255) or undefined if out of bounds
+**Returns:** Object with r, g, b, a components (0-255) or undefined if out of
+bounds
 
 **Example:**
 
 ```ts
 const color = image.getPixel(50, 100);
 if (color) {
-  console.log(`Pixel color: rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`);
+  console.log(
+    `Pixel color: rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`,
+  );
 }
 ```
 
