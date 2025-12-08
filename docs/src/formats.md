@@ -114,5 +114,5 @@ GIF, ASCII, PCX or DNG formats which have complete pure-JS implementations.
 
 For detailed technical information about specific format implementations:
 
-- [JPEG Implementation Details](jpeg-implementation.md)
-- [WebP Implementation Details](webp-implementation.md)
+- [JPEG Implementation Details](implementation/jpeg-implementation.md)
+- [WebP Implementation Details](implementation/webp-implementation.md)
