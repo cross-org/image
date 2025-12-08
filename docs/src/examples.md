@@ -5,7 +5,8 @@ order: 3
 
 # Examples
 
-This page provides practical examples of using @cross/image for common image processing tasks.
+This page provides practical examples of using @cross/image for common image
+processing tasks.
 
 ## Basic Operations
 

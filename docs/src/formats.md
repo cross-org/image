@@ -5,11 +5,13 @@ order: 2
 
 # Format Support
 
-This page details the image formats supported by @cross/image, their features, and runtime compatibility.
+This page details the image formats supported by @cross/image, their features,
+and runtime compatibility.
 
 ## Format Support Matrix
 
-This table shows which image formats are supported and their implementation status:
+This table shows which image formats are supported and their implementation
+status:
 
 | Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                        |
 | ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | -------------------------------------------- |
@@ -28,7 +30,8 @@ This table shows which image formats are supported and their implementation stat
 - ⚠️ **Limited support** - Partial implementation with restrictions
 - ❌ **Not supported** - Feature not available in pure-JS, requires native APIs
 - **Pure-JS** - Works in all JavaScript runtimes without native dependencies
-- **Native API** - Uses runtime APIs like ImageDecoder (decode) or OffscreenCanvas (encode)
+- **Native API** - Uses runtime APIs like ImageDecoder (decode) or
+  OffscreenCanvas (encode)
 
 ## Format Specifications Supported
 
@@ -89,7 +92,8 @@ This table shows which format standards and variants are supported:
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
 
-**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF, ASCII or RAW formats which have complete pure-JS implementations.
+**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
+ASCII or RAW formats which have complete pure-JS implementations.
 
 ## Implementation Details
 

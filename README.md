@@ -1,6 +1,7 @@
 # @cross/image
 
-A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, and Bun.
+A pure JavaScript, dependency-free, cross-runtime image processing library for
+Deno, Node.js, and Bun.
 
 📚 **[Full Documentation](https://cross-org.github.io/image/)**
 
@@ -62,26 +63,33 @@ await Deno.writeFile("output.jpg", jpeg);
 
 ## Supported Formats
 
-| Format | Pure-JS | Notes                                |
-| ------ | ------- | ------------------------------------ |
-| PNG    | ✅ Full | Complete pure-JS implementation      |
-| BMP    | ✅ Full | Complete pure-JS implementation      |
-| GIF    | ✅ Full | Complete pure-JS implementation      |
-| RAW    | ✅ Full | Uncompressed RGBA                    |
-| ASCII  | ✅ Full | Text-based ASCII art                 |
+| Format | Pure-JS     | Notes                           |
+| ------ | ----------- | ------------------------------- |
+| PNG    | ✅ Full     | Complete pure-JS implementation |
+| BMP    | ✅ Full     | Complete pure-JS implementation |
+| GIF    | ✅ Full     | Complete pure-JS implementation |
+| RAW    | ✅ Full     | Uncompressed RGBA               |
+| ASCII  | ✅ Full     | Text-based ASCII art            |
 | JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only       |
 | WebP   | ⚠️ Lossless | Pure-JS lossless VP8L           |
-| TIFF   | ⚠️ Basic | Pure-JS uncompressed + LZW          |
+| TIFF   | ⚠️ Basic    | Pure-JS uncompressed + LZW      |
 
-See the [full format support documentation](https://cross-org.github.io/image/formats.html) for detailed compatibility information.
+See the
+[full format support documentation](https://cross-org.github.io/image/formats.html)
+for detailed compatibility information.
 
 ## Documentation
 
-- **[API Reference](https://cross-org.github.io/image/api.html)** - Complete API documentation
-- **[Examples](https://cross-org.github.io/image/examples.html)** - Usage examples for common tasks
-- **[Format Support](https://cross-org.github.io/image/formats.html)** - Supported formats and specifications
-- **[JPEG Implementation](https://cross-org.github.io/image/jpeg-implementation.html)** - Technical details for JPEG
-- **[WebP Implementation](https://cross-org.github.io/image/webp-implementation.html)** - Technical details for WebP
+- **[API Reference](https://cross-org.github.io/image/api.html)** - Complete API
+  documentation
+- **[Examples](https://cross-org.github.io/image/examples.html)** - Usage
+  examples for common tasks
+- **[Format Support](https://cross-org.github.io/image/formats.html)** -
+  Supported formats and specifications
+- **[JPEG Implementation](https://cross-org.github.io/image/jpeg-implementation.html)** -
+  Technical details for JPEG
+- **[WebP Implementation](https://cross-org.github.io/image/webp-implementation.html)** -
+  Technical details for WebP
 
 ## Development
 

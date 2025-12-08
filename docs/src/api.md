@@ -18,12 +18,14 @@ The main class for working with images.
 Read an image from bytes. Automatically detects format if not specified.
 
 **Parameters:**
+
 - `data` - Raw image data as Uint8Array
 - `format` - Optional format hint (e.g., "png", "jpeg", "webp")
 
 **Returns:** Promise that resolves to an Image instance
 
 **Example:**
+
 ```ts
 const data = await Deno.readFile("input.png");
 const image = await Image.read(data);
@@ -34,12 +36,14 @@ const image = await Image.read(data);
 Read all frames from a multi-frame image (animated GIF or multi-page TIFF).
 
 **Parameters:**
+
 - `data` - Raw image data as Uint8Array
 - `format` - Optional format hint (e.g., "gif", "tiff")
 
 **Returns:** Promise that resolves to MultiFrameImageData with all frames
 
 **Example:**
+
 ```ts
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.readFrames(gifData);
@@ -51,6 +55,7 @@ console.log(`Number of frames: ${multiFrame.frames.length}`);
 Save multi-frame image data to bytes in the specified format.
 
 **Parameters:**
+
 - `format` - Format name (e.g., "gif", "tiff")
 - `imageData` - Multi-frame image data to save
 - `options` - Optional format-specific encoding options
@@ -58,6 +63,7 @@ Save multi-frame image data to bytes in the specified format.
 **Returns:** Promise that resolves to encoded image bytes
 
 **Example:**
+
 ```ts
 const tiffData = await Image.saveFrames("tiff", multiPageTiff, {
   compression: "lzw",
@@ -69,6 +75,7 @@ const tiffData = await Image.saveFrames("tiff", multiPageTiff, {
 Create an image from raw RGBA data.
 
 **Parameters:**
+
 - `width` - Image width in pixels
 - `height` - Image height in pixels
 - `data` - Raw RGBA pixel data (width * height * 4 bytes)
@@ -76,6 +83,7 @@ Create an image from raw RGBA data.
 **Returns:** New Image instance
 
 **Example:**
+
 ```ts
 const data = new Uint8Array(100 * 100 * 4); // 100x100 red square
 for (let i = 0; i < data.length; i += 4) {
@@ -90,9 +98,11 @@ const image = Image.fromRGBA(100, 100, data);
 Register a custom format handler.
 
 **Parameters:**
+
 - `format` - Custom format implementation
 
 **Example:**
+
 ```ts
 Image.registerFormat(new MyCustomFormat());
 ```
@@ -128,11 +138,13 @@ Optional image metadata including DPI, GPS coordinates, title, description, etc.
 Resize the image in-place. Returns `this` for method chaining.
 
 **Parameters:**
+
 - `options` - Resize configuration object
 
 **Returns:** `this` for chaining
 
 **Example:**
+
 ```ts
 image.resize({ width: 800, height: 600 });
 // or with nearest neighbor
@@ -141,15 +153,18 @@ image.resize({ width: 400, height: 300, method: "nearest" });
 
 #### `save(format: string, options?: unknown): Promise<Uint8Array>`
 
-Save image to bytes in the specified format with optional format-specific options.
+Save image to bytes in the specified format with optional format-specific
+options.
 
 **Parameters:**
+
 - `format` - Format name (e.g., "png", "jpeg", "webp")
 - `options` - Optional format-specific encoding options
 
 **Returns:** Promise that resolves to encoded image bytes
 
 **Example:**
+
 ```ts
 const png = await image.save("png");
 const jpeg = await image.save("jpeg", { quality: 90 });
@@ -162,6 +177,7 @@ Create a deep copy of the image.
 **Returns:** New Image instance with copied data
 
 **Example:**
+
 ```ts
 const copy = image.clone();
 ```
@@ -171,8 +187,10 @@ const copy = image.clone();
 Set or update image metadata. Returns `this` for method chaining.
 
 **Parameters:**
+
 - `metadata` - Metadata to set or merge
-- `merge` - If true (default), merges with existing metadata. If false, replaces it.
+- `merge` - If true (default), merges with existing metadata. If false, replaces
+  it.
 
 **Returns:** `this` for chaining
 
@@ -181,6 +199,7 @@ Set or update image metadata. Returns `this` for method chaining.
 Get a specific metadata field value.
 
 **Parameters:**
+
 - `key` - The metadata field name to retrieve
 
 **Returns:** The metadata value or undefined if not set
@@ -196,6 +215,7 @@ Get GPS position from metadata.
 Set GPS position in metadata. Returns `this` for method chaining.
 
 **Parameters:**
+
 - `latitude` - GPS latitude
 - `longitude` - GPS longitude
 
@@ -205,13 +225,15 @@ Set GPS position in metadata. Returns `this` for method chaining.
 
 Get physical dimensions from metadata.
 
-**Returns:** Object with DPI and physical dimensions, or undefined if not available
+**Returns:** Object with DPI and physical dimensions, or undefined if not
+available
 
 #### `setDPI(dpiX: number, dpiY?: number): this`
 
 Set DPI and calculate physical dimensions. Returns `this` for method chaining.
 
 **Parameters:**
+
 - `dpiX` - Dots per inch (horizontal)
 - `dpiY` - Dots per inch (vertical), defaults to dpiX if not provided
 
@@ -235,6 +257,7 @@ interface ResizeOptions {
 ```
 
 **Resize methods:**
+
 - `bilinear` - Smooth interpolation, better quality (default)
 - `nearest` - Fast pixel sampling, pixelated result
 
@@ -256,6 +279,7 @@ interface ASCIIOptions {
 ```
 
 **Character sets:**
+
 - `simple` - 10 characters (`.:-=+*#%@`) - good for basic art
 - `extended` - 70 characters - detailed gradients
 - `blocks` - 5 block characters (`░▒▓█`) - smooth gradients
@@ -275,6 +299,7 @@ interface WebPEncodeOptions {
 ```
 
 **Quality levels:**
+
 - `100` - Lossless encoding (VP8L without quantization)
 - `90-99` - Very high quality with minimal quantization
 - `70-89` - High quality with light quantization
@@ -282,7 +307,10 @@ interface WebPEncodeOptions {
 - `30-49` - Lower quality with heavy quantization
 - `1-29` - Low quality with very heavy quantization
 
-**Note:** When OffscreenCanvas is available (Deno, modern browsers, Bun), the runtime's native WebP encoder is used for better compression. In pure-JS mode (Node.js without OffscreenCanvas), VP8L format with quality-based color quantization is used.
+**Note:** When OffscreenCanvas is available (Deno, modern browsers, Bun), the
+runtime's native WebP encoder is used for better compression. In pure-JS mode
+(Node.js without OffscreenCanvas), VP8L format with quality-based color
+quantization is used.
 
 ### `TIFFEncodeOptions`
 
@@ -296,6 +324,7 @@ interface TIFFEncodeOptions {
 ```
 
 **Compression methods:**
+
 - `none` - Uncompressed TIFF (larger file size, fastest encoding)
 - `lzw` - LZW compression (smaller file size, lossless)
 
@@ -368,6 +397,7 @@ interface FrameMetadata {
 ```
 
 **Disposal methods:**
+
 - `none` - Do nothing (leave frame as-is)
 - `background` - Clear to background color before next frame
 - `previous` - Restore to previous frame state
@@ -476,4 +506,5 @@ The library exports format classes that can be used for advanced scenarios:
 - `RAWFormat` - RAW format handler
 - `ASCIIFormat` - ASCII art format handler
 
-These are primarily for internal use and custom format registration. Most users should use the `Image` class methods instead.
+These are primarily for internal use and custom format registration. Most users
+should use the `Image` class methods instead.
