@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { test } from "@cross/test";
-import { PCXFormat } from "../src/formats/pcx.ts";
+import { PCXFormat } from "../../src/formats/pcx.ts";
 
 test("PCX: canDecode - valid PCX signature", () => {
   const format = new PCXFormat();

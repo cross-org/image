@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
-import { TIFFFormat } from "../src/formats/tiff.ts";
+import { TIFFFormat } from "../../src/formats/tiff.ts";
 
 test("TIFF: canDecode - valid TIFF signature (little-endian)", () => {
   const validTIFF = new Uint8Array([0x49, 0x49, 0x2a, 0x00, 0, 0, 0, 0]);

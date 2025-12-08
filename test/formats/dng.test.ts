@@ -1,6 +1,6 @@
 import { assertEquals } from "@std/assert";
 import { test } from "@cross/test";
-import { DNGFormat } from "../src/formats/dng.ts";
+import { DNGFormat } from "../../src/formats/dng.ts";
 
 test("DNG: canDecode - valid DNG signature", () => {
   const format = new DNGFormat();

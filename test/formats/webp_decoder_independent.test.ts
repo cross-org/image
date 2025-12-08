@@ -5,7 +5,7 @@
  * Tests decoder with hand-crafted WebP data (not from our encoder)
  */
 
-import { WebPDecoder } from "../src/utils/webp_decoder.ts";
+import { WebPDecoder } from "../../src/utils/webp_decoder.ts";
 
 /**
  * Create a minimal valid WebP file manually

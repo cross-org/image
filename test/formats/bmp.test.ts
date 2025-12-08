@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
-import { BMPFormat } from "../src/formats/bmp.ts";
+import { BMPFormat } from "../../src/formats/bmp.ts";
 
 test("BMP: canDecode - valid BMP signature", () => {
   const validBMP = new Uint8Array([0x42, 0x4d, 0, 0, 0, 0, 0, 0, 0, 0]);

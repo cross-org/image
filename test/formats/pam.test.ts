@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
-import { PAMFormat } from "../src/formats/pam.ts";
+import { PAMFormat } from "../../src/formats/pam.ts";
 
 test("PAM: canDecode - valid PAM signature", () => {
   const encoder = new TextEncoder();

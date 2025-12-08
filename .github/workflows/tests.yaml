@@ -29,4 +29,4 @@ jobs:
     uses: cross-org/workflows/.github/workflows/node-ci.yml@main
     with:
       jsr_dependencies: "@cross/test @cross/fs @cross/dir @std/assert @std/path"
-      test_target: "test/*.test.ts"
+      test_target: "test/*.test.ts test/**/*.test.ts"

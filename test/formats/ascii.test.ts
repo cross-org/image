@@ -1,7 +1,7 @@
 import { assertEquals } from "@std/assert";
 import { test } from "@cross/test";
-import { ASCIIFormat } from "../src/formats/ascii.ts";
-import { Image } from "../src/image.ts";
+import { ASCIIFormat } from "../../src/formats/ascii.ts";
+import { Image } from "../../src/image.ts";
 
 test("ASCII: canDecode - valid ASCII signature", () => {
   const data = new TextEncoder().encode("ASCII\nwidth:80\nhello");

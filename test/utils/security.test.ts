@@ -5,12 +5,12 @@
 
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
-import { Image } from "../mod.ts";
+import { Image } from "../../mod.ts";
 import {
   MAX_IMAGE_DIMENSION,
   MAX_IMAGE_PIXELS,
   validateImageDimensions,
-} from "../src/utils/security.ts";
+} from "../../src/utils/security.ts";
 
 test("Security - validateImageDimensions rejects zero dimensions", () => {
   try {

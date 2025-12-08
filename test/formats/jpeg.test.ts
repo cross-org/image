@@ -1,8 +1,8 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
 
-import { JPEGFormat } from "../src/formats/jpeg.ts";
-import { Image } from "../src/image.ts";
+import { JPEGFormat } from "../../src/formats/jpeg.ts";
+import { Image } from "../../src/image.ts";
 
 // Helper to temporarily disable OffscreenCanvas to force pure-JS encoder
 function withoutOffscreenCanvas<T>(fn: () => T | Promise<T>): T | Promise<T> {

@@ -156,7 +156,7 @@ export class PCXFormat implements ImageFormat {
     view.setUint16(68, 1, true); // PaletteInfo (Color/BW)
 
     const bytesPerLine = width + (width % 2);
-    const scanlineLength = bytesPerLine * 3;
+    const _scanlineLength = bytesPerLine * 3;
     const rleData: number[] = [];
 
     // Helper to write RLE

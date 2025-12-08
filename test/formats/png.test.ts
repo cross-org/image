@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
-import { PNGFormat } from "../src/formats/png.ts";
+import { PNGFormat } from "../../src/formats/png.ts";
 
 test("PNG: canDecode - valid PNG signature", () => {
   const validPNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0]);

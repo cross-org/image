@@ -1,7 +1,7 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
-import { GIFFormat } from "../src/formats/gif.ts";
-import type { ImageData } from "../src/types.ts";
+import { GIFFormat } from "../../src/formats/gif.ts";
+import type { ImageData } from "../../src/types.ts";
 
 // Color validation thresholds for GIF quantization tests
 const MIN_RED_THRESHOLD = 200;
