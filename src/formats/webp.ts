@@ -5,6 +5,7 @@ import type {
   WebPEncodeOptions,
 } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
+import { readUint32LE } from "../utils/byte_utils.ts";
 
 // Default quality for WebP encoding when not specified
 const DEFAULT_WEBP_QUALITY = 90;
@@ -57,7 +58,7 @@ export class WebPFormat implements ImageFormat {
         data[pos + 2],
         data[pos + 3],
       );
-      const chunkSize = this.readUint32LE(data, pos + 4);
+      const chunkSize = readUint32LE(data, pos + 4);
       pos += 8;
 
       // Stop if we've gone past the end
@@ -82,7 +83,7 @@ export class WebPFormat implements ImageFormat {
       } else if (chunkType === "VP8L") {
         // Lossless format - extract dimensions
         if (chunkData.length >= 5 && chunkData[0] === 0x2f) {
-          const bits = this.readUint32LE(chunkData, 1);
+          const bits = readUint32LE(chunkData, 1);
           width = (bits & 0x3fff) + 1;
           height = ((bits >> 14) & 0x3fff) + 1;
         }
@@ -185,11 +186,6 @@ export class WebPFormat implements ImageFormat {
     }
 
     return encoded;
-  }
-
-  private readUint32LE(data: Uint8Array, offset: number): number {
-    return data[offset] | (data[offset + 1] << 8) |
-      (data[offset + 2] << 16) | (data[offset + 3] << 24);
   }
 
   private readUint24LE(data: Uint8Array, offset: number): number {
@@ -380,7 +376,7 @@ export class WebPFormat implements ImageFormat {
         webpData[pos + 2],
         webpData[pos + 3],
       );
-      const chunkSize = this.readUint32LE(webpData, pos + 4);
+      const chunkSize = readUint32LE(webpData, pos + 4);
 
       // Don't copy existing EXIF/XMP chunks (we'll add new ones)
       if (chunkType !== "EXIF" && chunkType !== "XMP ") {

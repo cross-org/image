@@ -85,21 +85,36 @@ test("GIF: decodeFrames - decode multi-frame GIF", async () => {
   assertEquals(decoded.frames[0].height, 10);
 });
 
-test("GIF: encodeFrames - encode multi-frame data (encodes first frame only)", async () => {
+test("GIF: encodeFrames - encode multi-frame data", async () => {
   const format = new GIFFormat();
 
   const multiFrameData = createMultiFrameTestData();
 
-  // Encode (currently only first frame)
+  // Encode
   const encoded = await format.encodeFrames(multiFrameData);
 
   // Should be a valid GIF
   assertEquals(format.canDecode(encoded), true);
 
-  // Should be able to decode as single frame
-  const decoded = await format.decode(encoded);
-  assertEquals(decoded.width, 10);
-  assertEquals(decoded.height, 10);
+  // Should be able to decode as multi-frame
+  const decoded = await format.decodeFrames(encoded);
+  assertEquals(decoded.frames.length, 3);
+  
+  // Check frame colors (sampling center pixel)
+  // Frame 1: Red
+  assertEquals(decoded.frames[0].data[0], 255);
+  assertEquals(decoded.frames[0].data[1], 0);
+  assertEquals(decoded.frames[0].data[2], 0);
+  
+  // Frame 2: Green
+  assertEquals(decoded.frames[1].data[0], 0);
+  assertEquals(decoded.frames[1].data[1], 255);
+  assertEquals(decoded.frames[1].data[2], 0);
+  
+  // Frame 3: Blue
+  assertEquals(decoded.frames[2].data[0], 0);
+  assertEquals(decoded.frames[2].data[1], 0);
+  assertEquals(decoded.frames[2].data[2], 255);
 });
 
 test("GIF: encodeFrames - throws on empty frames", async () => {

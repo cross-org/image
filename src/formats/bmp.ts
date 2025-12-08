@@ -1,5 +1,13 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
+import {
+  readInt32LE,
+  readUint16LE,
+  readUint32LE,
+  writeInt32LE,
+  writeUint16LE,
+  writeUint32LE,
+} from "../utils/byte_utils.ts";
 
 // Constants for unit conversions
 const INCHES_PER_METER = 39.3701;
@@ -36,11 +44,11 @@ export class BMPFormat implements ImageFormat {
     }
 
     // Read BMP file header (14 bytes)
-    const _fileSize = this.readUint32LE(data, 2);
-    const dataOffset = this.readUint32LE(data, 10);
+    const _fileSize = readUint32LE(data, 2);
+    const dataOffset = readUint32LE(data, 10);
 
     // Read DIB header (at least 40 bytes for BITMAPINFOHEADER)
-    const dibHeaderSize = this.readUint32LE(data, 14);
+    const dibHeaderSize = readUint32LE(data, 14);
     let width: number;
     let height: number;
     let bitDepth: number;
@@ -49,14 +57,14 @@ export class BMPFormat implements ImageFormat {
 
     if (dibHeaderSize >= 40) {
       // BITMAPINFOHEADER or later
-      width = this.readInt32LE(data, 18);
-      height = this.readInt32LE(data, 22);
-      bitDepth = this.readUint16LE(data, 28);
-      compression = this.readUint32LE(data, 30);
+      width = readInt32LE(data, 18);
+      height = readInt32LE(data, 22);
+      bitDepth = readUint16LE(data, 28);
+      compression = readUint32LE(data, 30);
 
       // Read DPI information (pixels per meter)
-      const xPixelsPerMeter = this.readInt32LE(data, 38);
-      const yPixelsPerMeter = this.readInt32LE(data, 42);
+      const xPixelsPerMeter = readInt32LE(data, 38);
+      const yPixelsPerMeter = readInt32LE(data, 42);
 
       if (xPixelsPerMeter > 0 && yPixelsPerMeter > 0) {
         // Convert pixels per meter to DPI
@@ -151,22 +159,22 @@ export class BMPFormat implements ImageFormat {
     // BMP File Header (14 bytes)
     result[0] = 0x42; // 'B'
     result[1] = 0x4d; // 'M'
-    this.writeUint32LE(result, 2, fileSize); // File size
-    this.writeUint32LE(result, 6, 0); // Reserved
-    this.writeUint32LE(result, 10, 54); // Offset to pixel data (14 + 40)
+    writeUint32LE(result, 2, fileSize); // File size
+    writeUint32LE(result, 6, 0); // Reserved
+    writeUint32LE(result, 10, 54); // Offset to pixel data (14 + 40)
 
     // DIB Header (BITMAPINFOHEADER - 40 bytes)
-    this.writeUint32LE(result, 14, 40); // DIB header size
-    this.writeInt32LE(result, 18, width); // Width
-    this.writeInt32LE(result, 22, height); // Height (positive = bottom-up)
-    this.writeUint16LE(result, 26, 1); // Planes
-    this.writeUint16LE(result, 28, 32); // Bits per pixel
-    this.writeUint32LE(result, 30, 0); // Compression (0 = uncompressed)
-    this.writeUint32LE(result, 34, pixelDataSize); // Image size
-    this.writeInt32LE(result, 38, xPixelsPerMeter); // X pixels per meter
-    this.writeInt32LE(result, 42, yPixelsPerMeter); // Y pixels per meter
-    this.writeUint32LE(result, 46, 0); // Colors in palette
-    this.writeUint32LE(result, 50, 0); // Important colors
+    writeUint32LE(result, 14, 40); // DIB header size
+    writeInt32LE(result, 18, width); // Width
+    writeInt32LE(result, 22, height); // Height (positive = bottom-up)
+    writeUint16LE(result, 26, 1); // Planes
+    writeUint16LE(result, 28, 32); // Bits per pixel
+    writeUint32LE(result, 30, 0); // Compression (0 = uncompressed)
+    writeUint32LE(result, 34, pixelDataSize); // Image size
+    writeInt32LE(result, 38, xPixelsPerMeter); // X pixels per meter
+    writeInt32LE(result, 42, yPixelsPerMeter); // Y pixels per meter
+    writeUint32LE(result, 46, 0); // Colors in palette
+    writeUint32LE(result, 50, 0); // Important colors
 
     // Write pixel data (bottom-to-top, BGR(A) format)
     let offset = 54;
@@ -186,35 +194,5 @@ export class BMPFormat implements ImageFormat {
     }
 
     return Promise.resolve(result);
-  }
-
-  private readUint16LE(data: Uint8Array, offset: number): number {
-    return data[offset] | (data[offset + 1] << 8);
-  }
-
-  private readUint32LE(data: Uint8Array, offset: number): number {
-    return data[offset] | (data[offset + 1] << 8) |
-      (data[offset + 2] << 16) | (data[offset + 3] << 24);
-  }
-
-  private readInt32LE(data: Uint8Array, offset: number): number {
-    const value = this.readUint32LE(data, offset);
-    return value > 0x7fffffff ? value - 0x100000000 : value;
-  }
-
-  private writeUint16LE(data: Uint8Array, offset: number, value: number): void {
-    data[offset] = value & 0xff;
-    data[offset + 1] = (value >>> 8) & 0xff;
-  }
-
-  private writeUint32LE(data: Uint8Array, offset: number, value: number): void {
-    data[offset] = value & 0xff;
-    data[offset + 1] = (value >>> 8) & 0xff;
-    data[offset + 2] = (value >>> 16) & 0xff;
-    data[offset + 3] = (value >>> 24) & 0xff;
-  }
-
-  private writeInt32LE(data: Uint8Array, offset: number, value: number): void {
-    this.writeUint32LE(data, offset, value < 0 ? value + 0x100000000 : value);
   }
 }

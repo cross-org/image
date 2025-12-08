@@ -7,6 +7,7 @@ import type {
 import { GIFDecoder } from "../utils/gif_decoder.ts";
 import { GIFEncoder } from "../utils/gif_encoder.ts";
 import { validateImageDimensions } from "../utils/security.ts";
+import { readUint16LE } from "../utils/byte_utils.ts";
 
 /**
  * GIF format handler
@@ -83,9 +84,9 @@ export class GIFFormat implements ImageFormat {
       );
 
       let pos = 6; // Skip "GIF89a" or "GIF87a"
-      const width = this.readUint16LE(data, pos);
+      const width = readUint16LE(data, pos);
       pos += 2;
-      const height = this.readUint16LE(data, pos);
+      const height = readUint16LE(data, pos);
 
       // Validate dimensions for security (prevent integer overflow and heap exhaustion)
       validateImageDimensions(width, height);
@@ -259,27 +260,24 @@ export class GIFFormat implements ImageFormat {
 
   /**
    * Encode multi-frame image data to animated GIF
-   * Note: Currently not implemented, will encode only first frame
    */
   encodeFrames(
     imageData: MultiFrameImageData,
     _options?: unknown,
   ): Promise<Uint8Array> {
-    // For now, just encode the first frame using the existing encoder
-    // Full multi-frame encoding would require a more complex GIFEncoder
     if (imageData.frames.length === 0) {
       throw new Error("No frames to encode");
     }
 
-    const firstFrame = imageData.frames[0];
-    const singleFrameData: ImageData = {
-      width: firstFrame.width,
-      height: firstFrame.height,
-      data: firstFrame.data,
-      metadata: imageData.metadata,
-    };
+    const encoder = new GIFEncoder(imageData.width, imageData.height);
 
-    return this.encode(singleFrameData);
+    for (const frame of imageData.frames) {
+      // Get delay from metadata (default to 100ms if not set)
+      const delay = frame.frameMetadata?.delay ?? 100;
+      encoder.addFrame(frame.data, delay);
+    }
+
+    return Promise.resolve(encoder.encode());
   }
 
   private mapDisposalMethod(
@@ -296,10 +294,6 @@ export class GIFFormat implements ImageFormat {
       default:
         return "none";
     }
-  }
-
-  private readUint16LE(data: Uint8Array, offset: number): number {
-    return data[offset] | (data[offset + 1] << 8);
   }
 
   private async decodeUsingRuntime(
