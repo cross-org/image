@@ -21,7 +21,7 @@
     "@std/assert": "jsr:@std/assert@^1"
   },
   "publish": {
-    "exclude": [".github", "test/*", "test_output/*"]
+    "exclude": [".github", "test/*", "test_output/*", "docs/*"]
   },
   "tasks": {
     "precommit": "deno fmt --check && deno lint && deno check mod.ts && deno check test/*.test.ts && deno test -A",
