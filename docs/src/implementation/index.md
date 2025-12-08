@@ -8,7 +8,8 @@ nav_order: 5
 
 ---
 
-This section contains detailed technical notes about the pure JavaScript implementations of various image format encoders and decoders in @cross/image.
+This section contains detailed technical notes about the pure JavaScript
+implementations of various image format encoders and decoders in @cross/image.
 
 These documents provide insights into:
 
@@ -17,4 +18,5 @@ These documents provide insights into:
 - Known limitations and future improvements
 - Format-specific considerations
 
-If you're interested in contributing to format implementations or understanding how they work under the hood, these pages are for you.
+If you're interested in contributing to format implementations or understanding
+how they work under the hood, these pages are for you.
