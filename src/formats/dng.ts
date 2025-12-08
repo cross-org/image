@@ -1,4 +1,4 @@
-import type { ImageData, ImageFormat } from "../types.ts";
+import type { ImageData } from "../types.ts";
 import { TIFFFormat } from "./tiff.ts";
 
 /**
@@ -71,7 +71,7 @@ export class DNGFormat extends TIFFFormat {
    * @param imageData Image data to encode
    * @returns Encoded DNG image bytes
    */
-  override async encode(imageData: ImageData): Promise<Uint8Array> {
+  override encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data } = imageData;
 
     // We'll create a Linear DNG (demosaiced RGB)
@@ -131,7 +131,7 @@ export class DNGFormat extends TIFFFormat {
     // 4. BitsPerSample (0x0102) - 8, 8, 8, 8
     this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
     // Write the actual values later
-    const bitsPerSampleOffset = dataOffset;
+    const _bitsPerSampleOffset = dataOffset;
     dataOffset += 8; // 4 * 2 bytes
 
     // 5. Compression (0x0103) - 1 = Uncompressed
@@ -178,7 +178,7 @@ export class DNGFormat extends TIFFFormat {
     const modelName = "Cross Image DNG\0";
     const modelNameBytes = new TextEncoder().encode(modelName);
     this.writeIFDEntry(result, 50708, 2, modelNameBytes.length, dataOffset);
-    const modelNameOffset = dataOffset;
+    const _modelNameOffset = dataOffset;
     dataOffset += modelNameBytes.length;
 
     // Next IFD offset (0)
@@ -210,7 +210,7 @@ export class DNGFormat extends TIFFFormat {
       result.push(modelNameBytes[i]);
     }
 
-    return new Uint8Array(result);
+    return Promise.resolve(new Uint8Array(result));
   }
 
   // Helper methods duplicated from TIFFFormat because they are protected/private there
