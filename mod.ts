@@ -2,7 +2,7 @@
  * @module @cross/image
  *
  * A pure JavaScript, dependency-free, cross-runtime image processing library.
- * Supports decoding, resizing, and encoding common image formats (PNG, JPEG, WebP, GIF, TIFF, BMP, DNG, PAM, PCX).
+ * Supports decoding, resizing, and encoding common image formats (PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, DNG, PAM, PCX).
  * Includes image processing capabilities like compositing, level adjustments, and pixel manipulation.
  *
  * @example
@@ -56,6 +56,7 @@ export type {
   WebPEncodeOptions,
 } from "./src/types.ts";
 export { PNGFormat } from "./src/formats/png.ts";
+export { APNGFormat } from "./src/formats/apng.ts";
 export { JPEGFormat } from "./src/formats/jpeg.ts";
 export { WebPFormat } from "./src/formats/webp.ts";
 export { GIFFormat } from "./src/formats/gif.ts";

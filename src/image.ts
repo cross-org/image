@@ -18,6 +18,7 @@ import {
   invert,
 } from "./utils/image_processing.ts";
 import { PNGFormat } from "./formats/png.ts";
+import { APNGFormat } from "./formats/apng.ts";
 import { JPEGFormat } from "./formats/jpeg.ts";
 import { WebPFormat } from "./formats/webp.ts";
 import { GIFFormat } from "./formats/gif.ts";
@@ -36,6 +37,7 @@ export class Image {
   private imageData: ImageData | null = null;
   private static formats: ImageFormat[] = [
     new PNGFormat(),
+    new APNGFormat(),
     new JPEGFormat(),
     new WebPFormat(),
     new GIFFormat(),

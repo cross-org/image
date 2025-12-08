@@ -16,6 +16,7 @@ status:
 | Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                        |
 | ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | -------------------------------------------- |
 | PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| APNG   | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | N/A                | Animated PNG with multi-frame support        |
 | BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
 | DNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Linear DNG (Uncompressed RGBA)               |
 | PAM    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Netpbm PAM (Portable Arbitrary Map)          |
@@ -44,6 +45,12 @@ This table shows which format standards and variants are supported:
 | PNG    | PNG 1.2 (ISO/IEC 15948)             | ✅ Full           | Pure-JS        |
 |        | - Interlaced (Adam7)                | ❌ Not Yet        | -              |
 |        | - Color types: Grayscale, RGB, RGBA | ✅ Full           | Pure-JS        |
+|        | - Metadata: pHYs, tEXt, iTXt, eXIf  | ✅ Full           | Pure-JS        |
+| APNG   | APNG (Animated PNG)                 | ✅ Full           | Pure-JS        |
+|        | - acTL, fcTL, fdAT chunks           | ✅ Full           | Pure-JS        |
+|        | - Multi-frame animation decode      | ✅ Full           | Pure-JS        |
+|        | - Multi-frame animation encode      | ✅ Full           | Pure-JS        |
+|        | - Frame disposal methods            | ✅ Full           | Pure-JS        |
 |        | - Metadata: pHYs, tEXt, iTXt, eXIf  | ✅ Full           | Pure-JS        |
 | BMP    | Windows BMP (BITMAPINFOHEADER)      | ✅ Full           | Pure-JS        |
 |        | - 24-bit RGB                        | ✅ Full           | Pure-JS        |
@@ -90,6 +97,7 @@ This table shows which format standards and variants are supported:
 | Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                        |
 | ------ | -------- | ----------- | ----------- | --- | -------------------------------------------- |
 | PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
+| APNG   | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
 | DNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
 | PAM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
 | PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
@@ -99,8 +107,8 @@ This table shows which format standards and variants are supported:
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
 
-**Note**: For maximum compatibility across all runtimes, use PNG, BMP, GIF,
-ASCII, PCX or DNG formats which have complete pure-JS implementations.
+**Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP,
+GIF, ASCII, PCX or DNG formats which have complete pure-JS implementations.
 
 ## Implementation Details
 
