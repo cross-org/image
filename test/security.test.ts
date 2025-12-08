@@ -4,6 +4,7 @@
  */
 
 import { assertEquals, assertRejects } from "@std/assert";
+import { test } from "@cross/test";
 import { Image } from "../mod.ts";
 import {
   MAX_IMAGE_DIMENSION,
@@ -11,7 +12,7 @@ import {
   validateImageDimensions,
 } from "../src/utils/security.ts";
 
-Deno.test("Security - validateImageDimensions rejects zero dimensions", () => {
+test("Security - validateImageDimensions rejects zero dimensions", () => {
   assertRejects(
     () => {
       validateImageDimensions(0, 100);
@@ -29,7 +30,7 @@ Deno.test("Security - validateImageDimensions rejects zero dimensions", () => {
   );
 });
 
-Deno.test("Security - validateImageDimensions rejects negative dimensions", () => {
+test("Security - validateImageDimensions rejects negative dimensions", () => {
   assertRejects(
     () => {
       validateImageDimensions(-100, 100);
@@ -47,7 +48,7 @@ Deno.test("Security - validateImageDimensions rejects negative dimensions", () =
   );
 });
 
-Deno.test("Security - validateImageDimensions rejects non-integer dimensions", () => {
+test("Security - validateImageDimensions rejects non-integer dimensions", () => {
   assertRejects(
     () => {
       validateImageDimensions(100.5, 100);
@@ -65,7 +66,7 @@ Deno.test("Security - validateImageDimensions rejects non-integer dimensions", (
   );
 });
 
-Deno.test("Security - validateImageDimensions rejects dimensions that are too large", () => {
+test("Security - validateImageDimensions rejects dimensions that are too large", () => {
   assertRejects(
     () => {
       validateImageDimensions(MAX_IMAGE_DIMENSION + 1, 100);
@@ -83,7 +84,7 @@ Deno.test("Security - validateImageDimensions rejects dimensions that are too la
   );
 });
 
-Deno.test("Security - validateImageDimensions rejects dimensions with excessive pixel count", () => {
+test("Security - validateImageDimensions rejects dimensions with excessive pixel count", () => {
   // Calculate dimensions that exceed MAX_IMAGE_PIXELS
   // Use square dimensions for simplicity: sqrt(MAX_IMAGE_PIXELS + 1)
   const excessiveSize = Math.ceil(Math.sqrt(MAX_IMAGE_PIXELS + 1));
@@ -97,7 +98,7 @@ Deno.test("Security - validateImageDimensions rejects dimensions with excessive 
   );
 });
 
-Deno.test("Security - validateImageDimensions accepts valid dimensions", () => {
+test("Security - validateImageDimensions accepts valid dimensions", () => {
   // These should all pass
   validateImageDimensions(1, 1);
   validateImageDimensions(100, 100);
@@ -106,7 +107,7 @@ Deno.test("Security - validateImageDimensions accepts valid dimensions", () => {
   validateImageDimensions(8192, 8192);
 });
 
-Deno.test("Security - Image.fromRGBA rejects invalid dimensions", () => {
+test("Security - Image.fromRGBA rejects invalid dimensions", () => {
   const data = new Uint8Array(100 * 100 * 4);
 
   assertRejects(
@@ -126,7 +127,7 @@ Deno.test("Security - Image.fromRGBA rejects invalid dimensions", () => {
   );
 });
 
-Deno.test("Security - Image.fromRGBA accepts valid dimensions", () => {
+test("Security - Image.fromRGBA accepts valid dimensions", () => {
   const width = 100;
   const height = 100;
   const data = new Uint8Array(width * height * 4);
@@ -144,7 +145,7 @@ Deno.test("Security - Image.fromRGBA accepts valid dimensions", () => {
   assertEquals(image.height, height);
 });
 
-Deno.test("Security - PNG decoder rejects oversized images", async () => {
+test("Security - PNG decoder rejects oversized images", async () => {
   // Create a malicious PNG with extremely large dimensions in IHDR
   const maliciousPNG = new Uint8Array([
     // PNG signature
@@ -196,7 +197,7 @@ Deno.test("Security - PNG decoder rejects oversized images", async () => {
   );
 });
 
-Deno.test("Security - BMP decoder rejects oversized images", async () => {
+test("Security - BMP decoder rejects oversized images", async () => {
   // Create a malicious BMP with extremely large dimensions
   const maliciousBMP = new Uint8Array(54);
 
@@ -263,7 +264,7 @@ Deno.test("Security - BMP decoder rejects oversized images", async () => {
   );
 });
 
-Deno.test("Security - resize rejects oversized target dimensions", () => {
+test("Security - resize rejects oversized target dimensions", () => {
   // Create a small valid image
   const width = 10;
   const height = 10;
@@ -289,7 +290,7 @@ Deno.test("Security - resize rejects oversized target dimensions", () => {
   );
 });
 
-Deno.test("Security - maximum dimensions are reasonable", () => {
+test("Security - maximum dimensions are reasonable", () => {
   // Verify that our security limits are practical
   assertEquals(MAX_IMAGE_DIMENSION, 65535); // 2^16 - 1
   assertEquals(MAX_IMAGE_PIXELS, 178956970); // ~179 megapixels
