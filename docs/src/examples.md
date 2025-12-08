@@ -10,7 +10,8 @@ processing tasks.
 
 ## Runtime File I/O
 
-The library operates on `Uint8Array` data. You can use your runtime's native file I/O methods to read and write images.
+The library operates on `Uint8Array` data. You can use your runtime's native
+file I/O methods to read and write images.
 
 ### Deno
 
