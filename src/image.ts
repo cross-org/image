@@ -299,7 +299,7 @@ export class Image {
    * Save multi-frame image data to bytes in the specified format
    * @deprecated Use `encodeFrames()` instead. This method will be removed in a future version.
    * @param format Format name (e.g., "gif", "tiff")
-   * @param imageData Multi-frame image data to save
+   * @param imageData Multi-frame image data to encode
    * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
