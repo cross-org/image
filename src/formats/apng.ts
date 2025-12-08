@@ -719,7 +719,7 @@ export class APNGFormat implements ImageFormat {
     return (crc ^ 0xffffffff) >>> 0;
   }
 
-  // Metadata parsing methods (same as PNG)
+  // Metadata parsing methods (similar to PNG format)
 
   private parsePhysChunk(
     data: Uint8Array,
