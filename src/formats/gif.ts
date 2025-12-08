@@ -7,6 +7,7 @@ import type {
 import { GIFDecoder } from "../utils/gif_decoder.ts";
 import { GIFEncoder } from "../utils/gif_encoder.ts";
 import { validateImageDimensions } from "../utils/security.ts";
+import { readUint16LE } from "../utils/byte_utils.ts";
 
 /**
  * GIF format handler
@@ -83,9 +84,9 @@ export class GIFFormat implements ImageFormat {
       );
 
       let pos = 6; // Skip "GIF89a" or "GIF87a"
-      const width = this.readUint16LE(data, pos);
+      const width = readUint16LE(data, pos);
       pos += 2;
-      const height = this.readUint16LE(data, pos);
+      const height = readUint16LE(data, pos);
 
       // Validate dimensions for security (prevent integer overflow and heap exhaustion)
       validateImageDimensions(width, height);
@@ -293,10 +294,6 @@ export class GIFFormat implements ImageFormat {
       default:
         return "none";
     }
-  }
-
-  private readUint16LE(data: Uint8Array, offset: number): number {
-    return data[offset] | (data[offset + 1] << 8);
   }
 
   private async decodeUsingRuntime(
