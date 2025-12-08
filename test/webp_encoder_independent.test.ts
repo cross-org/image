@@ -252,6 +252,7 @@ async function runEncoderTests() {
   }
 }
 
-if (import.meta.main) {
+// Only run in Deno (this test uses Deno.writeFile)
+if (typeof Deno !== "undefined" && import.meta.main) {
   await runEncoderTests();
 }

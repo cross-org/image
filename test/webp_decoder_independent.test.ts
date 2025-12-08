@@ -231,6 +231,7 @@ function runDecoderTests() {
   }
 }
 
-if (import.meta.main) {
+// Only run in Deno (this is a standalone Deno-specific test)
+if (typeof Deno !== "undefined" && import.meta.main) {
   runDecoderTests();
 }
