@@ -239,7 +239,7 @@ export class TIFFFormat implements ImageFormat {
     const ifdStart = result.length;
 
     // Count number of entries (including metadata)
-    let numEntries = 11; // Base entries
+    let numEntries = 12; // Base entries (including ExtraSamples)
     if (metadata?.description) numEntries++;
     if (metadata?.author) numEntries++;
     if (metadata?.copyright) numEntries++;
@@ -289,6 +289,9 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x011b, 5, 1, yResOffset);
     dataOffset += 8;
 
+    // ExtraSamples (0x0152) - 2 = unassociated alpha
+    this.writeIFDEntry(result, 0x0152, 3, 1, 2);
+
     // Optional metadata entries
     if (metadata?.description) {
       const descBytes = new TextEncoder().encode(metadata.description + "\0");
@@ -328,6 +331,12 @@ export class TIFFFormat implements ImageFormat {
     this.writeUint32LE(result, 0);
 
     // Write variable-length data
+    // BitsPerSample values (must be written first to match offset calculation)
+    this.writeUint16LE(result, 8);
+    this.writeUint16LE(result, 8);
+    this.writeUint16LE(result, 8);
+    this.writeUint16LE(result, 8);
+
     // XResolution value (rational)
     const dpiX = metadata?.dpiX ?? DEFAULT_DPI;
     this.writeUint32LE(result, dpiX);
@@ -337,12 +346,6 @@ export class TIFFFormat implements ImageFormat {
     const dpiY = metadata?.dpiY ?? DEFAULT_DPI;
     this.writeUint32LE(result, dpiY);
     this.writeUint32LE(result, 1);
-
-    // BitsPerSample values
-    this.writeUint16LE(result, 8);
-    this.writeUint16LE(result, 8);
-    this.writeUint16LE(result, 8);
-    this.writeUint16LE(result, 8);
 
     // Write metadata strings
     if (metadata?.description) {
@@ -525,7 +528,7 @@ export class TIFFFormat implements ImageFormat {
       const ifdStart = result.length;
 
       // Count number of entries (including metadata only for first page)
-      let numEntries = 11;
+      let numEntries = 12; // Base entries (including ExtraSamples)
       if (i === 0 && imageData.metadata) {
         if (imageData.metadata.description) numEntries++;
         if (imageData.metadata.author) numEntries++;
@@ -577,6 +580,9 @@ export class TIFFFormat implements ImageFormat {
       const yResOffset = dataOffset;
       this.writeIFDEntry(result, 0x011b, 5, 1, yResOffset);
       dataOffset += 8;
+
+      // ExtraSamples (0x0152) - 2 = unassociated alpha
+      this.writeIFDEntry(result, 0x0152, 3, 1, 2);
 
       // Metadata (only for first page)
       if (i === 0 && imageData.metadata) {
@@ -632,6 +638,12 @@ export class TIFFFormat implements ImageFormat {
       currentOffset = dataOffset;
 
       // Write variable-length data
+      // BitsPerSample values (must be written first to match offset calculation)
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+
       // XResolution value (rational)
       const dpiX = (i === 0 && imageData.metadata?.dpiX) ||
         DEFAULT_DPI;
@@ -643,12 +655,6 @@ export class TIFFFormat implements ImageFormat {
         DEFAULT_DPI;
       this.writeUint32LE(result, dpiY);
       this.writeUint32LE(result, 1);
-
-      // BitsPerSample values
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
 
       // Write metadata strings (only for first page)
       if (i === 0 && imageData.metadata) {
