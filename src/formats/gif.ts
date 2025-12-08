@@ -20,13 +20,24 @@ import { GIFEncoder } from "../utils/gif_encoder.ts";
  * - Falls back to runtime APIs when pure-JS fails
  */
 export class GIFFormat implements ImageFormat {
+  /** Format name identifier */
   readonly name = "gif";
+  /** MIME type for GIF images */
   readonly mimeType = "image/gif";
 
+  /**
+   * Check if this format supports multiple frames (animations)
+   * @returns true for GIF format
+   */
   supportsMultipleFrames(): boolean {
     return true;
   }
 
+  /**
+   * Check if the given data is a GIF image
+   * @param data Raw image data to check
+   * @returns true if data has GIF signature
+   */
   canDecode(data: Uint8Array): boolean {
     // GIF signature: "GIF87a" or "GIF89a"
     return data.length >= 6 &&
@@ -36,6 +47,11 @@ export class GIFFormat implements ImageFormat {
       data[5] === 0x61; // "a"
   }
 
+  /**
+   * Decode GIF image data to RGBA (first frame only)
+   * @param data Raw GIF image data
+   * @returns Decoded image data with RGBA pixels of first frame
+   */
   async decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid GIF signature");
@@ -135,6 +151,11 @@ export class GIFFormat implements ImageFormat {
     return metadata;
   }
 
+  /**
+   * Encode RGBA image data to GIF format (single frame)
+   * @param imageData Image data to encode
+   * @returns Encoded GIF image bytes
+   */
   async encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 

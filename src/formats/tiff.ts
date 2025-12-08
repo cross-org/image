@@ -25,13 +25,24 @@ export interface TIFFEncodeOptions {
  * Supports multi-page TIFF files.
  */
 export class TIFFFormat implements ImageFormat {
+  /** Format name identifier */
   readonly name = "tiff";
+  /** MIME type for TIFF images */
   readonly mimeType = "image/tiff";
 
+  /**
+   * Check if this format supports multiple frames (pages)
+   * @returns true for TIFF format
+   */
   supportsMultipleFrames(): boolean {
     return true;
   }
 
+  /**
+   * Check if the given data is a TIFF image
+   * @param data Raw image data to check
+   * @returns true if data has TIFF signature
+   */
   canDecode(data: Uint8Array): boolean {
     // TIFF signature: "II" (little-endian) or "MM" (big-endian) followed by 42
     return data.length >= 4 &&
@@ -43,6 +54,11 @@ export class TIFFFormat implements ImageFormat {
       );
   }
 
+  /**
+   * Decode TIFF image data to RGBA (first page only)
+   * @param data Raw TIFF image data
+   * @returns Decoded image data with RGBA pixels of first page
+   */
   async decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid TIFF signature");

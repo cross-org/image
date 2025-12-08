@@ -8,15 +8,27 @@ const INCHES_PER_METER = 39.3701;
  * Implements a pure JavaScript BMP decoder and encoder
  */
 export class BMPFormat implements ImageFormat {
+  /** Format name identifier */
   readonly name = "bmp";
+  /** MIME type for BMP images */
   readonly mimeType = "image/bmp";
 
+  /**
+   * Check if the given data is a BMP image
+   * @param data Raw image data to check
+   * @returns true if data has BMP signature
+   */
   canDecode(data: Uint8Array): boolean {
     // BMP signature: 'BM' (0x42 0x4D)
     return data.length >= 2 &&
       data[0] === 0x42 && data[1] === 0x4d;
   }
 
+  /**
+   * Decode BMP image data to RGBA
+   * @param data Raw BMP image data
+   * @returns Decoded image data with RGBA pixels
+   */
   decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid BMP signature");
@@ -105,6 +117,11 @@ export class BMPFormat implements ImageFormat {
     });
   }
 
+  /**
+   * Encode RGBA image data to BMP format
+   * @param imageData Image data to encode
+   * @returns Encoded BMP image bytes
+   */
   encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 

@@ -8,9 +8,16 @@ const INCHES_PER_METER = 39.3701;
  * Implements a pure JavaScript PNG decoder and encoder
  */
 export class PNGFormat implements ImageFormat {
+  /** Format name identifier */
   readonly name = "png";
+  /** MIME type for PNG images */
   readonly mimeType = "image/png";
 
+  /**
+   * Check if the given data is a PNG image
+   * @param data Raw image data to check
+   * @returns true if data has PNG signature
+   */
   canDecode(data: Uint8Array): boolean {
     // PNG signature: 137 80 78 71 13 10 26 10
     return data.length >= 8 &&
@@ -20,6 +27,11 @@ export class PNGFormat implements ImageFormat {
       data[6] === 26 && data[7] === 10;
   }
 
+  /**
+   * Decode PNG image data to RGBA
+   * @param data Raw PNG image data
+   * @returns Decoded image data with RGBA pixels
+   */
   async decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid PNG signature");
@@ -99,6 +111,11 @@ export class PNGFormat implements ImageFormat {
     };
   }
 
+  /**
+   * Encode RGBA image data to PNG format
+   * @param imageData Image data to encode
+   * @returns Encoded PNG image bytes
+   */
   async encode(imageData: ImageData): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 

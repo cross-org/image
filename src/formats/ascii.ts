@@ -49,6 +49,11 @@ export class ASCIIFormat implements ImageFormat {
       data[5] === this.MAGIC_BYTES[5];
   }
 
+  /**
+   * Decode ASCII art to a basic grayscale RGBA image
+   * @param data Raw ASCII art data
+   * @returns Decoded image data with grayscale RGBA pixels
+   */
   decode(data: Uint8Array): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid ASCII art signature");
@@ -112,6 +117,12 @@ export class ASCIIFormat implements ImageFormat {
     return Promise.resolve({ width, height, data: imageData });
   }
 
+  /**
+   * Encode RGBA image data to ASCII art
+   * @param imageData Image data to encode
+   * @param options Optional ASCII encoding options
+   * @returns Encoded ASCII art as UTF-8 bytes
+   */
   encode(
     imageData: ImageData,
     options: ASCIIOptions = {},
