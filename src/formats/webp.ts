@@ -4,6 +4,7 @@ import type {
   ImageMetadata,
   WebPEncodeOptions,
 } from "../types.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 // Default quality for WebP encoding when not specified
 const DEFAULT_WEBP_QUALITY = 90;
@@ -107,6 +108,9 @@ export class WebPFormat implements ImageFormat {
     if (width === 0 || height === 0) {
       throw new Error("Could not determine WebP dimensions");
     }
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
 
     // For a pure JS implementation, we'd need to implement full WebP decoding
     // which is very complex. Instead, we'll use the browser/runtime's decoder.

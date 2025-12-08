@@ -14,6 +14,7 @@ import { TIFFFormat } from "./formats/tiff.ts";
 import { BMPFormat } from "./formats/bmp.ts";
 import { RAWFormat } from "./formats/raw.ts";
 import { ASCIIFormat } from "./formats/ascii.ts";
+import { validateImageDimensions } from "./utils/security.ts";
 
 /**
  * Main Image class for reading, manipulating, and saving images
@@ -277,6 +278,9 @@ export class Image {
    * @returns Image instance
    */
   static fromRGBA(width: number, height: number, data: Uint8Array): Image {
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
+
     if (data.length !== width * height * 4) {
       throw new Error(
         `Data length mismatch: expected ${
@@ -299,6 +303,10 @@ export class Image {
     if (!this.imageData) throw new Error("No image loaded");
 
     const { width, height, method = "bilinear" } = options;
+
+    // Validate new dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
+
     const { data: srcData, width: srcWidth, height: srcHeight } =
       this.imageData;
 

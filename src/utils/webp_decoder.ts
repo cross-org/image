@@ -20,6 +20,8 @@
  * @see https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
  */
 
+import { validateImageDimensions } from "./security.ts";
+
 // Helper to read little-endian values
 function readUint24LE(data: Uint8Array, offset: number): number {
   return data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16);
@@ -271,6 +273,9 @@ export class WebPDecoder {
       useColorCache,
       colorCacheBits,
     );
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
 
     // Decode the image using Huffman codes
     const pixelData = new Uint8Array(width * height * 4);

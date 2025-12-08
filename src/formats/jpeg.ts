@@ -1,4 +1,5 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 // Constants for unit conversions
 const CM_PER_INCH = 2.54;
@@ -91,6 +92,9 @@ export class JPEGFormat implements ImageFormat {
     if (width === 0 || height === 0) {
       throw new Error("Could not determine JPEG dimensions");
     }
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
 
     // For a pure JS implementation, we'd need to implement full JPEG decoding
     // which is very complex. Instead, we'll use the browser/runtime's decoder.

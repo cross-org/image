@@ -5,6 +5,7 @@ import type {
   MultiFrameImageData,
 } from "../types.ts";
 import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 // Constants for unit conversions
 const DEFAULT_DPI = 72;
@@ -1093,6 +1094,9 @@ export class TIFFFormat implements ImageFormat {
       pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
     }
 
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
+
     // Convert to RGBA
     const rgba = new Uint8Array(width * height * 4);
     let srcPos = 0;
@@ -1200,6 +1204,9 @@ export class TIFFFormat implements ImageFormat {
       // Uncompressed
       pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
     }
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
 
     // Convert to RGBA
     const rgba = new Uint8Array(width * height * 4);

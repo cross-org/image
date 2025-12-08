@@ -1,4 +1,5 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 // Constants for unit conversions
 const INCHES_PER_METER = 39.3701;
@@ -71,6 +72,9 @@ export class BMPFormat implements ImageFormat {
     // Handle negative height (top-down bitmap)
     const isTopDown = height < 0;
     const absHeight = Math.abs(height);
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, absHeight);
 
     // Only support uncompressed BMPs for now
     if (compression !== 0) {
