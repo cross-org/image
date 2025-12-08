@@ -59,7 +59,9 @@ export class GIFEncoder {
   /**
    * Quantize RGBA image to 256 colors using median cut algorithm
    */
-  private quantize(data: Uint8Array): { palette: Uint8Array; indexed: Uint8Array } {
+  private quantize(
+    data: Uint8Array,
+  ): { palette: Uint8Array; indexed: Uint8Array } {
     // Simple quantization: collect unique colors and build palette
     const colorMap = new Map<string, number>();
     const colors: RGBColor[] = [];
@@ -193,7 +195,9 @@ export class GIFEncoder {
 
     // Quantize first frame for Global Color Table
     const firstFrame = this.frames[0];
-    const { palette: globalPalette, indexed: firstIndexed } = this.quantize(firstFrame.data);
+    const { palette: globalPalette, indexed: firstIndexed } = this.quantize(
+      firstFrame.data,
+    );
     const paletteSize = globalPalette.length / 3;
     const bitsPerColor = this.getBitsPerColor(paletteSize);
 
@@ -309,7 +313,10 @@ export class GIFEncoder {
       }
 
       // LZW Minimum Code Size
-      const minCodeSize = Math.max(2, useLocalPalette ? localBitsPerColor : bitsPerColor);
+      const minCodeSize = Math.max(
+        2,
+        useLocalPalette ? localBitsPerColor : bitsPerColor,
+      );
       output.push(minCodeSize);
 
       // Compress image data with LZW
