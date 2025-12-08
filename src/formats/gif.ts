@@ -6,6 +6,7 @@ import type {
 } from "../types.ts";
 import { GIFDecoder } from "../utils/gif_decoder.ts";
 import { GIFEncoder } from "../utils/gif_encoder.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 /**
  * GIF format handler
@@ -62,6 +63,9 @@ export class GIFFormat implements ImageFormat {
       const decoder = new GIFDecoder(data);
       const result = decoder.decode();
 
+      // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+      validateImageDimensions(result.width, result.height);
+
       // Extract metadata from comment extensions
       const metadata = this.extractMetadata(data);
 
@@ -82,6 +86,9 @@ export class GIFFormat implements ImageFormat {
       const width = this.readUint16LE(data, pos);
       pos += 2;
       const height = this.readUint16LE(data, pos);
+
+      // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+      validateImageDimensions(width, height);
 
       const rgba = await this.decodeUsingRuntime(data, width, height);
       const metadata = this.extractMetadata(data);

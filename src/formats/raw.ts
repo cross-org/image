@@ -1,4 +1,5 @@
 import type { ImageData, ImageFormat } from "../types.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 /**
  * RAW format handler
@@ -54,6 +55,9 @@ export class RAWFormat implements ImageFormat {
     if (width <= 0 || height <= 0) {
       throw new Error(`Invalid RAW dimensions: ${width}x${height}`);
     }
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
 
     const expectedDataLength = width * height * 4;
     const actualDataLength = data.length - this.HEADER_SIZE;

@@ -1,4 +1,5 @@
 import type { ASCIIOptions, ImageData, ImageFormat } from "../types.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 /**
  * ASCII format handler
@@ -81,6 +82,9 @@ export class ASCIIFormat implements ImageFormat {
     // Calculate dimensions
     const height = artLines.length;
     const width = Math.max(...artLines.map((line) => line.length));
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
 
     // Convert ASCII art back to image data
     const imageData = new Uint8Array(width * height * 4);

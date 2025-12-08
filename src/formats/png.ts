@@ -1,4 +1,5 @@
 import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 // Constants for unit conversions
 const INCHES_PER_METER = 39.3701;
@@ -87,6 +88,9 @@ export class PNGFormat implements ImageFormat {
     if (width === 0 || height === 0) {
       throw new Error("Invalid PNG: missing IHDR chunk");
     }
+
+    // Validate dimensions for security (prevent integer overflow and heap exhaustion)
+    validateImageDimensions(width, height);
 
     // Concatenate IDAT chunks
     const idatData = this.concatenateChunks(chunks);
