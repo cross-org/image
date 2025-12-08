@@ -115,18 +115,14 @@ export class ICOFormat implements ImageFormat {
     }
 
     // Otherwise, it's a BMP without the file header (DIB format)
-    return this.decodeDIB(imageData, largestEntry.width, largestEntry.height);
+    return this.decodeDIB(imageData);
   }
 
   /**
    * Decode a DIB (Device Independent Bitmap) format
    * This is a BMP without the 14-byte file header
    */
-  private decodeDIB(
-    data: Uint8Array,
-    _expectedWidth: number,
-    _expectedHeight: number,
-  ): Promise<ImageData> {
+  private decodeDIB(data: Uint8Array): Promise<ImageData> {
     // Read DIB header
     const dibHeaderSize = this.readUint32LE(data, 0);
 
