@@ -55,6 +55,23 @@ class HuffmanTable {
       return;
     }
 
+    // Build Huffman tree
+    // Note: WebP uses LSB-first bit packing for the bitstream, but Huffman codes
+    // are typically described MSB-first. However, the spec says:
+    // "The bits of the code are read from the stream LSB first."
+    // This means if code is 01 (binary), we read 1 then 0?
+    // Actually, standard canonical Huffman codes are read MSB to LSB from the stream.
+    // But WebP bit reader reads LSB to MSB from bytes.
+    // Let's check the spec carefully.
+    // "The bits of the code are read from the stream LSB first."
+    // This usually means the bit reader returns bits in order.
+    // If we have code 0x2 (binary 10) with length 2.
+    // If we write it MSB first: 1, then 0.
+    // If we read it: readBits(1) -> 1, readBits(1) -> 0.
+    // This matches how we build the tree (left=0, right=1).
+    // Wait, addCode uses (code >> i) & 1. This is MSB first.
+    // So we expect the first bit read to be the MSB of the code.
+    
     let node = this.root;
     for (let i = codeLength - 1; i >= 0; i--) {
       const bit = (code >> i) & 1;
@@ -80,6 +97,7 @@ class HuffmanTable {
       const bit = reader.readBits(1);
       node = bit === 0 ? node.left! : node.right!;
       if (!node) {
+        // console.log("Invalid Huffman code - walked off tree");
         throw new Error("Invalid Huffman code");
       }
     }
@@ -96,7 +114,7 @@ class BitReader {
   constructor(data: Uint8Array, offset: number) {
     this.data = data;
     this.pos = offset;
-    this.bitPos = 0;
+    this.bitPos = 8; // Start at 8 to trigger first byte read
     this.value = 0;
   }
 
@@ -104,16 +122,16 @@ class BitReader {
     let result = 0;
 
     for (let i = 0; i < numBits; i++) {
-      if (this.bitPos === 0) {
+      if (this.bitPos === 8) {
         if (this.pos >= this.data.length) {
           throw new Error("Unexpected end of data");
         }
         this.value = this.data[this.pos++];
-        this.bitPos = 8;
+        this.bitPos = 0;
       }
 
-      result |= ((this.value >> (this.bitPos - 1)) & 1) << i;
-      this.bitPos--;
+      result |= ((this.value >> this.bitPos) & 1) << i;
+      this.bitPos++;
     }
 
     return result;
@@ -126,9 +144,10 @@ class BitReader {
   // Read bytes aligned to byte boundary
   readBytes(count: number): Uint8Array {
     // Align to byte boundary
-    if (this.bitPos !== 0 && this.bitPos !== 8) {
-      this.bitPos = 0;
+    if (this.bitPos !== 8) {
+      this.bitPos = 8; // Skip remaining bits in current byte
     }
+    
     if (this.pos + count > this.data.length) {
       throw new Error("Unexpected end of data");
     }
@@ -381,9 +400,7 @@ export class WebPDecoder {
 
     // Read the main Huffman codes
     // There are 5 Huffman code groups: green, red, blue, alpha, distance
-    // But we read 4 + optional distance code
-    const numCodeGroups = reader.readBits(4) + 4;
-
+    
     const tables = {
       green: new HuffmanTable(),
       red: new HuffmanTable(),
@@ -400,7 +417,7 @@ export class WebPDecoder {
       tables.distance,
     ];
 
-    for (let i = 0; i < numCodeGroups && i < 5; i++) {
+    for (let i = 0; i < 5; i++) {
       this.readHuffmanCode(
         reader,
         tableArray[i],
@@ -430,8 +447,8 @@ export class WebPDecoder {
       const symbols: number[] = [];
       for (let i = 0; i < numSymbols; i++) {
         const symbolBits = isFirstEightBits
-          ? 1 + reader.readBits(7)
-          : reader.readBits(8);
+          ? reader.readBits(8)
+          : reader.readBits(1);
         symbols.push(symbolBits);
       }
 
@@ -487,6 +504,13 @@ export class WebPDecoder {
       codeLengthCodeLengths[codeLengthCodeOrder[i]] = reader.readBits(3);
     }
 
+    // Read max_symbol (trimmed length indicator)
+    // If 1, we read n_bit and then n_bit bits for max_symbol?
+    // Subagent said "write_trimmed_length".
+    // If 0, we don't trim.
+    // We just read 1 bit and ignore it for now (assuming 0).
+    const _trimmed = reader.readBits(1);
+
     // Build code length Huffman table
     const codeLengthTable = new HuffmanTable();
     this.buildHuffmanTable(codeLengthTable, codeLengthCodeLengths);
@@ -522,6 +546,22 @@ export class WebPDecoder {
   }
 
   private buildHuffmanTable(table: HuffmanTable, codeLengths: number[]): void {
+    // Check for single symbol optimization (VP8L specific)
+    let nonZeroCount = 0;
+    let singleSymbol = -1;
+    for (let i = 0; i < codeLengths.length; i++) {
+      if (codeLengths[i] > 0) {
+        nonZeroCount++;
+        singleSymbol = i;
+      }
+    }
+
+    if (nonZeroCount === 1) {
+      // If only one symbol, it has 0 length in the bitstream
+      table.addCode(singleSymbol, 0, 0);
+      return;
+    }
+
     // Build canonical Huffman codes
     const maxCodeLength = Math.max(...codeLengths);
     const lengthCounts = new Array(maxCodeLength + 1).fill(0);

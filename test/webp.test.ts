@@ -231,3 +231,99 @@ test("WebP: decode simple lossless image", () => {
     "WebP decoder extended - requires actual WebP files for full testing",
   );
 });
+
+test("WebP: encode/decode 100x100 red image", async () => {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // @ts-ignore: Force pure-JS path for testing
+    globalThis.OffscreenCanvas = undefined;
+
+    const width = 100;
+    const height = 100;
+    const data = new Uint8Array(width * height * 4);
+    
+    // Fill with red
+    for (let i = 0; i < width * height; i++) {
+      data[i * 4] = 255;     // R
+      data[i * 4 + 1] = 0;   // G
+      data[i * 4 + 2] = 0;   // B
+      data[i * 4 + 3] = 255; // A
+    }
+
+    const encoded = await webpFormat.encode({ width, height, data }, { lossless: true });
+    
+    // Basic checks on encoded data
+    assertEquals(webpFormat.canDecode(encoded), true);
+    
+    // Decode back
+    const decoded = await webpFormat.decode(encoded);
+
+    assertEquals(decoded.width, width);
+    assertEquals(decoded.height, height);
+    
+    // Check a few pixels
+    // Top-left
+    assertEquals(decoded.data[0], 255);
+    assertEquals(decoded.data[1], 0);
+    assertEquals(decoded.data[2], 0);
+    assertEquals(decoded.data[3], 255);
+    
+    // Center
+    const centerIdx = (50 * width + 50) * 4;
+    assertEquals(decoded.data[centerIdx], 255);
+    assertEquals(decoded.data[centerIdx + 1], 0);
+    assertEquals(decoded.data[centerIdx + 2], 0);
+    assertEquals(decoded.data[centerIdx + 3], 255);
+
+    // Bottom-right
+    const lastIdx = (width * height - 1) * 4;
+    assertEquals(decoded.data[lastIdx], 255);
+    assertEquals(decoded.data[lastIdx + 1], 0);
+    assertEquals(decoded.data[lastIdx + 2], 0);
+    assertEquals(decoded.data[lastIdx + 3], 255);
+
+  } finally {
+    // @ts-ignore: Restore
+    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+  }
+});
+
+test("WebP: encode/decode random noise (Complex Huffman)", async () => {
+  const originalOffscreenCanvas = globalThis.OffscreenCanvas;
+  try {
+    // @ts-ignore: Force pure-JS path for testing
+    globalThis.OffscreenCanvas = undefined;
+
+    const width = 50;
+    const height = 50;
+    const data = new Uint8Array(width * height * 4);
+    
+    // Fill with random noise
+    for (let i = 0; i < width * height; i++) {
+      data[i * 4] = Math.floor(Math.random() * 256);     // R
+      data[i * 4 + 1] = Math.floor(Math.random() * 256); // G
+      data[i * 4 + 2] = Math.floor(Math.random() * 256); // B
+      data[i * 4 + 3] = 255;                             // A
+    }
+
+    const encoded = await webpFormat.encode({ width, height, data }, { lossless: true });
+    
+    // Basic checks
+    assertEquals(webpFormat.canDecode(encoded), true);
+    
+    // Decode back
+    const decoded = await webpFormat.decode(encoded);
+
+    assertEquals(decoded.width, width);
+    assertEquals(decoded.height, height);
+    
+    // Check pixel data
+    for (let i = 0; i < data.length; i++) {
+      assertEquals(decoded.data[i], data[i], `Mismatch at index ${i}`);
+    }
+  } finally {
+    // @ts-ignore: Restore
+    globalThis.OffscreenCanvas = originalOffscreenCanvas;
+  }
+});
+
