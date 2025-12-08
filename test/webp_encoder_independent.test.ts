@@ -5,7 +5,7 @@
  * Creates WebP files and validates them structurally
  */
 
-import { WebPEncoder } from "/home/runner/work/image/image/src/utils/webp_encoder.ts";
+import { WebPEncoder } from "../src/utils/webp_encoder.ts";
 
 interface TestCase {
   name: string;
@@ -218,6 +218,7 @@ async function runEncoderTests() {
     const encoded = encoder.encode(100); // quality 100 = lossless
 
     // Save to file for external validation
+    // Note: Using /tmp for test files (Unix/Linux/macOS). On Windows, tests may need adjustment.
     const filename = `/tmp/encoder_test_${test.name}.webp`;
     await Deno.writeFile(filename, encoded);
     console.log(`Saved to: ${filename}`);
