@@ -94,6 +94,15 @@ export interface ResizeOptions {
   height: number;
   /** Resize method (default: "bilinear") */
   method?: "nearest" | "bilinear" | "bicubic";
+  /**
+   * Fitting mode (default: "stretch")
+   * - "stretch": Stretch image to fill dimensions (may distort)
+   * - "fit": Fit image within dimensions maintaining aspect ratio (may have letterboxing)
+   * - "fill": Fill dimensions maintaining aspect ratio (may crop)
+   * - "cover": Alias for "fill"
+   * - "contain": Alias for "fit"
+   */
+  fit?: "stretch" | "fit" | "fill" | "cover" | "contain";
 }
 
 /**
