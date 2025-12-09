@@ -14,6 +14,7 @@ import {
   adjustBrightness,
   adjustContrast,
   adjustExposure,
+  adjustHue,
   adjustSaturation,
   boxBlur,
   composite,
@@ -679,6 +680,19 @@ export class Image {
     if (!this.imageData) throw new Error("No image loaded");
 
     this.imageData.data = adjustSaturation(this.imageData.data, amount);
+
+    return this;
+  }
+
+  /**
+   * Adjust hue of the image by rotating the color wheel
+   * @param degrees Hue rotation in degrees (-180 to 180, where 0 is no change)
+   * @returns This image instance for chaining
+   */
+  hue(degrees: number): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = adjustHue(this.imageData.data, degrees);
 
     return this;
   }

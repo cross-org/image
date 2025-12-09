@@ -184,6 +184,110 @@ export function adjustSaturation(
 }
 
 /**
+ * Convert RGB to HSL color space
+ * @param r Red component (0-255)
+ * @param g Green component (0-255)
+ * @param b Blue component (0-255)
+ * @returns HSL values: [h (0-360), s (0-1), l (0-1)]
+ */
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (delta !== 0) {
+    s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+
+    if (max === r) {
+      h = ((g - b) / delta + (g < b ? 6 : 0)) / 6;
+    } else if (max === g) {
+      h = ((b - r) / delta + 2) / 6;
+    } else {
+      h = ((r - g) / delta + 4) / 6;
+    }
+  }
+
+  return [h * 360, s, l];
+}
+
+/**
+ * Convert HSL to RGB color space
+ * @param h Hue (0-360)
+ * @param s Saturation (0-1)
+ * @param l Lightness (0-1)
+ * @returns RGB values: [r (0-255), g (0-255), b (0-255)]
+ */
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  h = h / 360;
+
+  let r: number, g: number, b: number;
+
+  if (s === 0) {
+    r = g = b = l; // Achromatic
+  } else {
+    const hue2rgb = (p: number, q: number, t: number): number => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+/**
+ * Adjust hue of an image by rotating the hue wheel
+ * @param data Image data (RGBA)
+ * @param degrees Hue rotation in degrees (-180 to 180, where 0 is no change)
+ * @returns New image data with adjusted hue
+ */
+export function adjustHue(data: Uint8Array, degrees: number): Uint8Array {
+  const result = new Uint8Array(data.length);
+  // Normalize rotation to -180 to 180 range
+  const rotation = ((degrees % 360) + 360) % 360;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    // Convert to HSL
+    const [h, s, l] = rgbToHsl(r, g, b);
+
+    // Rotate hue
+    const newH = (h + rotation) % 360;
+
+    // Convert back to RGB
+    const [newR, newG, newB] = hslToRgb(newH, s, l);
+
+    result[i] = newR;
+    result[i + 1] = newG;
+    result[i + 2] = newB;
+    result[i + 3] = data[i + 3]; // Preserve alpha
+  }
+
+  return result;
+}
+
+/**
  * Invert colors of an image
  * @param data Image data (RGBA)
  * @returns New image data with inverted colors
