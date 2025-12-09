@@ -132,6 +132,8 @@ detailed compatibility information.
   Technical details for JPEG
 - **[WebP Implementation](https://cross-image.56k.guru/implementation/webp-implementation/)** -
   Technical details for WebP
+- **[TIFF Implementation](https://cross-image.56k.guru/implementation/tiff-implementation/)** -
+  Technical details for TIFF
 
 ## Development
 

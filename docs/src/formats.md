@@ -116,3 +116,4 @@ For detailed technical information about specific format implementations:
 
 - [JPEG Implementation Details](implementation/jpeg-implementation.md)
 - [WebP Implementation Details](implementation/webp-implementation.md)
+- [TIFF Implementation Details](implementation/tiff-implementation.md)
