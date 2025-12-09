@@ -26,7 +26,7 @@ status:
 | JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only                |
 | GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
 | WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
-| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed & LZW RGB/RGBA      |
+| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed, LZW, & grayscale   |
 
 **Legend:**
 
@@ -72,6 +72,7 @@ This table shows which format standards and variants are supported:
 |        | - EXIF, XMP metadata                | ✅ Full           | Pure-JS        |
 | TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS        |
 |        | TIFF 6.0 - LZW compressed RGB/RGBA  | ✅ Full           | Pure-JS        |
+|        | TIFF 6.0 - Grayscale (0, 1)         | ✅ Full           | Pure-JS        |
 |        | - JPEG, PackBits compression        | ⚠️ Native only    | ImageDecoder   |
 |        | - Multi-page/IFD (decode & encode)  | ✅ Full           | Pure-JS        |
 |        | - EXIF, Artist, Copyright metadata  | ✅ Full           | Pure-JS        |
@@ -112,7 +113,7 @@ This table shows which format standards and variants are supported:
 | GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
 | JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
-| TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
+| TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW+grayscale |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP,
 GIF, ASCII, PCX, PPM or DNG formats which have complete pure-JS implementations.
@@ -123,3 +124,4 @@ For detailed technical information about specific format implementations:
 
 - [JPEG Implementation Details](implementation/jpeg-implementation.md)
 - [WebP Implementation Details](implementation/webp-implementation.md)
+- [TIFF Implementation Details](implementation/tiff-implementation.md)

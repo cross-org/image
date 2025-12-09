@@ -115,7 +115,7 @@ await writeFile("output.jpg", jpeg);
 | ASCII  | ✅ Full     | Text-based ASCII art            |
 | JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only       |
 | WebP   | ⚠️ Lossless | Pure-JS lossless VP8L           |
-| TIFF   | ⚠️ Basic    | Pure-JS uncompressed + LZW      |
+| TIFF   | ⚠️ Basic    | Pure-JS uncompressed, LZW, & grayscale |
 
 See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for
@@ -133,6 +133,8 @@ detailed compatibility information.
   Technical details for JPEG
 - **[WebP Implementation](https://cross-image.56k.guru/implementation/webp-implementation/)** -
   Technical details for WebP
+- **[TIFF Implementation](https://cross-image.56k.guru/implementation/tiff-implementation/)** -
+  Technical details for TIFF
 
 ## Development
 
