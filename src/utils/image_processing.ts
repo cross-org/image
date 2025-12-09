@@ -618,3 +618,160 @@ export function medianFilter(
 
   return result;
 }
+
+/**
+ * Rotate image 90 degrees clockwise
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @returns Rotated image data with swapped dimensions
+ */
+export function rotate90(
+  data: Uint8Array,
+  width: number,
+  height: number,
+): { data: Uint8Array; width: number; height: number } {
+  const result = new Uint8Array(data.length);
+  const newWidth = height;
+  const newHeight = width;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 4;
+      const dstX = height - 1 - y;
+      const dstY = x;
+      const dstIdx = (dstY * newWidth + dstX) * 4;
+
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+
+  return { data: result, width: newWidth, height: newHeight };
+}
+
+/**
+ * Rotate image 180 degrees
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @returns Rotated image data with same dimensions
+ */
+export function rotate180(
+  data: Uint8Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const result = new Uint8Array(data.length);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 4;
+      const dstX = width - 1 - x;
+      const dstY = height - 1 - y;
+      const dstIdx = (dstY * width + dstX) * 4;
+
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Rotate image 270 degrees clockwise (or 90 degrees counter-clockwise)
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @returns Rotated image data with swapped dimensions
+ */
+export function rotate270(
+  data: Uint8Array,
+  width: number,
+  height: number,
+): { data: Uint8Array; width: number; height: number } {
+  const result = new Uint8Array(data.length);
+  const newWidth = height;
+  const newHeight = width;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 4;
+      const dstX = y;
+      const dstY = width - 1 - x;
+      const dstIdx = (dstY * newWidth + dstX) * 4;
+
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+
+  return { data: result, width: newWidth, height: newHeight };
+}
+
+/**
+ * Flip image horizontally (mirror)
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @returns Flipped image data
+ */
+export function flipHorizontal(
+  data: Uint8Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const result = new Uint8Array(data.length);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 4;
+      const dstX = width - 1 - x;
+      const dstIdx = (y * width + dstX) * 4;
+
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Flip image vertically
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @returns Flipped image data
+ */
+export function flipVertical(
+  data: Uint8Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const result = new Uint8Array(data.length);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 4;
+      const dstY = height - 1 - y;
+      const dstIdx = (dstY * width + x) * 4;
+
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+
+  return result;
+}

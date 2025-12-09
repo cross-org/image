@@ -15,10 +15,15 @@ import {
   composite,
   crop,
   fillRect,
+  flipHorizontal,
+  flipVertical,
   gaussianBlur,
   grayscale,
   invert,
   medianFilter,
+  rotate90,
+  rotate180,
+  rotate270,
   sepia,
   sharpen,
 } from "./utils/image_processing.ts";
@@ -822,6 +827,124 @@ export class Image {
     this.imageData.data[idx + 1] = g;
     this.imageData.data[idx + 2] = b;
     this.imageData.data[idx + 3] = a;
+
+    return this;
+  }
+
+  /**
+   * Rotate the image 90 degrees clockwise
+   * @returns This image instance for chaining
+   */
+  rotate90(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    const result = rotate90(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    this.imageData.width = result.width;
+    this.imageData.height = result.height;
+    this.imageData.data = result.data;
+
+    // Update physical dimensions if DPI is set
+    if (this.imageData.metadata) {
+      const metadata = this.imageData.metadata;
+      if (metadata.dpiX && metadata.dpiY) {
+        // Swap physical dimensions
+        const tempPhysical = metadata.physicalWidth;
+        this.imageData.metadata.physicalWidth = metadata.physicalHeight;
+        this.imageData.metadata.physicalHeight = tempPhysical;
+        // Swap DPI
+        const tempDpi = metadata.dpiX;
+        this.imageData.metadata.dpiX = metadata.dpiY;
+        this.imageData.metadata.dpiY = tempDpi;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Rotate the image 180 degrees
+   * @returns This image instance for chaining
+   */
+  rotate180(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = rotate180(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    return this;
+  }
+
+  /**
+   * Rotate the image 270 degrees clockwise (or 90 degrees counter-clockwise)
+   * @returns This image instance for chaining
+   */
+  rotate270(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    const result = rotate270(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    this.imageData.width = result.width;
+    this.imageData.height = result.height;
+    this.imageData.data = result.data;
+
+    // Update physical dimensions if DPI is set
+    if (this.imageData.metadata) {
+      const metadata = this.imageData.metadata;
+      if (metadata.dpiX && metadata.dpiY) {
+        // Swap physical dimensions
+        const tempPhysical = metadata.physicalWidth;
+        this.imageData.metadata.physicalWidth = metadata.physicalHeight;
+        this.imageData.metadata.physicalHeight = tempPhysical;
+        // Swap DPI
+        const tempDpi = metadata.dpiX;
+        this.imageData.metadata.dpiX = metadata.dpiY;
+        this.imageData.metadata.dpiY = tempDpi;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Flip the image horizontally (mirror)
+   * @returns This image instance for chaining
+   */
+  flipHorizontal(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = flipHorizontal(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    return this;
+  }
+
+  /**
+   * Flip the image vertically
+   * @returns This image instance for chaining
+   */
+  flipVertical(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = flipVertical(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
 
     return this;
   }
