@@ -117,7 +117,7 @@ const format = new TIFFFormat();
 const imageData = {
   width: 100,
   height: 100,
-  data: rgbaPixelData,
+  data: rgbaPixelData, // Uint8Array with RGBA pixel data (width * height * 4 bytes)
 };
 
 // Compress with LZW
