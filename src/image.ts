@@ -5,7 +5,11 @@ import type {
   MultiFrameImageData,
   ResizeOptions,
 } from "./types.ts";
-import { resizeBilinear, resizeNearest } from "./utils/resize.ts";
+import {
+  resizeBicubic,
+  resizeBilinear,
+  resizeNearest,
+} from "./utils/resize.ts";
 import {
   adjustBrightness,
   adjustContrast,
@@ -15,10 +19,15 @@ import {
   composite,
   crop,
   fillRect,
+  flipHorizontal,
+  flipVertical,
   gaussianBlur,
   grayscale,
   invert,
   medianFilter,
+  rotate180,
+  rotate270,
+  rotate90,
   sepia,
   sharpen,
 } from "./utils/image_processing.ts";
@@ -405,7 +414,7 @@ export class Image {
   resize(options: ResizeOptions): this {
     if (!this.imageData) throw new Error("No image loaded");
 
-    const { width, height, method = "bilinear" } = options;
+    const { width, height, method = "bilinear", fit = "stretch" } = options;
 
     // Validate new dimensions for security (prevent integer overflow and heap exhaustion)
     validateImageDimensions(width, height);
@@ -413,15 +422,115 @@ export class Image {
     const { data: srcData, width: srcWidth, height: srcHeight } =
       this.imageData;
 
+    // Handle fitting modes
+    let targetWidth = width;
+    let targetHeight = height;
+    let shouldCenter = false;
+
+    const fitMode = fit === "contain" ? "fit" : fit === "cover" ? "fill" : fit;
+
+    if (fitMode === "fit" || fitMode === "fill") {
+      const srcAspect = srcWidth / srcHeight;
+      const targetAspect = width / height;
+
+      if (fitMode === "fit") {
+        // Fit within dimensions (letterbox)
+        if (srcAspect > targetAspect) {
+          // Source is wider - fit to width
+          targetWidth = width;
+          targetHeight = Math.round(width / srcAspect);
+        } else {
+          // Source is taller - fit to height
+          targetWidth = Math.round(height * srcAspect);
+          targetHeight = height;
+        }
+        shouldCenter = true;
+      } else {
+        // Fill dimensions (crop)
+        if (srcAspect > targetAspect) {
+          // Source is wider - fit to height and crop width
+          targetWidth = Math.round(height * srcAspect);
+          targetHeight = height;
+        } else {
+          // Source is taller - fit to width and crop height
+          targetWidth = width;
+          targetHeight = Math.round(width / srcAspect);
+        }
+        shouldCenter = true;
+      }
+    }
+
+    // Perform the resize
     let resizedData: Uint8Array;
     if (method === "nearest") {
-      resizedData = resizeNearest(srcData, srcWidth, srcHeight, width, height);
+      resizedData = resizeNearest(
+        srcData,
+        srcWidth,
+        srcHeight,
+        targetWidth,
+        targetHeight,
+      );
+    } else if (method === "bicubic") {
+      resizedData = resizeBicubic(
+        srcData,
+        srcWidth,
+        srcHeight,
+        targetWidth,
+        targetHeight,
+      );
     } else {
-      resizedData = resizeBilinear(srcData, srcWidth, srcHeight, width, height);
+      resizedData = resizeBilinear(
+        srcData,
+        srcWidth,
+        srcHeight,
+        targetWidth,
+        targetHeight,
+      );
     }
 
     // Preserve metadata when resizing
     const metadata = this.imageData.metadata;
+
+    // If we need to center (fit mode) or crop (fill mode), create a canvas
+    if (shouldCenter && (targetWidth !== width || targetHeight !== height)) {
+      const canvas = new Uint8Array(width * height * 4);
+      // Fill with transparent black by default
+      canvas.fill(0);
+
+      if (fitMode === "fit") {
+        // Center the resized image (letterbox)
+        const offsetX = Math.floor((width - targetWidth) / 2);
+        const offsetY = Math.floor((height - targetHeight) / 2);
+
+        for (let y = 0; y < targetHeight; y++) {
+          for (let x = 0; x < targetWidth; x++) {
+            const srcIdx = (y * targetWidth + x) * 4;
+            const dstIdx = ((y + offsetY) * width + (x + offsetX)) * 4;
+            canvas[dstIdx] = resizedData[srcIdx];
+            canvas[dstIdx + 1] = resizedData[srcIdx + 1];
+            canvas[dstIdx + 2] = resizedData[srcIdx + 2];
+            canvas[dstIdx + 3] = resizedData[srcIdx + 3];
+          }
+        }
+        resizedData = canvas;
+      } else {
+        // Crop to fill (center crop)
+        const offsetX = Math.floor((targetWidth - width) / 2);
+        const offsetY = Math.floor((targetHeight - height) / 2);
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const srcIdx = ((y + offsetY) * targetWidth + (x + offsetX)) * 4;
+            const dstIdx = (y * width + x) * 4;
+            canvas[dstIdx] = resizedData[srcIdx];
+            canvas[dstIdx + 1] = resizedData[srcIdx + 1];
+            canvas[dstIdx + 2] = resizedData[srcIdx + 2];
+            canvas[dstIdx + 3] = resizedData[srcIdx + 3];
+          }
+        }
+        resizedData = canvas;
+      }
+    }
 
     this.imageData = {
       width,
@@ -822,6 +931,161 @@ export class Image {
     this.imageData.data[idx + 1] = g;
     this.imageData.data[idx + 2] = b;
     this.imageData.data[idx + 3] = a;
+
+    return this;
+  }
+
+  /**
+   * Rotate the image 90 degrees clockwise
+   * @returns This image instance for chaining
+   */
+  rotate90(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    const result = rotate90(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    this.imageData.width = result.width;
+    this.imageData.height = result.height;
+    this.imageData.data = result.data;
+
+    // Update physical dimensions if DPI is set
+    if (this.imageData.metadata) {
+      const metadata = this.imageData.metadata;
+      if (metadata.dpiX && metadata.dpiY) {
+        // Swap physical dimensions
+        const tempPhysical = metadata.physicalWidth;
+        this.imageData.metadata.physicalWidth = metadata.physicalHeight;
+        this.imageData.metadata.physicalHeight = tempPhysical;
+        // Swap DPI
+        const tempDpi = metadata.dpiX;
+        this.imageData.metadata.dpiX = metadata.dpiY;
+        this.imageData.metadata.dpiY = tempDpi;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Rotate the image 180 degrees
+   * @returns This image instance for chaining
+   */
+  rotate180(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = rotate180(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    return this;
+  }
+
+  /**
+   * Rotate the image 270 degrees clockwise (or 90 degrees counter-clockwise)
+   * @returns This image instance for chaining
+   */
+  rotate270(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    const result = rotate270(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    this.imageData.width = result.width;
+    this.imageData.height = result.height;
+    this.imageData.data = result.data;
+
+    // Update physical dimensions if DPI is set
+    if (this.imageData.metadata) {
+      const metadata = this.imageData.metadata;
+      if (metadata.dpiX && metadata.dpiY) {
+        // Swap physical dimensions
+        const tempPhysical = metadata.physicalWidth;
+        this.imageData.metadata.physicalWidth = metadata.physicalHeight;
+        this.imageData.metadata.physicalHeight = tempPhysical;
+        // Swap DPI
+        const tempDpi = metadata.dpiX;
+        this.imageData.metadata.dpiX = metadata.dpiY;
+        this.imageData.metadata.dpiY = tempDpi;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Rotate the image by the specified angle in degrees
+   * @param degrees Rotation angle in degrees (positive = clockwise, negative = counter-clockwise)
+   * @returns This image instance for chaining
+   *
+   * @example
+   * ```ts
+   * image.rotate(90);   // Rotate 90° clockwise
+   * image.rotate(-90);  // Rotate 90° counter-clockwise
+   * image.rotate(180);  // Rotate 180°
+   * image.rotate(45);   // Rotate 45° clockwise (rounded to nearest 90°)
+   * ```
+   */
+  rotate(degrees: number): this {
+    // Normalize to 0-360 range
+    let normalizedDegrees = degrees % 360;
+    if (normalizedDegrees < 0) {
+      normalizedDegrees += 360;
+    }
+
+    // Round to nearest 90 degrees
+    const rounded = Math.round(normalizedDegrees / 90) * 90;
+
+    // Apply rotation based on rounded value
+    switch (rounded % 360) {
+      case 90:
+        return this.rotate90();
+      case 180:
+        return this.rotate180();
+      case 270:
+        return this.rotate270();
+      default:
+        // 0 or 360 degrees - no rotation needed
+        return this;
+    }
+  }
+
+  /**
+   * Flip the image horizontally (mirror)
+   * @returns This image instance for chaining
+   */
+  flipHorizontal(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = flipHorizontal(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
+
+    return this;
+  }
+
+  /**
+   * Flip the image vertically
+   * @returns This image instance for chaining
+   */
+  flipVertical(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = flipVertical(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+    );
 
     return this;
   }

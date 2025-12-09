@@ -71,3 +71,97 @@ export function resizeNearest(
 
   return dst;
 }
+
+/**
+ * Cubic interpolation kernel (Catmull-Rom)
+ *
+ * The Catmull-Rom spline provides smooth interpolation through control points.
+ * It's a special case of the cubic Hermite spline with specific tangent values.
+ *
+ * @param x Distance from the sample point
+ * @returns Weight for the sample at distance x
+ */
+function cubicKernel(x: number): number {
+  const absX = Math.abs(x);
+  if (absX <= 1) {
+    return 1.5 * absX * absX * absX - 2.5 * absX * absX + 1;
+  } else if (absX < 2) {
+    return -0.5 * absX * absX * absX + 2.5 * absX * absX - 4 * absX + 2;
+  }
+  return 0;
+}
+
+/**
+ * Get pixel value with bounds checking
+ *
+ * Clamps coordinates to valid image bounds to prevent out-of-bounds access.
+ * This ensures that edge pixels are repeated when sampling outside the image.
+ *
+ * @param src Source image data
+ * @param x X coordinate (may be outside bounds)
+ * @param y Y coordinate (may be outside bounds)
+ * @param width Image width
+ * @param height Image height
+ * @param channel Channel index (0=R, 1=G, 2=B, 3=A)
+ * @returns Pixel value at the clamped coordinates
+ */
+function getPixel(
+  src: Uint8Array,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  channel: number,
+): number {
+  const clampedX = Math.max(0, Math.min(width - 1, x));
+  const clampedY = Math.max(0, Math.min(height - 1, y));
+  return src[(clampedY * width + clampedX) * 4 + channel];
+}
+
+/**
+ * Bicubic interpolation resize (Catmull-Rom)
+ */
+export function resizeBicubic(
+  src: Uint8Array,
+  srcWidth: number,
+  srcHeight: number,
+  dstWidth: number,
+  dstHeight: number,
+): Uint8Array {
+  const dst = new Uint8Array(dstWidth * dstHeight * 4);
+  const xRatio = srcWidth / dstWidth;
+  const yRatio = srcHeight / dstHeight;
+
+  for (let y = 0; y < dstHeight; y++) {
+    for (let x = 0; x < dstWidth; x++) {
+      const srcX = x * xRatio;
+      const srcY = y * yRatio;
+      const x0 = Math.floor(srcX);
+      const y0 = Math.floor(srcY);
+      const dx = srcX - x0;
+      const dy = srcY - y0;
+
+      // Process each channel separately
+      for (let c = 0; c < 4; c++) {
+        let value = 0;
+
+        // Sample 4x4 neighborhood
+        for (let j = -1; j <= 2; j++) {
+          for (let i = -1; i <= 2; i++) {
+            const px = x0 + i;
+            const py = y0 + j;
+            const pixelValue = getPixel(src, px, py, srcWidth, srcHeight, c);
+            const weight = cubicKernel(i - dx) * cubicKernel(j - dy);
+            value += pixelValue * weight;
+          }
+        }
+
+        // Clamp to valid range
+        const dstIdx = (y * dstWidth + x) * 4 + c;
+        dst[dstIdx] = Math.max(0, Math.min(255, Math.round(value)));
+      }
+    }
+  }
+
+  return dst;
+}
