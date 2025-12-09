@@ -174,6 +174,91 @@ await Deno.writeFile("saturated.png", output);
 - Works in HSL color space internally
 - Values near -1 create near-grayscale
 
+## Hue
+
+Rotate the color wheel to shift all hues in the image. This changes the overall
+color cast while preserving saturation and luminance relationships.
+
+### Signature
+
+```ts
+hue(degrees: number): this
+```
+
+### Parameters
+
+- `degrees` - Hue rotation in degrees (can be any value, wraps around at 360)
+  - `0` - No change
+  - `30` - Shift reds towards orange
+  - `60` - Shift reds towards yellow
+  - `120` - Shift reds to greens, greens to blues, blues to reds
+  - `180` - Full inversion (reds become cyan, greens become magenta, etc.)
+  - `-60` - Shift colors backwards (reds towards purple)
+
+### Example
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Warm up the image (shift towards yellow/orange)
+image.hue(15);
+
+// Cool down the image (shift towards blue/cyan)
+image.hue(-15);
+
+// Create a surreal color effect
+image.hue(120);
+
+// Make grass look autumn-like
+image.hue(30);
+
+const output = await image.encode("png");
+await Deno.writeFile("hue-adjusted.png", output);
+```
+
+### Use Cases
+
+- Color correction and white balance fixes
+- Creative color grading (cinematic looks)
+- Seasonal color shifts (autumn, spring effects)
+- Adjusting skin tones
+- Making skies more blue or sunsets more golden
+- Creating stylized or surreal color schemes
+
+### Tips
+
+- Hue rotation works in HSL color space
+- Grayscale pixels (no saturation) are unaffected
+- Small adjustments (±15°) are ideal for color correction
+- Large adjustments (±60° to ±180°) create dramatic effects
+- Combine with saturation for complete color control
+
+### Combining with Other Adjustments
+
+```ts
+// Professional color grading
+image
+  .hue(10) // Warm tones
+  .saturation(0.2) // Boost colors
+  .contrast(0.1) // Add depth
+  .brightness(0.05); // Slight lift
+
+// Create vintage look
+image
+  .hue(-10) // Cool shift
+  .saturation(-0.3) // Desaturate
+  .contrast(-0.1); // Soften
+
+// Enhance landscape
+image
+  .hue(5) // Warmer greens
+  .saturation(0.3) // Vibrant colors
+  .contrast(0.15); // Crisp details
+```
+
 ## Exposure
 
 Photographic exposure adjustment simulating camera exposure compensation.
