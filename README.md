@@ -13,7 +13,7 @@ dependencies.
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
 - 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
-  PAM, PCX and ASCII support
+  PAM, PPM, PCX and ASCII support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
 - 🎛️ **Image processing** - Chainable `brightness`, `contrast`, `saturation`,
   and `exposure` helpers
@@ -101,19 +101,20 @@ await writeFile("output.jpg", jpeg);
 
 ## Supported Formats
 
-| Format | Pure-JS     | Notes                                  |
-| ------ | ----------- | -------------------------------------- |
-| PNG    | ✅ Full     | Complete pure-JS implementation        |
-| APNG   | ✅ Full     | Animated PNG with multi-frame          |
-| BMP    | ✅ Full     | Complete pure-JS implementation        |
-| ICO    | ✅ Full     | Windows Icon format                    |
-| GIF    | ✅ Full     | Animated GIF with multi-frame          |
-| DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)         |
-| PAM    | ✅ Full     | Netpbm PAM format                      |
-| PCX    | ✅ Full     | ZSoft PCX (RLE compressed)             |
-| ASCII  | ✅ Full     | Text-based ASCII art                   |
-| JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only              |
-| WebP   | ⚠️ Lossless | Pure-JS lossless VP8L                  |
+| Format | Pure-JS     | Notes                           |
+| ------ | ----------- | ------------------------------- |
+| PNG    | ✅ Full     | Complete pure-JS implementation |
+| APNG   | ✅ Full     | Animated PNG with multi-frame   |
+| BMP    | ✅ Full     | Complete pure-JS implementation |
+| ICO    | ✅ Full     | Windows Icon format             |
+| GIF    | ✅ Full     | Animated GIF with multi-frame   |
+| DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)  |
+| PAM    | ✅ Full     | Netpbm PAM format               |
+| PPM    | ✅ Full     | Netpbm PPM format (P3/P6)       |
+| PCX    | ✅ Full     | ZSoft PCX (RLE compressed)      |
+| ASCII  | ✅ Full     | Text-based ASCII art            |
+| JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only       |
+| WebP   | ⚠️ Lossless | Pure-JS lossless VP8L           |
 | TIFF   | ⚠️ Basic    | Pure-JS uncompressed, LZW, & grayscale |
 
 See the
