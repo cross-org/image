@@ -60,9 +60,9 @@ export class PPMFormat implements ImageFormat {
     // P6
     // <width> <height>
     // <maxval>
-    // Each line is separated by whitespace (space, tab, newline, etc.)
+    // Comments start with # and continue to end of line
 
-    // Skip magic number (P6)
+    // Skip magic number (P6) - already validated by canDecode
     while (
       offset < data.length && data[offset] !== 0x0a && data[offset] !== 0x0d &&
       data[offset] !== 0x20
@@ -73,26 +73,16 @@ export class PPMFormat implements ImageFormat {
     // Read tokens from header
     const tokens: number[] = [];
     let currentToken = "";
+    let inComment = false;
 
     while (offset < data.length && tokens.length < 3) {
       const char = data[offset++];
-      const charStr = String.fromCharCode(char);
 
-      // Skip whitespace
-      if (char === 0x0a || char === 0x0d || char === 0x20 || char === 0x09) {
+      // Handle comments
+      if (char === 0x23) { // '#'
+        inComment = true;
+        // Save any token before the comment
         if (currentToken) {
-          // Check for comments (lines starting with #)
-          if (currentToken.startsWith("#")) {
-            // Skip rest of comment line
-            while (
-              offset < data.length && data[offset] !== 0x0a &&
-              data[offset] !== 0x0d
-            ) {
-              offset++;
-            }
-            currentToken = "";
-            continue;
-          }
           const num = parseInt(currentToken, 10);
           if (!isNaN(num)) {
             tokens.push(num);
@@ -102,11 +92,35 @@ export class PPMFormat implements ImageFormat {
         continue;
       }
 
-      currentToken += charStr;
+      // End of line ends comment
+      if (inComment && (char === 0x0a || char === 0x0d)) {
+        inComment = false;
+        continue;
+      }
+
+      // Skip characters in comments
+      if (inComment) {
+        continue;
+      }
+
+      // Handle whitespace
+      if (char === 0x0a || char === 0x0d || char === 0x20 || char === 0x09) {
+        if (currentToken) {
+          const num = parseInt(currentToken, 10);
+          if (!isNaN(num)) {
+            tokens.push(num);
+          }
+          currentToken = "";
+        }
+        continue;
+      }
+
+      // Build token
+      currentToken += String.fromCharCode(char);
     }
 
     // Handle last token if not yet processed
-    if (currentToken && tokens.length < 3) {
+    if (currentToken && tokens.length < 3 && !inComment) {
       const num = parseInt(currentToken, 10);
       if (!isNaN(num)) {
         tokens.push(num);
