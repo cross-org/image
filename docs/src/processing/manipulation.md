@@ -132,7 +132,7 @@ await Deno.writeFile("cropped.png", output);
 ### Tips
 
 - Crop coordinates are in pixels from top-left (0,0)
-- Crop happens before resize for better quality
+- For best quality, crop before resizing in your operation chain
 - Out of bounds coordinates are clamped automatically
 
 ## Composite

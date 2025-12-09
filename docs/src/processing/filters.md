@@ -67,7 +67,7 @@ gaussianBlur(radius?: number, sigma?: number): this
 
 - `radius` - Blur radius in pixels (default: 1)
 - `sigma` - Standard deviation for Gaussian distribution (optional). If omitted,
-  calculated as `radius / 3`
+  calculated as `radius / 3` (captures ~99.7% of the Gaussian distribution)
 
 ### Example
 

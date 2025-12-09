@@ -268,13 +268,15 @@ await Deno.writeFile("grayscale.png", output);
 
 ### Implementation
 
-Uses perceptually weighted formula:
+Uses perceptually weighted formula (ITU-R BT.601 standard):
 
 ```
 L = 0.299R + 0.587G + 0.114B
 ```
 
-This preserves perceived brightness better than simple averaging.
+This preserves perceived brightness better than simple averaging. Note that
+modern displays may use different coefficients (like ITU-R BT.709), but this
+standard provides good results for general use.
 
 ### Alternatives
 
