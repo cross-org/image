@@ -6,14 +6,32 @@ test("Image: rotate90 - basic rotation", async () => {
   // Create a 2x3 image with distinct colors
   const data = new Uint8Array([
     // Row 0
-    255, 0, 0, 255, // red
-    0, 255, 0, 255, // green
+    255,
+    0,
+    0,
+    255, // red
+    0,
+    255,
+    0,
+    255, // green
     // Row 1
-    0, 0, 255, 255, // blue
-    255, 255, 0, 255, // yellow
+    0,
+    0,
+    255,
+    255, // blue
+    255,
+    255,
+    0,
+    255, // yellow
     // Row 2
-    255, 0, 255, 255, // magenta
-    0, 255, 255, 255, // cyan
+    255,
+    0,
+    255,
+    255, // magenta
+    0,
+    255,
+    255,
+    255, // cyan
   ]);
 
   const image = Image.fromRGBA(2, 3, data);
@@ -30,10 +48,22 @@ test("Image: rotate90 - basic rotation", async () => {
 
 test("Image: rotate180 - basic rotation", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (0,1) blue
-    255, 255, 0, 255, // (1,1) yellow
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (0,1) blue
+    255,
+    255,
+    0,
+    255, // (1,1) yellow
   ]);
 
   const image = Image.fromRGBA(2, 2, data);
@@ -51,12 +81,30 @@ test("Image: rotate180 - basic rotation", () => {
 
 test("Image: rotate270 - basic rotation", async () => {
   const data = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (2,0) blue
-    255, 255, 0, 255, // (0,1) yellow
-    255, 0, 255, 255, // (1,1) magenta
-    0, 255, 255, 255, // (2,1) cyan
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (2,0) blue
+    255,
+    255,
+    0,
+    255, // (0,1) yellow
+    255,
+    0,
+    255,
+    255, // (1,1) magenta
+    0,
+    255,
+    255,
+    255, // (2,1) cyan
   ]);
 
   const image = Image.fromRGBA(3, 2, data);
@@ -73,8 +121,14 @@ test("Image: rotate270 - basic rotation", async () => {
 
 test("Image: flipHorizontal - basic flip", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255, // left: red
-    0, 255, 0, 255, // right: green
+    255,
+    0,
+    0,
+    255, // left: red
+    0,
+    255,
+    0,
+    255, // right: green
   ]);
 
   const image = Image.fromRGBA(2, 1, data);
@@ -97,8 +151,14 @@ test("Image: flipHorizontal - basic flip", () => {
 
 test("Image: flipVertical - basic flip", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255, // top: red
-    0, 255, 0, 255, // bottom: green
+    255,
+    0,
+    0,
+    255, // top: red
+    0,
+    255,
+    0,
+    255, // bottom: green
   ]);
 
   const image = Image.fromRGBA(1, 2, data);
@@ -121,8 +181,14 @@ test("Image: flipVertical - basic flip", () => {
 
 test("Image: rotation methods are chainable", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255,
-    0, 255, 0, 255,
+    255,
+    0,
+    0,
+    255,
+    0,
+    255,
+    0,
+    255,
   ]);
 
   const image = Image.fromRGBA(2, 1, data);
@@ -137,8 +203,14 @@ test("Image: rotation methods are chainable", () => {
 
 test("Image: flip methods are chainable", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255,
-    0, 255, 0, 255,
+    255,
+    0,
+    0,
+    255,
+    0,
+    255,
+    0,
+    255,
   ]);
 
   const image = Image.fromRGBA(2, 1, data);
@@ -153,10 +225,22 @@ test("Image: flip methods are chainable", () => {
 
 test("Image: rotation and flip can be combined", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (0,1) blue
-    255, 255, 0, 255, // (1,1) yellow
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (0,1) blue
+    255,
+    255,
+    0,
+    255, // (1,1) yellow
   ]);
 
   const image = Image.fromRGBA(2, 2, data);
@@ -170,8 +254,14 @@ test("Image: rotation and flip can be combined", () => {
 
 test("Image: rotation preserves metadata", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255,
-    0, 255, 0, 255,
+    255,
+    0,
+    0,
+    255,
+    0,
+    255,
+    0,
+    255,
   ]);
 
   const image = Image.fromRGBA(2, 1, data);
@@ -186,10 +276,22 @@ test("Image: rotation preserves metadata", () => {
 
 test("Image: rotation updates DPI correctly", () => {
   const data = new Uint8Array([
-    255, 0, 0, 255,
-    0, 255, 0, 255,
-    0, 0, 255, 255,
-    255, 255, 0, 255,
+    255,
+    0,
+    0,
+    255,
+    0,
+    255,
+    0,
+    255,
+    0,
+    0,
+    255,
+    255,
+    255,
+    255,
+    0,
+    255,
   ]);
 
   const image = Image.fromRGBA(2, 2, data);
@@ -204,10 +306,22 @@ test("Image: rotation updates DPI correctly", () => {
 
 test("Image: rotate90 encodes and decodes correctly", async () => {
   const data = new Uint8Array([
-    255, 0, 0, 255,
-    0, 255, 0, 255,
-    0, 0, 255, 255,
-    255, 255, 0, 255,
+    255,
+    0,
+    0,
+    255,
+    0,
+    255,
+    0,
+    255,
+    0,
+    0,
+    255,
+    255,
+    255,
+    255,
+    0,
+    255,
   ]);
 
   const image = Image.fromRGBA(2, 2, data);

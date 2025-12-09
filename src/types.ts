@@ -93,7 +93,7 @@ export interface ResizeOptions {
   /** Target height in pixels */
   height: number;
   /** Resize method (default: "bilinear") */
-  method?: "nearest" | "bilinear";
+  method?: "nearest" | "bilinear" | "bicubic";
 }
 
 /**

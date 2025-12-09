@@ -5,7 +5,11 @@ import type {
   MultiFrameImageData,
   ResizeOptions,
 } from "./types.ts";
-import { resizeBilinear, resizeNearest } from "./utils/resize.ts";
+import {
+  resizeBicubic,
+  resizeBilinear,
+  resizeNearest,
+} from "./utils/resize.ts";
 import {
   adjustBrightness,
   adjustContrast,
@@ -21,9 +25,9 @@ import {
   grayscale,
   invert,
   medianFilter,
-  rotate90,
   rotate180,
   rotate270,
+  rotate90,
   sepia,
   sharpen,
 } from "./utils/image_processing.ts";
@@ -421,6 +425,8 @@ export class Image {
     let resizedData: Uint8Array;
     if (method === "nearest") {
       resizedData = resizeNearest(srcData, srcWidth, srcHeight, width, height);
+    } else if (method === "bicubic") {
+      resizedData = resizeBicubic(srcData, srcWidth, srcHeight, width, height);
     } else {
       resizedData = resizeBilinear(srcData, srcWidth, srcHeight, width, height);
     }

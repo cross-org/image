@@ -3,23 +3,41 @@ import { test } from "@cross/test";
 import {
   flipHorizontal,
   flipVertical,
-  rotate90,
   rotate180,
   rotate270,
+  rotate90,
 } from "../../src/utils/image_processing.ts";
 
 test("rotate90: 2x3 image rotates correctly", () => {
   // Create a 2x3 image with distinct colors
   const src = new Uint8Array([
     // Row 0
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
     // Row 1
-    0, 0, 255, 255, // (0,1) blue
-    255, 255, 0, 255, // (1,1) yellow
+    0,
+    0,
+    255,
+    255, // (0,1) blue
+    255,
+    255,
+    0,
+    255, // (1,1) yellow
     // Row 2
-    255, 0, 255, 255, // (0,2) magenta
-    0, 255, 255, 255, // (1,2) cyan
+    255,
+    0,
+    255,
+    255, // (0,2) magenta
+    0,
+    255,
+    255,
+    255, // (1,2) cyan
   ]);
 
   const result = rotate90(src, 2, 3);
@@ -54,10 +72,22 @@ test("rotate90: 1x1 image remains unchanged", () => {
 
 test("rotate180: 2x2 image rotates correctly", () => {
   const src = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (0,1) blue
-    255, 255, 0, 255, // (1,1) yellow
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (0,1) blue
+    255,
+    255,
+    0,
+    255, // (1,1) yellow
   ]);
 
   const result = rotate180(src, 2, 2);
@@ -77,13 +107,31 @@ test("rotate270: 3x2 image rotates correctly", () => {
   // Create a 3x2 image
   const src = new Uint8Array([
     // Row 0
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (2,0) blue
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (2,0) blue
     // Row 1
-    255, 255, 0, 255, // (0,1) yellow
-    255, 0, 255, 255, // (1,1) magenta
-    0, 255, 255, 255, // (2,1) cyan
+    255,
+    255,
+    0,
+    255, // (0,1) yellow
+    255,
+    0,
+    255,
+    255, // (1,1) magenta
+    0,
+    255,
+    255,
+    255, // (2,1) cyan
   ]);
 
   const result = rotate270(src, 3, 2);
@@ -101,10 +149,22 @@ test("rotate270: 3x2 image rotates correctly", () => {
 
 test("flipHorizontal: 2x2 image flips correctly", () => {
   const src = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (0,1) blue
-    255, 255, 0, 255, // (1,1) yellow
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (0,1) blue
+    255,
+    255,
+    0,
+    255, // (1,1) yellow
   ]);
 
   const result = flipHorizontal(src, 2, 2);
@@ -122,9 +182,18 @@ test("flipHorizontal: 2x2 image flips correctly", () => {
 
 test("flipHorizontal: 3x1 image flips correctly", () => {
   const src = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (2,0) blue
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (2,0) blue
   ]);
 
   const result = flipHorizontal(src, 3, 1);
@@ -142,10 +211,22 @@ test("flipHorizontal: 3x1 image flips correctly", () => {
 
 test("flipVertical: 2x2 image flips correctly", () => {
   const src = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (1,0) green
-    0, 0, 255, 255, // (0,1) blue
-    255, 255, 0, 255, // (1,1) yellow
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (1,0) green
+    0,
+    0,
+    255,
+    255, // (0,1) blue
+    255,
+    255,
+    0,
+    255, // (1,1) yellow
   ]);
 
   const result = flipVertical(src, 2, 2);
@@ -163,9 +244,18 @@ test("flipVertical: 2x2 image flips correctly", () => {
 
 test("flipVertical: 1x3 image flips correctly", () => {
   const src = new Uint8Array([
-    255, 0, 0, 255, // (0,0) red
-    0, 255, 0, 255, // (0,1) green
-    0, 0, 255, 255, // (0,2) blue
+    255,
+    0,
+    0,
+    255, // (0,0) red
+    0,
+    255,
+    0,
+    255, // (0,1) green
+    0,
+    0,
+    255,
+    255, // (0,2) blue
   ]);
 
   const result = flipVertical(src, 1, 3);
@@ -183,8 +273,14 @@ test("flipVertical: 1x3 image flips correctly", () => {
 
 test("rotation and flip preserve alpha channel", () => {
   const src = new Uint8Array([
-    255, 0, 0, 128, // semi-transparent red
-    0, 255, 0, 64, // more transparent green
+    255,
+    0,
+    0,
+    128, // semi-transparent red
+    0,
+    255,
+    0,
+    64, // more transparent green
   ]);
 
   const rotated = rotate90(src, 2, 1);
