@@ -10,11 +10,11 @@ Deno, Node.js, and Bun.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
-- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM,
-  PCX and ASCII support
+- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
+  PAM, PCX and ASCII support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
-- 🎛️ **Image processing** - Chainable `brightness`, `contrast`,
-  `saturation`, and `exposure` helpers
+- 🎛️ **Image processing** - Chainable `brightness`, `contrast`, `saturation`,
+  and `exposure` helpers
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
 - 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface
