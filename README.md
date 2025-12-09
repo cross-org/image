@@ -10,11 +10,13 @@ Deno, Node.js, and Bun.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
-- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
-  PAM, and PCX support
+- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM,
+  PCX and ASCII support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
-- 🎛️ **Image processing** - Adjust brightness, contrast, saturation, exposure
+- 🎛️ **Image processing** - Chainable `brightness`, `contrast`,
+  `saturation`, and `exposure` helpers
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
+- 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface
 
 ## Installation
@@ -83,7 +85,7 @@ import { readFile, writeFile } from "node:fs/promises";
 
 // Read an image (auto-detects format)
 const data = await readFile("input.png");
-const image = await Image.read(data);
+const image = await Image.decode(data);
 
 console.log(`Image size: ${image.width}x${image.height}`);
 
@@ -91,7 +93,7 @@ console.log(`Image size: ${image.width}x${image.height}`);
 image.resize({ width: 800, height: 600 });
 
 // Save in a different format
-const jpeg = await image.save("jpeg");
+const jpeg = await image.encode("jpeg");
 await writeFile("output.jpg", jpeg);
 ```
 
