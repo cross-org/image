@@ -256,7 +256,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 /**
  * Adjust hue of an image by rotating the hue wheel
  * @param data Image data (RGBA)
- * @param degrees Hue rotation in degrees (-180 to 180, where 0 is no change)
+ * @param degrees Hue rotation in degrees (any value accepted, wraps at 360)
  * @returns New image data with adjusted hue
  */
 export function adjustHue(data: Uint8Array, degrees: number): Uint8Array {

@@ -403,8 +403,9 @@ Adjust the hue of the image by rotating the color wheel.
 
 **Parameters:**
 
-- `degrees` - Hue rotation in degrees (-180 to 180, where 0 is no change).
-  Positive values rotate clockwise, negative values rotate counter-clockwise
+- `degrees` - Hue rotation in degrees. Any value is accepted and wraps at 360
+  degrees. Positive values rotate clockwise, negative values rotate
+  counter-clockwise. 0 means no change.
 
 **Returns:** `this` for chaining
 

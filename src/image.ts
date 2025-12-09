@@ -686,7 +686,7 @@ export class Image {
 
   /**
    * Adjust hue of the image by rotating the color wheel
-   * @param degrees Hue rotation in degrees (-180 to 180, where 0 is no change)
+   * @param degrees Hue rotation in degrees (any value accepted, wraps at 360)
    * @returns This image instance for chaining
    */
   hue(degrees: number): this {
