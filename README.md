@@ -13,7 +13,7 @@ dependencies.
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
 - 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
-  PAM, PCX and ASCII support
+  PAM, PCX, PPM and ASCII support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
 - 🎛️ **Image processing** - Chainable `brightness`, `contrast`, `saturation`,
   and `exposure` helpers
@@ -111,6 +111,7 @@ await writeFile("output.jpg", jpeg);
 | DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)  |
 | PAM    | ✅ Full     | Netpbm PAM format               |
 | PCX    | ✅ Full     | ZSoft PCX (RLE compressed)      |
+| PPM    | ✅ Full     | Netpbm PPM format (P6 binary)   |
 | ASCII  | ✅ Full     | Text-based ASCII art            |
 | JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only       |
 | WebP   | ⚠️ Lossless | Pure-JS lossless VP8L           |
