@@ -16,6 +16,8 @@ const DEFAULT_DPI = 72;
 export interface TIFFEncodeOptions {
   /** Compression method: "none" for uncompressed (default), "lzw" for LZW compression */
   compression?: "none" | "lzw";
+  /** Encode as grayscale instead of RGB/RGBA */
+  grayscale?: boolean;
 }
 
 /**
@@ -204,6 +206,22 @@ export class TIFFFormat implements ImageFormat {
     const { width, height, data, metadata } = imageData;
     const opts = options as TIFFEncodeOptions | undefined;
     const compression = opts?.compression ?? "none";
+    const grayscale = opts?.grayscale ?? false;
+
+    // Convert RGBA to grayscale if requested
+    let sourceData: Uint8Array;
+    if (grayscale) {
+      sourceData = new Uint8Array(width * height);
+      for (let i = 0; i < width * height; i++) {
+        const r = data[i * 4];
+        const g = data[i * 4 + 1];
+        const b = data[i * 4 + 2];
+        // Use standard luminance formula
+        sourceData[i] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      }
+    } else {
+      sourceData = data;
+    }
 
     // Prepare pixel data (compress if needed)
     let pixelData: Uint8Array;
@@ -212,11 +230,11 @@ export class TIFFFormat implements ImageFormat {
     if (compression === "lzw") {
       // LZW compress the pixel data
       const encoder = new TIFFLZWEncoder();
-      pixelData = encoder.compress(data);
+      pixelData = encoder.compress(sourceData);
       compressionCode = 5;
     } else {
       // Uncompressed
-      pixelData = data;
+      pixelData = sourceData;
       compressionCode = 1;
     }
 
@@ -240,7 +258,7 @@ export class TIFFFormat implements ImageFormat {
     const ifdStart = result.length;
 
     // Count number of entries (including metadata)
-    let numEntries = 12; // Base entries (including ExtraSamples)
+    let numEntries = grayscale ? 10 : 12; // Grayscale doesn't need ExtraSamples
     if (metadata?.description) numEntries++;
     if (metadata?.author) numEntries++;
     if (metadata?.copyright) numEntries++;
@@ -259,20 +277,26 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x0101, 4, 1, height);
 
     // BitsPerSample (0x0102) - 8 bits per channel
-    this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
-    dataOffset += 8; // 4 x 2-byte values
+    if (grayscale) {
+      // Single value for grayscale
+      this.writeIFDEntry(result, 0x0102, 3, 1, 8);
+    } else {
+      // 4 values for RGBA
+      this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
+      dataOffset += 8; // 4 x 2-byte values
+    }
 
     // Compression (0x0103) - 1 = uncompressed, 5 = LZW
     this.writeIFDEntry(result, 0x0103, 3, 1, compressionCode);
 
-    // PhotometricInterpretation (0x0106) - 2 = RGB
-    this.writeIFDEntry(result, 0x0106, 3, 1, 2);
+    // PhotometricInterpretation (0x0106) - 1 = BlackIsZero (grayscale), 2 = RGB
+    this.writeIFDEntry(result, 0x0106, 3, 1, grayscale ? 1 : 2);
 
     // StripOffsets (0x0111)
     this.writeIFDEntry(result, 0x0111, 4, 1, 8);
 
-    // SamplesPerPixel (0x0115) - 4 (RGBA)
-    this.writeIFDEntry(result, 0x0115, 3, 1, 4);
+    // SamplesPerPixel (0x0115) - 1 for grayscale, 4 for RGBA
+    this.writeIFDEntry(result, 0x0115, 3, 1, grayscale ? 1 : 4);
 
     // RowsPerStrip (0x0116)
     this.writeIFDEntry(result, 0x0116, 4, 1, height);
@@ -290,8 +314,10 @@ export class TIFFFormat implements ImageFormat {
     this.writeIFDEntry(result, 0x011b, 5, 1, yResOffset);
     dataOffset += 8;
 
-    // ExtraSamples (0x0152) - 2 = unassociated alpha
-    this.writeIFDEntry(result, 0x0152, 3, 1, 2);
+    // ExtraSamples (0x0152) - 2 = unassociated alpha (only for RGBA)
+    if (!grayscale) {
+      this.writeIFDEntry(result, 0x0152, 3, 1, 2);
+    }
 
     // Optional metadata entries
     if (metadata?.description) {
@@ -332,11 +358,13 @@ export class TIFFFormat implements ImageFormat {
     this.writeUint32LE(result, 0);
 
     // Write variable-length data
-    // BitsPerSample values (must be written first to match offset calculation)
-    this.writeUint16LE(result, 8);
-    this.writeUint16LE(result, 8);
-    this.writeUint16LE(result, 8);
-    this.writeUint16LE(result, 8);
+    // BitsPerSample values (only for RGBA, not for grayscale)
+    if (!grayscale) {
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+    }
 
     // XResolution value (rational)
     const dpiX = metadata?.dpiX ?? DEFAULT_DPI;
@@ -1039,8 +1067,8 @@ export class TIFFFormat implements ImageFormat {
       0x0106,
       isLittleEndian,
     );
-    if (photometric !== 2) {
-      // Only support RGB (photometric = 2)
+    if (photometric !== 0 && photometric !== 1 && photometric !== 2) {
+      // Support: 0 = WhiteIsZero, 1 = BlackIsZero, 2 = RGB
       return null;
     }
 
@@ -1051,8 +1079,20 @@ export class TIFFFormat implements ImageFormat {
       0x0115,
       isLittleEndian,
     );
-    if (!samplesPerPixel || (samplesPerPixel !== 3 && samplesPerPixel !== 4)) {
-      // Only support RGB (3) or RGBA (4)
+
+    // For grayscale (photometric 0 or 1), expect 1 sample per pixel
+    // For RGB, expect 3 or 4 samples per pixel
+    if (!samplesPerPixel) {
+      return null;
+    }
+
+    if ((photometric === 0 || photometric === 1) && samplesPerPixel !== 1) {
+      // Grayscale requires 1 sample per pixel
+      return null;
+    }
+
+    if (photometric === 2 && samplesPerPixel !== 3 && samplesPerPixel !== 4) {
+      // RGB requires 3 or 4 samples per pixel
       return null;
     }
 
@@ -1101,19 +1141,45 @@ export class TIFFFormat implements ImageFormat {
     const rgba = new Uint8Array(width * height * 4);
     let srcPos = 0;
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const dstIdx = (y * width + x) * 4;
+    if (photometric === 0 || photometric === 1) {
+      // Grayscale image
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const dstIdx = (y * width + x) * 4;
 
-        if (srcPos + samplesPerPixel > pixelData.length) {
-          return null; // Not enough data
+          if (srcPos >= pixelData.length) {
+            return null; // Not enough data
+          }
+
+          let gray = pixelData[srcPos++];
+
+          // WhiteIsZero (0) means 0=white, 255=black, so invert
+          if (photometric === 0) {
+            gray = 255 - gray;
+          }
+
+          rgba[dstIdx] = gray; // R
+          rgba[dstIdx + 1] = gray; // G
+          rgba[dstIdx + 2] = gray; // B
+          rgba[dstIdx + 3] = 255; // A (opaque)
         }
+      }
+    } else {
+      // RGB/RGBA image
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const dstIdx = (y * width + x) * 4;
 
-        // TIFF stores RGB(A) in order
-        rgba[dstIdx] = pixelData[srcPos++]; // R
-        rgba[dstIdx + 1] = pixelData[srcPos++]; // G
-        rgba[dstIdx + 2] = pixelData[srcPos++]; // B
-        rgba[dstIdx + 3] = samplesPerPixel === 4 ? pixelData[srcPos++] : 255; // A
+          if (srcPos + samplesPerPixel > pixelData.length) {
+            return null; // Not enough data
+          }
+
+          // TIFF stores RGB(A) in order
+          rgba[dstIdx] = pixelData[srcPos++]; // R
+          rgba[dstIdx + 1] = pixelData[srcPos++]; // G
+          rgba[dstIdx + 2] = pixelData[srcPos++]; // B
+          rgba[dstIdx + 3] = samplesPerPixel === 4 ? pixelData[srcPos++] : 255; // A
+        }
       }
     }
 
@@ -1150,8 +1216,8 @@ export class TIFFFormat implements ImageFormat {
       0x0106,
       isLittleEndian,
     );
-    if (photometric !== 2) {
-      // Only support RGB (photometric = 2)
+    if (photometric !== 0 && photometric !== 1 && photometric !== 2) {
+      // Support: 0 = WhiteIsZero, 1 = BlackIsZero, 2 = RGB
       return null;
     }
 
@@ -1162,8 +1228,20 @@ export class TIFFFormat implements ImageFormat {
       0x0115,
       isLittleEndian,
     );
-    if (!samplesPerPixel || (samplesPerPixel !== 3 && samplesPerPixel !== 4)) {
-      // Only support RGB (3) or RGBA (4)
+
+    // For grayscale (photometric 0 or 1), expect 1 sample per pixel
+    // For RGB, expect 3 or 4 samples per pixel
+    if (!samplesPerPixel) {
+      return null;
+    }
+
+    if ((photometric === 0 || photometric === 1) && samplesPerPixel !== 1) {
+      // Grayscale requires 1 sample per pixel
+      return null;
+    }
+
+    if (photometric === 2 && samplesPerPixel !== 3 && samplesPerPixel !== 4) {
+      // RGB requires 3 or 4 samples per pixel
       return null;
     }
 
@@ -1212,19 +1290,45 @@ export class TIFFFormat implements ImageFormat {
     const rgba = new Uint8Array(width * height * 4);
     let srcPos = 0;
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const dstIdx = (y * width + x) * 4;
+    if (photometric === 0 || photometric === 1) {
+      // Grayscale image
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const dstIdx = (y * width + x) * 4;
 
-        if (srcPos + samplesPerPixel > pixelData.length) {
-          return null; // Not enough data
+          if (srcPos >= pixelData.length) {
+            return null; // Not enough data
+          }
+
+          let gray = pixelData[srcPos++];
+
+          // WhiteIsZero (0) means 0=white, 255=black, so invert
+          if (photometric === 0) {
+            gray = 255 - gray;
+          }
+
+          rgba[dstIdx] = gray; // R
+          rgba[dstIdx + 1] = gray; // G
+          rgba[dstIdx + 2] = gray; // B
+          rgba[dstIdx + 3] = 255; // A (opaque)
         }
+      }
+    } else {
+      // RGB/RGBA image
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const dstIdx = (y * width + x) * 4;
 
-        // TIFF stores RGB(A) in order
-        rgba[dstIdx] = pixelData[srcPos++]; // R
-        rgba[dstIdx + 1] = pixelData[srcPos++]; // G
-        rgba[dstIdx + 2] = pixelData[srcPos++]; // B
-        rgba[dstIdx + 3] = samplesPerPixel === 4 ? pixelData[srcPos++] : 255; // A
+          if (srcPos + samplesPerPixel > pixelData.length) {
+            return null; // Not enough data
+          }
+
+          // TIFF stores RGB(A) in order
+          rgba[dstIdx] = pixelData[srcPos++]; // R
+          rgba[dstIdx + 1] = pixelData[srcPos++]; // G
+          rgba[dstIdx + 2] = pixelData[srcPos++]; // B
+          rgba[dstIdx + 3] = samplesPerPixel === 4 ? pixelData[srcPos++] : 255; // A
+        }
       }
     }
 

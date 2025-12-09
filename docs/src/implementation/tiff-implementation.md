@@ -17,11 +17,14 @@ uncompressed and LZW-compressed RGB/RGBA images with multi-page support:
 - ✅ Little-endian and big-endian byte order - **fully implemented**
 - ✅ Uncompressed RGB/RGBA (compression=1) - **fully implemented**
 - ✅ LZW compressed RGB/RGBA (compression=5) - **fully implemented**
+- ✅ Grayscale images (photometric 0=WhiteIsZero, 1=BlackIsZero) - **fully
+  implemented**
 - ✅ Multi-page/Multi-IFD TIFF files - **fully implemented**
 - ✅ Metadata extraction (DPI, description, author, copyright, creation date) -
   **fully implemented**
 - ✅ Single strip images - **fully implemented**
-- ✅ Photometric interpretation RGB (type=2) - **fully implemented**
+- ✅ Photometric interpretation RGB (type=2) and grayscale (type=0,1) - **fully
+  implemented**
 - ✅ 8-bit per channel images - **fully implemented**
 - ✅ Both RGB (3 samples) and RGBA (4 samples) - **fully implemented**
 - ⚠️ JPEG compression (compression=7) - **fallback to ImageDecoder API**
@@ -30,7 +33,6 @@ uncompressed and LZW-compressed RGB/RGBA images with multi-page support:
 - ❌ Multiple strips per image - **not yet implemented**
 - ❌ CMYK color space - **not yet implemented**
 - ❌ Palette/indexed color - **not yet implemented**
-- ❌ Grayscale images - **not yet implemented**
 - ❌ 16-bit per channel images - **not yet implemented**
 
 ### Encoder
@@ -39,13 +41,14 @@ uncompressed and LZW-compressed RGB/RGBA images with multi-page support:
 - ✅ Little-endian byte order - **fully implemented**
 - ✅ Uncompressed RGBA (compression=1) - **fully implemented**
 - ✅ LZW compressed RGBA (compression=5) - **fully implemented**
+- ✅ Grayscale encoding (photometric 1=BlackIsZero) - **fully implemented**
 - ✅ Multi-page/Multi-IFD encoding - **fully implemented**
 - ✅ Metadata injection (DPI, description, author, copyright, creation date) -
   **fully implemented**
 - ✅ Single strip encoding - **fully implemented**
 - ✅ ExtraSamples tag for alpha channel - **fully implemented**
 - ✅ Rational DPI values - **fully implemented**
-- ❌ RGB-only encoding (without alpha) - **always encodes RGBA**
+- ❌ RGB-only encoding (without alpha) - **always encodes RGBA or grayscale**
 - ❌ Big-endian byte order - **little-endian only**
 - ❌ Multiple strips per image - **not yet implemented**
 - ❌ TIFF tiles - **not yet implemented**
@@ -265,6 +268,39 @@ console.log(`Uncompressed: ${uncompressedTiff.length} bytes`);
 console.log(`LZW compressed: ${lzwTiff.length} bytes`);
 ```
 
+### Grayscale Encoding
+
+```typescript
+import { Image } from "@cross/image";
+
+// Create a color image
+const colorImg = Image.create(200, 150, 128, 64, 32);
+
+// Encode as grayscale TIFF (automatically converts RGB to grayscale)
+const grayscaleTiff = await colorImg.encode("tiff", { grayscale: true });
+
+// Grayscale TIFFs are significantly smaller (1 byte per pixel vs 4)
+console.log(`Grayscale TIFF size: ${grayscaleTiff.length} bytes`);
+
+// Can combine with LZW compression
+const compressedGrayscale = await colorImg.encode("tiff", {
+  grayscale: true,
+  compression: "lzw",
+});
+```
+
+The grayscale encoder uses the standard luminance formula:
+`Y = 0.299*R +
+0.587*G + 0.114*B`
+
+Grayscale TIFFs are ideal for:
+
+- Document scanning
+- Medical imaging
+- Technical drawings
+- B&W photography
+- Reducing file size for monochrome content
+
 ### Multi-Page TIFF
 
 ```typescript
@@ -328,16 +364,16 @@ Potential improvements to the TIFF implementation:
 
 1. **Tiled TIFF support** - More efficient for large images
 2. **Multiple strips** - Better compatibility with some TIFF producers
-3. **Grayscale images** - Reduce file size for monochrome images
-4. **16-bit per channel** - HDR and high-precision imaging
-5. **CMYK color space** - Print industry support
-6. **Palette/indexed color** - Smaller files for limited color images
-7. **Predictor (compression=2)** - Better LZW compression for continuous-tone
+3. **16-bit per channel** - HDR and high-precision imaging
+4. **CMYK color space** - Print industry support
+5. **Palette/indexed color** - Smaller files for limited color images
+6. **Predictor (compression=2)** - Better LZW compression for continuous-tone
    images
-8. **RGB-only encoding** - Save space when alpha channel is not needed
-9. **Big-endian encoding** - Better compatibility with certain systems
-10. **PackBits compression** - Pure-JS implementation for additional compression
-    option
+7. **RGB-only encoding** - Save space when alpha channel is not needed
+8. **Big-endian encoding** - Better compatibility with certain systems
+9. **PackBits compression** - Pure-JS implementation for additional compression
+   option
+10. **Grayscale with alpha** - Support for grayscale images with transparency
 
 ## References
 

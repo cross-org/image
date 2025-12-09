@@ -330,3 +330,121 @@ test("TIFF: encode defaults to uncompressed when no options", async () => {
     );
   }
 });
+
+test("TIFF: encode and decode grayscale image", async () => {
+  const format = new TIFFFormat();
+
+  // Create a simple 4x4 grayscale gradient
+  const width = 4;
+  const height = 4;
+  const data = new Uint8Array(width * height * 4);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const gray = Math.floor((x + y * width) / (width * height - 1) * 255);
+      data[i] = gray; // R
+      data[i + 1] = gray; // G
+      data[i + 2] = gray; // B
+      data[i + 3] = 255; // A
+    }
+  }
+
+  const imageData = { width, height, data };
+
+  // Encode as grayscale
+  const encoded = await format.encode(imageData, { grayscale: true });
+
+  // Should be a valid TIFF
+  assertEquals(format.canDecode(encoded), true);
+
+  // Decode and verify
+  const decoded = await format.decode(encoded);
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+
+  // Verify grayscale values are preserved (allowing for small rounding differences)
+  for (let i = 0; i < width * height; i++) {
+    const srcGray = data[i * 4]; // Original R value
+    const dstGray = decoded.data[i * 4]; // Decoded R value
+    const diff = Math.abs(srcGray - dstGray);
+    assertEquals(
+      diff <= 1,
+      true,
+      `Grayscale mismatch at pixel ${i}: ${srcGray} vs ${dstGray}`,
+    );
+  }
+});
+
+test("TIFF: grayscale encoding is smaller than RGBA", async () => {
+  const format = new TIFFFormat();
+
+  // Create a simple grayscale image
+  const width = 50;
+  const height = 50;
+  const data = new Uint8Array(width * height * 4);
+
+  for (let i = 0; i < width * height; i++) {
+    const gray = 128;
+    data[i * 4] = gray;
+    data[i * 4 + 1] = gray;
+    data[i * 4 + 2] = gray;
+    data[i * 4 + 3] = 255;
+  }
+
+  const imageData = { width, height, data };
+
+  // Encode as RGBA and grayscale
+  const rgbaEncoded = await format.encode(imageData);
+  const grayEncoded = await format.encode(imageData, { grayscale: true });
+
+  console.log(
+    `RGBA: ${rgbaEncoded.length} bytes, Grayscale: ${grayEncoded.length} bytes`,
+  );
+
+  // Grayscale should be smaller (1 byte per pixel vs 4)
+  assertEquals(grayEncoded.length < rgbaEncoded.length, true);
+});
+
+test("TIFF: grayscale with LZW compression", async () => {
+  const format = new TIFFFormat();
+
+  // Create a grayscale pattern
+  const width = 8;
+  const height = 8;
+  const data = new Uint8Array(width * height * 4);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const gray = (x + y) % 2 === 0 ? 255 : 0;
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
+      data[i + 3] = 255;
+    }
+  }
+
+  const imageData = { width, height, data };
+
+  // Encode as grayscale with LZW
+  const encoded = await format.encode(imageData, {
+    grayscale: true,
+    compression: "lzw",
+  });
+
+  // Decode and verify
+  const decoded = await format.decode(encoded);
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+
+  // Verify pattern is preserved
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const expectedGray = (x + y) % 2 === 0 ? 255 : 0;
+      const actualGray = decoded.data[i];
+      assertEquals(actualGray, expectedGray, `Pattern mismatch at ${x},${y}`);
+    }
+  }
+});

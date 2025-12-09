@@ -25,7 +25,7 @@ status:
 | JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only                |
 | GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
 | WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
-| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed & LZW RGB/RGBA      |
+| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed, LZW, & grayscale   |
 
 **Legend:**
 
@@ -71,6 +71,7 @@ This table shows which format standards and variants are supported:
 |        | - EXIF, XMP metadata                | ✅ Full           | Pure-JS        |
 | TIFF   | TIFF 6.0 - Uncompressed RGB/RGBA    | ✅ Full           | Pure-JS        |
 |        | TIFF 6.0 - LZW compressed RGB/RGBA  | ✅ Full           | Pure-JS        |
+|        | TIFF 6.0 - Grayscale (0, 1)         | ✅ Full           | Pure-JS        |
 |        | - JPEG, PackBits compression        | ⚠️ Native only    | ImageDecoder   |
 |        | - Multi-page/IFD (decode & encode)  | ✅ Full           | Pure-JS        |
 |        | - EXIF, Artist, Copyright metadata  | ✅ Full           | Pure-JS        |
@@ -94,18 +95,18 @@ This table shows which format standards and variants are supported:
 
 ## Runtime Compatibility by Format
 
-| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                        |
-| ------ | -------- | ----------- | ----------- | --- | -------------------------------------------- |
-| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| APNG   | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| DNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| PAM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
-| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
-| TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW, 20+: full |
+| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                       |
+| ------ | -------- | ----------- | ----------- | --- | ------------------------------------------- |
+| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| APNG   | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| DNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| PAM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full   |
+| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full   |
+| TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW+grayscale |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP,
 GIF, ASCII, PCX or DNG formats which have complete pure-JS implementations.
