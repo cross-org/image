@@ -28,6 +28,7 @@ import { ICOFormat } from "./formats/ico.ts";
 import { DNGFormat } from "./formats/dng.ts";
 import { PAMFormat } from "./formats/pam.ts";
 import { PCXFormat } from "./formats/pcx.ts";
+import { PPMFormat } from "./formats/ppm.ts";
 import { ASCIIFormat } from "./formats/ascii.ts";
 import { validateImageDimensions } from "./utils/security.ts";
 
@@ -48,6 +49,7 @@ export class Image {
     new DNGFormat(),
     new PAMFormat(),
     new PCXFormat(),
+    new PPMFormat(),
     new ASCIIFormat(),
   ];
 
