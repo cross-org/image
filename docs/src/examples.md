@@ -205,7 +205,9 @@ await writeFile("output.webp", output);
 
 ## Image Processing
 
-### Adjusting Image Properties
+## Image Processing
+
+### Color Adjustments
 
 ```ts
 import { Image } from "@cross/image";
@@ -213,76 +215,91 @@ import { Image } from "@cross/image";
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
 
-// Adjust brightness (-1 to 1)
-image.brightness(0.2); // Increase brightness by 20%
+// Brightness: -1 to 1
+image.brightness(0.2);
 
-// Adjust contrast (-1 to 1)
-image.contrast(0.3); // Increase contrast
+// Contrast: -1 to 1
+image.contrast(0.3);
 
-// Adjust saturation (-1 to 1, -1 = grayscale)
-image.saturation(0.5); // Boost color saturation
+// Saturation: -1 (grayscale) to 1
+image.saturation(0.5);
 
-// Adjust exposure in stops (-3 to 3)
-image.exposure(1); // Increase exposure by 1 stop (2x brighter)
+// Exposure: stops, -3 to 3
+image.exposure(1);
 
 // Convert to grayscale
 image.grayscale();
 
-// Invert colors (negative effect)
+// Invert colors
 image.invert();
 
 const output = await image.encode("jpeg");
 await Deno.writeFile("adjusted.jpg", output);
 ```
 
-### Creating and Drawing on Images
+### Filters
 
 ```ts
 import { Image } from "@cross/image";
 
-// Create a blank white canvas
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Fast box blur (small radius)
+image.blur(2);
+
+// Gaussian blur (radius, optional sigma)
+image.gaussianBlur(3);
+
+// Median filter for strong noise reduction (radius)
+image.medianFilter(5);
+
+// Sharpen (amount 0..1)
+image.sharpen(0.7);
+
+// Combine filters (chainable)
+image.gaussianBlur(2).sharpen(0.6);
+
+const filtered = await image.encode("png");
+await Deno.writeFile("filtered.png", filtered);
+```
+
+### Resizing & Resampling
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.decode(data);
+
+// Bilinear (default)
+image.resize({ width: 800, height: 600 });
+
+// Nearest neighbor (pixelated)
+image.resize({ width: 400, height: 300, method: "nearest" });
+
+const out = await image.encode("png");
+await Deno.writeFile("resized.png", out);
+```
+
+### Drawing & Compositing
+
+```ts
+import { Image } from "@cross/image";
+
+// Create a canvas and draw
 const canvas = Image.create(800, 600, 255, 255, 255);
+canvas.fillRect(100, 100, 200, 150, 255, 0, 0); // solid red
+canvas.fillRect(250, 200, 300, 200, 0, 0, 255, 128); // semi-transparent blue
 
-// Draw a red rectangle
-canvas.fillRect(100, 100, 200, 150, 255, 0, 0);
-
-// Draw a semi-transparent blue rectangle
-canvas.fillRect(250, 200, 300, 200, 0, 0, 255, 128);
-
-// Set individual pixels
-canvas.setPixel(50, 50, 0, 255, 0); // Green pixel
-
-// Get pixel color
-const color = canvas.getPixel(50, 50);
-console.log(`Pixel: rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`);
-
-const output = await canvas.encode("png");
-await Deno.writeFile("canvas.png", output);
-```
-
-### Compositing Images
-
-```ts
-import { Image } from "@cross/image";
-
-// Load background image
-const background = await Image.decode(await Deno.readFile("background.jpg"));
-
-// Load overlay/logo
+// Composite another image
 const logo = await Image.decode(await Deno.readFile("logo.png"));
+canvas.composite(logo, 50, 50, 0.8);
 
-// Composite logo on background at position (50, 50) with 80% opacity
-background.composite(logo, 50, 50, 0.8);
-
-// Can also composite at negative positions (partial overlay)
-const watermark = await Image.decode(await Deno.readFile("watermark.png"));
-background.composite(watermark, -10, -10, 0.5);
-
-const output = await background.encode("png");
-await Deno.writeFile("composited.png", output);
+await Deno.writeFile("canvas.png", await canvas.encode("png"));
 ```
 
-### Cropping Images
+### Cropping
 
 ```ts
 import { Image } from "@cross/image";
@@ -293,8 +310,7 @@ const image = await Image.decode(data);
 // Crop to a 400x400 region starting at (100, 50)
 image.crop(100, 50, 400, 400);
 
-const output = await image.encode("png");
-await Deno.writeFile("cropped.png", output);
+await Deno.writeFile("cropped.png", await image.encode("png"));
 ```
 
 ## Format-Specific Examples
