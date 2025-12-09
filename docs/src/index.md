@@ -14,10 +14,10 @@ Deno, Node.js, and Bun.
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
 - 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
-  PAM, PCX and ASCII support
+  PAM, PPM, PCX and ASCII support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
-- 🎛️ **Image processing** - Chainable `brightness`, `contrast`, `saturation`,
-  and `exposure` helpers
+- 🎛️ **Image processing** - Chainable filters including `brightness`,
+  `contrast`, `saturation`, `exposure`, `blur`, `sharpen`, `sepia`, and more
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
 - 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface
@@ -33,21 +33,21 @@ import { Image } from "jsr:@cross/image";
 ### Node.js
 
 ```bash
-npx jsr add @cross/image
+npm install cross-image
 ```
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 ```
 
 ### Bun
 
 ```bash
-bunx jsr add @cross/image
+npm install cross-image
 ```
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 ```
 
 ## Quick Start
@@ -97,26 +97,6 @@ image.resize({ width: 800, height: 600 });
 
 // Save the result
 const jpeg = await image.encode("jpeg");
-await writeFile("output.jpg", jpeg);
-```
-
-### Node.js
-
-```ts
-import { Image } from "cross-image";
-import { readFile, writeFile } from "node:fs/promises";
-
-// Read an image (auto-detects format)
-const data = await readFile("input.png");
-const image = await Image.decode(data);
-
-console.log(`Image size: ${image.width}x${image.height}`);
-
-// Resize the image
-image.resize({ width: 800, height: 600 });
-
-// Save in a different format
-const jpeg = await image.save("jpeg");
 await writeFile("output.jpg", jpeg);
 ```
 
