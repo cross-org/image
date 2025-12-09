@@ -127,10 +127,26 @@ detailed compatibility information.
 
 - **[API Reference](https://cross-image.56k.guru/api/)** - Complete API
   documentation
-- **[Examples](https://cross-image.56k.guru/examples/)** - Usage examples for
-  common tasks
 - **[Format Support](https://cross-image.56k.guru/formats/)** - Supported
   formats and specifications
+- **[Image Processing](https://cross-image.56k.guru/processing/)** - Filters,
+  manipulation, and color adjustments
+  - [Filters](https://cross-image.56k.guru/processing/filters/) - Blur, sharpen,
+    and noise reduction
+  - [Manipulation](https://cross-image.56k.guru/processing/manipulation/) -
+    Resize, crop, composite, and draw
+  - [Color Adjustments](https://cross-image.56k.guru/processing/color-adjustments/) -
+    Brightness, contrast, saturation, and more
+- **[Examples](https://cross-image.56k.guru/examples/)** - Practical examples
+  for common tasks
+  - [Decoding & Encoding](https://cross-image.56k.guru/examples/decoding-encoding/) -
+    Format-specific examples
+  - [Using Filters](https://cross-image.56k.guru/examples/filters/) - Filter
+    workflows and techniques
+  - [Manipulation](https://cross-image.56k.guru/examples/manipulation/) -
+    Resizing, cropping, and compositing
+  - [Multi-Frame Images](https://cross-image.56k.guru/examples/multi-frame/) -
+    Animated GIFs, APNGs, and TIFFs
 - **[JPEG Implementation](https://cross-image.56k.guru/implementation/jpeg-implementation/)** -
   Technical details for JPEG
 - **[WebP Implementation](https://cross-image.56k.guru/implementation/webp-implementation/)** -

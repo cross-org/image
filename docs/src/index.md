@@ -124,7 +124,21 @@ await writeFile("output.jpg", jpeg);
 
 - **[API Reference](api.md)** - Complete API documentation
 - **[Format Support](formats.md)** - Supported formats and specifications
-- **[Examples](examples.md)** - Usage examples for common tasks
+- **[Image Processing](processing/)** - Filters, manipulation, and color
+  adjustments
+  - [Filters](processing/filters.md) - Blur, sharpen, and noise reduction
+  - [Manipulation](processing/manipulation.md) - Resize, crop, composite, and
+    draw
+  - [Color Adjustments](processing/color-adjustments.md) - Brightness, contrast,
+    saturation, and more
+- **[Examples](examples/)** - Practical examples for common tasks
+  - [Decoding & Encoding](examples/decoding-encoding.md) - Format-specific
+    examples
+  - [Using Filters](examples/filters.md) - Filter workflows and techniques
+  - [Manipulation](examples/manipulation.md) - Resizing, cropping, and
+    compositing
+  - [Multi-Frame Images](examples/multi-frame.md) - Animated GIFs, APNGs, and
+    TIFFs
 - **[JPEG Implementation](implementation/jpeg-implementation.md)** - Technical
   details for JPEG
 - **[WebP Implementation](implementation/webp-implementation.md)** - Technical
