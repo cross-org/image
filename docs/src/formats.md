@@ -101,18 +101,18 @@ This table shows which format standards and variants are supported:
 
 ## Runtime Compatibility by Format
 
-| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                        |
-| ------ | -------- | ----------- | ----------- | --- | -------------------------------------------- |
-| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| APNG   | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| DNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| PAM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| PPM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                     |
-| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full    |
-| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full    |
+| Format | Deno 2.x | Node.js 18+ | Node.js 20+ | Bun | Notes                                       |
+| ------ | -------- | ----------- | ----------- | --- | ------------------------------------------- |
+| PNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| APNG   | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| DNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| PAM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| PPM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
+| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full   |
+| WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full   |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW+grayscale |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP,

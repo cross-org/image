@@ -31,6 +31,7 @@ encoder and decoder** that works correctly for the most common JPEG images:
 - ✅ Chroma subsampling - **4:4:4, 4:2:2, and 4:2:0 fully tested and supported**
 
 ### Encoder (Baseline DCT)
+
 ---
 title: "JPEG"
 parent: "Implementation Notes"
@@ -39,8 +40,8 @@ nav_order: 1
 
 # JPEG Pure-JS Implementation Notes
 
-- **Decoder:** baseline DCT (SOF0) implemented. Supports Huffman (DC/AC),
-  DQT, IDCT, YCbCr→RGB, grayscale, and chroma subsampling (4:4:4, 4:2:2, 4:2:0).
+- **Decoder:** baseline DCT (SOF0) implemented. Supports Huffman (DC/AC), DQT,
+  IDCT, YCbCr→RGB, grayscale, and chroma subsampling (4:4:4, 4:2:2, 4:2:0).
   Progressive, arithmetic, and lossless JPEGs are not supported.
 - **Encoder:** baseline DCT implemented with adjustable quality, standard
   Huffman tables, and JFIF/EXIF marker support. Defaults to 4:4:4 (no
@@ -55,5 +56,5 @@ nav_order: 1
 - **Tests:** `test/formats/jpeg.test.ts`, `test/purejs_roundtrip.test.ts`,
   `test/formats/jpeg_subsampling.test.ts`.
 - **Notes:** prioritize correctness and compatibility across runtimes. Future
-  work: progressive support, chroma-subsampled encoding, and optimized
-  Huffman tables.
+  work: progressive support, chroma-subsampled encoding, and optimized Huffman
+  tables.

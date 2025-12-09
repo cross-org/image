@@ -30,6 +30,7 @@ LZ77 and color cache.
 - ✅ Code length Huffman table generation and encoding
 - ✅ Single channel with many unique values (tested up to 50 colors)
 - ✅ Multiple channels with many unique values (tested 50x50 gradients)
+
 ---
 title: "WebP"
 parent: "Implementation Notes"
