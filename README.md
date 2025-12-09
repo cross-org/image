@@ -15,8 +15,8 @@ dependencies.
 - 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
   PAM, PPM, PCX and ASCII support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
-- 🎛️ **Image processing** - Chainable `brightness`, `contrast`, `saturation`,
-  and `exposure` helpers
+- 🎛️ **Image processing** - Chainable filters including `brightness`,
+  `contrast`, `saturation`, `exposure`, `blur`, `sharpen`, `sepia`, and more
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
 - 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface
@@ -68,11 +68,13 @@ const canvas = Image.create(800, 600, 255, 255, 255); // white background
 // Composite the loaded image on top
 canvas.composite(image, 50, 50);
 
-// Apply image processing
+// Apply image processing filters
 canvas
   .brightness(0.1)
   .contrast(0.2)
-  .saturation(-0.1);
+  .saturation(-0.1)
+  .blur(1)
+  .sharpen(0.3);
 
 // Encode in a different format
 const jpeg = await canvas.encode("jpeg");

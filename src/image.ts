@@ -11,11 +11,16 @@ import {
   adjustContrast,
   adjustExposure,
   adjustSaturation,
+  boxBlur,
   composite,
   crop,
   fillRect,
+  gaussianBlur,
   grayscale,
   invert,
+  medianFilter,
+  sepia,
+  sharpen,
 } from "./utils/image_processing.ts";
 import { PNGFormat } from "./formats/png.ts";
 import { APNGFormat } from "./formats/apng.ts";
@@ -589,6 +594,92 @@ export class Image {
     if (!this.imageData) throw new Error("No image loaded");
 
     this.imageData.data = grayscale(this.imageData.data);
+
+    return this;
+  }
+
+  /**
+   * Apply sepia tone effect to the image
+   * @returns This image instance for chaining
+   */
+  sepia(): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = sepia(this.imageData.data);
+
+    return this;
+  }
+
+  /**
+   * Apply box blur filter to the image
+   * @param radius Blur radius (default: 1)
+   * @returns This image instance for chaining
+   */
+  blur(radius = 1): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = boxBlur(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      radius,
+    );
+
+    return this;
+  }
+
+  /**
+   * Apply Gaussian blur filter to the image
+   * @param radius Blur radius (default: 1)
+   * @param sigma Optional standard deviation (if not provided, calculated from radius)
+   * @returns This image instance for chaining
+   */
+  gaussianBlur(radius = 1, sigma?: number): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = gaussianBlur(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      radius,
+      sigma,
+    );
+
+    return this;
+  }
+
+  /**
+   * Apply sharpen filter to the image
+   * @param amount Sharpening amount (0-1, default: 0.5)
+   * @returns This image instance for chaining
+   */
+  sharpen(amount = 0.5): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = sharpen(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      amount,
+    );
+
+    return this;
+  }
+
+  /**
+   * Apply median filter to reduce noise
+   * @param radius Filter radius (default: 1)
+   * @returns This image instance for chaining
+   */
+  medianFilter(radius = 1): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = medianFilter(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      radius,
+    );
 
     return this;
   }

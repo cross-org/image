@@ -318,3 +318,303 @@ export function crop(
 
   return { data: result, width: actualWidth, height: actualHeight };
 }
+
+/**
+ * Apply a box blur filter to an image
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param radius Blur radius (default: 1)
+ * @returns New image data with box blur applied
+ */
+export function boxBlur(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  radius = 1,
+): Uint8Array {
+  const result = new Uint8Array(data.length);
+  const clampedRadius = Math.max(1, Math.floor(radius));
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      let count = 0;
+
+      // Iterate over kernel
+      for (let ky = -clampedRadius; ky <= clampedRadius; ky++) {
+        for (let kx = -clampedRadius; kx <= clampedRadius; kx++) {
+          const px = x + kx;
+          const py = y + ky;
+
+          // Check bounds
+          if (px >= 0 && px < width && py >= 0 && py < height) {
+            const idx = (py * width + px) * 4;
+            r += data[idx];
+            g += data[idx + 1];
+            b += data[idx + 2];
+            a += data[idx + 3];
+            count++;
+          }
+        }
+      }
+
+      const outIdx = (y * width + x) * 4;
+      result[outIdx] = Math.round(r / count);
+      result[outIdx + 1] = Math.round(g / count);
+      result[outIdx + 2] = Math.round(b / count);
+      result[outIdx + 3] = Math.round(a / count);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Generate a Gaussian kernel for blur
+ * @param radius Kernel radius
+ * @param sigma Standard deviation (if not provided, calculated from radius)
+ * @returns Gaussian kernel as 1D array
+ */
+function generateGaussianKernel(radius: number, sigma?: number): number[] {
+  const size = radius * 2 + 1;
+  const kernel: number[] = new Array(size);
+  const s = sigma ?? radius / 3;
+  const s2 = 2 * s * s;
+  let sum = 0;
+
+  for (let i = 0; i < size; i++) {
+    const x = i - radius;
+    kernel[i] = Math.exp(-(x * x) / s2);
+    sum += kernel[i];
+  }
+
+  // Normalize
+  for (let i = 0; i < size; i++) {
+    kernel[i] /= sum;
+  }
+
+  return kernel;
+}
+
+/**
+ * Apply Gaussian blur to an image
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param radius Blur radius (default: 1)
+ * @param sigma Optional standard deviation (if not provided, calculated from radius)
+ * @returns New image data with Gaussian blur applied
+ */
+export function gaussianBlur(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  radius = 1,
+  sigma?: number,
+): Uint8Array {
+  const clampedRadius = Math.max(1, Math.floor(radius));
+  const kernel = generateGaussianKernel(clampedRadius, sigma);
+
+  // Apply horizontal pass
+  const temp = new Uint8Array(data.length);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+
+      for (let kx = -clampedRadius; kx <= clampedRadius; kx++) {
+        const px = Math.max(0, Math.min(width - 1, x + kx));
+        const idx = (y * width + px) * 4;
+        const weight = kernel[kx + clampedRadius];
+
+        r += data[idx] * weight;
+        g += data[idx + 1] * weight;
+        b += data[idx + 2] * weight;
+        a += data[idx + 3] * weight;
+      }
+
+      const outIdx = (y * width + x) * 4;
+      temp[outIdx] = Math.round(r);
+      temp[outIdx + 1] = Math.round(g);
+      temp[outIdx + 2] = Math.round(b);
+      temp[outIdx + 3] = Math.round(a);
+    }
+  }
+
+  // Apply vertical pass
+  const result = new Uint8Array(data.length);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+
+      for (let ky = -clampedRadius; ky <= clampedRadius; ky++) {
+        const py = Math.max(0, Math.min(height - 1, y + ky));
+        const idx = (py * width + x) * 4;
+        const weight = kernel[ky + clampedRadius];
+
+        r += temp[idx] * weight;
+        g += temp[idx + 1] * weight;
+        b += temp[idx + 2] * weight;
+        a += temp[idx + 3] * weight;
+      }
+
+      const outIdx = (y * width + x) * 4;
+      result[outIdx] = Math.round(r);
+      result[outIdx + 1] = Math.round(g);
+      result[outIdx + 2] = Math.round(b);
+      result[outIdx + 3] = Math.round(a);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Apply sharpen filter to an image
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param amount Sharpening amount (0-1, default: 0.5)
+ * @returns New image data with sharpening applied
+ */
+export function sharpen(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  amount = 0.5,
+): Uint8Array {
+  const result = new Uint8Array(data.length);
+  const clampedAmount = Math.max(0, Math.min(1, amount));
+
+  // Sharpen kernel (Laplacian-based)
+  // Center weight is 1 + 4*amount, neighbors are -amount
+  const center = 1 + 4 * clampedAmount;
+  const neighbor = -clampedAmount;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+
+      let r = data[idx] * center;
+      let g = data[idx + 1] * center;
+      let b = data[idx + 2] * center;
+
+      // Apply kernel to neighbors (4-connected)
+      const neighbors = [
+        { dx: 0, dy: -1 }, // top
+        { dx: -1, dy: 0 }, // left
+        { dx: 1, dy: 0 }, // right
+        { dx: 0, dy: 1 }, // bottom
+      ];
+
+      for (const { dx, dy } of neighbors) {
+        const nx = x + dx;
+        const ny = y + dy;
+
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+          const nIdx = (ny * width + nx) * 4;
+          r += data[nIdx] * neighbor;
+          g += data[nIdx + 1] * neighbor;
+          b += data[nIdx + 2] * neighbor;
+        }
+      }
+
+      result[idx] = Math.max(0, Math.min(255, Math.round(r)));
+      result[idx + 1] = Math.max(0, Math.min(255, Math.round(g)));
+      result[idx + 2] = Math.max(0, Math.min(255, Math.round(b)));
+      result[idx + 3] = data[idx + 3]; // Alpha unchanged
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Apply sepia tone effect to an image
+ * @param data Image data (RGBA)
+ * @returns New image data with sepia tone applied
+ */
+export function sepia(data: Uint8Array): Uint8Array {
+  const result = new Uint8Array(data.length);
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    // Sepia transformation matrix
+    result[i] = Math.min(255, Math.round(r * 0.393 + g * 0.769 + b * 0.189));
+    result[i + 1] = Math.min(
+      255,
+      Math.round(r * 0.349 + g * 0.686 + b * 0.168),
+    );
+    result[i + 2] = Math.min(
+      255,
+      Math.round(r * 0.272 + g * 0.534 + b * 0.131),
+    );
+    result[i + 3] = data[i + 3]; // Alpha unchanged
+  }
+
+  return result;
+}
+
+/**
+ * Apply median filter to reduce noise
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param radius Filter radius (default: 1)
+ * @returns New image data with median filter applied
+ */
+export function medianFilter(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  radius = 1,
+): Uint8Array {
+  const result = new Uint8Array(data.length);
+  const clampedRadius = Math.max(1, Math.floor(radius));
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const rValues: number[] = [];
+      const gValues: number[] = [];
+      const bValues: number[] = [];
+      const aValues: number[] = [];
+
+      // Collect values in kernel window
+      for (let ky = -clampedRadius; ky <= clampedRadius; ky++) {
+        for (let kx = -clampedRadius; kx <= clampedRadius; kx++) {
+          const px = x + kx;
+          const py = y + ky;
+
+          if (px >= 0 && px < width && py >= 0 && py < height) {
+            const idx = (py * width + px) * 4;
+            rValues.push(data[idx]);
+            gValues.push(data[idx + 1]);
+            bValues.push(data[idx + 2]);
+            aValues.push(data[idx + 3]);
+          }
+        }
+      }
+
+      // Sort and get median
+      rValues.sort((a, b) => a - b);
+      gValues.sort((a, b) => a - b);
+      bValues.sort((a, b) => a - b);
+      aValues.sort((a, b) => a - b);
+
+      const mid = Math.floor(rValues.length / 2);
+      const outIdx = (y * width + x) * 4;
+
+      result[outIdx] = rValues[mid];
+      result[outIdx + 1] = gValues[mid];
+      result[outIdx + 2] = bValues[mid];
+      result[outIdx + 3] = aValues[mid];
+    }
+  }
+
+  return result;
+}

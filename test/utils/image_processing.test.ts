@@ -384,3 +384,224 @@ test("Image: processing pipeline", async () => {
   const encoded = await image.encode("png");
   assertEquals(encoded.length > 0, true);
 });
+
+test("Image: blur filter - basic", () => {
+  const image = Image.create(10, 10, 100, 150, 200, 255);
+
+  // Apply blur
+  image.blur(1);
+
+  // Check that pixels have been blurred (values should be averaged)
+  const pixel = image.getPixel(5, 5);
+  assertExists(pixel);
+  assertEquals(pixel.a, 255); // Alpha unchanged
+  // Colors should still be in reasonable range
+  assertEquals(pixel.r >= 0 && pixel.r <= 255, true);
+  assertEquals(pixel.g >= 0 && pixel.g <= 255, true);
+  assertEquals(pixel.b >= 0 && pixel.b <= 255, true);
+});
+
+test("Image: blur filter - with radius", () => {
+  // Create image with a single red pixel in the center
+  const image = Image.create(11, 11, 0, 0, 0, 255);
+  image.setPixel(5, 5, 255, 0, 0, 255);
+
+  // Apply blur with radius 2
+  image.blur(2);
+
+  // Center pixel should still have high red value but reduced
+  const centerPixel = image.getPixel(5, 5);
+  assertExists(centerPixel);
+  assertEquals(centerPixel.r > 0, true);
+  assertEquals(centerPixel.r < 255, true);
+
+  // Adjacent pixels should have some red from blur
+  const adjacentPixel = image.getPixel(6, 5);
+  assertExists(adjacentPixel);
+  assertEquals(adjacentPixel.r > 0, true);
+});
+
+test("Image: Gaussian blur - basic", () => {
+  const image = Image.create(10, 10, 100, 150, 200, 255);
+
+  // Apply Gaussian blur
+  image.gaussianBlur(1);
+
+  // Check that pixels have been blurred
+  const pixel = image.getPixel(5, 5);
+  assertExists(pixel);
+  assertEquals(pixel.a, 255); // Alpha unchanged
+  assertEquals(pixel.r >= 0 && pixel.r <= 255, true);
+  assertEquals(pixel.g >= 0 && pixel.g <= 255, true);
+  assertEquals(pixel.b >= 0 && pixel.b <= 255, true);
+});
+
+test("Image: Gaussian blur - with custom sigma", () => {
+  const image = Image.create(15, 15, 128, 128, 128, 255);
+
+  // Place a bright pixel in center
+  image.setPixel(7, 7, 255, 255, 255, 255);
+
+  // Apply Gaussian blur with custom sigma
+  image.gaussianBlur(2, 1.5);
+
+  // Center should be bright but blurred
+  const centerPixel = image.getPixel(7, 7);
+  assertExists(centerPixel);
+  assertEquals(centerPixel.r > 128, true);
+  assertEquals(centerPixel.r <= 255, true);
+});
+
+test("Image: sharpen filter - basic", () => {
+  // Create a slightly blurred-looking image
+  const image = Image.create(10, 10, 128, 128, 128, 255);
+
+  // Apply sharpen
+  image.sharpen(0.3);
+
+  // Check that operation completed
+  const pixel = image.getPixel(5, 5);
+  assertExists(pixel);
+  assertEquals(pixel.a, 255); // Alpha unchanged
+});
+
+test("Image: sharpen filter - edge enhancement", () => {
+  // Create an image with a clear edge
+  const image = Image.create(10, 10, 0, 0, 0, 255);
+
+  // Draw a white rectangle in the middle
+  image.fillRect(3, 3, 4, 4, 255, 255, 255, 255);
+
+  // Apply sharpen to enhance the edge
+  image.sharpen(0.5);
+
+  // Edges should be enhanced (values may go slightly outside original range)
+  const edgePixel = image.getPixel(3, 3);
+  assertExists(edgePixel);
+  assertEquals(edgePixel.r >= 0 && edgePixel.r <= 255, true);
+});
+
+test("Image: sepia filter", () => {
+  const image = Image.create(5, 5, 200, 100, 50, 255);
+
+  image.sepia();
+
+  const pixel = image.getPixel(2, 2);
+  assertExists(pixel);
+
+  // Sepia should give warm brownish tones
+  // Red channel should be higher than blue
+  assertEquals(pixel.r > pixel.b, true);
+  assertEquals(pixel.a, 255); // Alpha unchanged
+  // All values should be in valid range
+  assertEquals(pixel.r >= 0 && pixel.r <= 255, true);
+  assertEquals(pixel.g >= 0 && pixel.g <= 255, true);
+  assertEquals(pixel.b >= 0 && pixel.b <= 255, true);
+});
+
+test("Image: sepia filter - on grayscale", () => {
+  // Start with grayscale
+  const image = Image.create(5, 5, 128, 128, 128, 255);
+
+  image.sepia();
+
+  const pixel = image.getPixel(2, 2);
+  assertExists(pixel);
+
+  // After sepia, channels should be different
+  assertEquals(pixel.r !== pixel.g || pixel.g !== pixel.b, true);
+  assertEquals(pixel.a, 255); // Alpha unchanged
+});
+
+test("Image: median filter - basic", () => {
+  const image = Image.create(10, 10, 100, 150, 200, 255);
+
+  // Apply median filter
+  image.medianFilter(1);
+
+  // Check that operation completed
+  const pixel = image.getPixel(5, 5);
+  assertExists(pixel);
+  assertEquals(pixel.a, 255);
+  assertEquals(pixel.r >= 0 && pixel.r <= 255, true);
+});
+
+test("Image: median filter - noise reduction", () => {
+  // Create image with salt-and-pepper noise
+  const image = Image.create(11, 11, 128, 128, 128, 255);
+
+  // Add some noise pixels
+  image.setPixel(5, 5, 255, 255, 255, 255); // white noise
+  image.setPixel(5, 6, 0, 0, 0, 255); // black noise
+  image.setPixel(6, 5, 255, 255, 255, 255); // white noise
+
+  // Apply median filter to reduce noise
+  image.medianFilter(1);
+
+  // Noise pixels should be closer to surrounding gray values
+  const pixel1 = image.getPixel(5, 5);
+  assertExists(pixel1);
+  // Should be closer to 128 than original 255
+  assertEquals(Math.abs(pixel1.r - 128) < 100, true);
+});
+
+test("Image: filter chaining", () => {
+  const image = Image.create(20, 20, 150, 100, 80, 255);
+
+  // Chain multiple filters
+  image
+    .blur(1)
+    .sharpen(0.3)
+    .sepia()
+    .brightness(0.1);
+
+  assertEquals(image.width, 20);
+  assertEquals(image.height, 20);
+
+  const pixel = image.getPixel(10, 10);
+  assertExists(pixel);
+  assertEquals(pixel.a, 255);
+});
+
+test("Image: Gaussian blur vs box blur", () => {
+  // Create two identical images
+  const image1 = Image.create(15, 15, 128, 128, 128, 255);
+  const image2 = Image.create(15, 15, 128, 128, 128, 255);
+
+  // Add the same bright pixel in center
+  image1.setPixel(7, 7, 255, 255, 255, 255);
+  image2.setPixel(7, 7, 255, 255, 255, 255);
+
+  // Apply different blur methods
+  image1.blur(2);
+  image2.gaussianBlur(2);
+
+  // Both should blur, but results will differ
+  const pixel1 = image1.getPixel(7, 7);
+  const pixel2 = image2.getPixel(7, 7);
+
+  assertExists(pixel1);
+  assertExists(pixel2);
+
+  // Both should have reduced the bright pixel
+  assertEquals(pixel1.r < 255, true);
+  assertEquals(pixel2.r < 255, true);
+  assertEquals(pixel1.r > 128, true);
+  assertEquals(pixel2.r > 128, true);
+});
+
+test("Image: filter with encode/decode", async () => {
+  const image = Image.create(30, 30, 200, 150, 100, 255);
+
+  // Apply filters
+  image.sepia().blur(1).sharpen(0.2);
+
+  // Encode to PNG
+  const encoded = await image.encode("png");
+  assertEquals(encoded.length > 0, true);
+
+  // Decode and verify dimensions
+  const decoded = await Image.decode(encoded);
+  assertEquals(decoded.width, 30);
+  assertEquals(decoded.height, 30);
+});

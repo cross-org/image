@@ -421,6 +421,95 @@ Convert the image to grayscale.
 image.grayscale(); // Convert to black and white
 ```
 
+#### `sepia(): this`
+
+Apply a sepia tone effect to the image, giving it a warm, brownish, vintage
+appearance.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.sepia(); // Apply vintage sepia tone effect
+```
+
+#### `blur(radius?: number): this`
+
+Apply a box blur filter to the image.
+
+**Parameters:**
+
+- `radius` - Blur radius (default: 1). Higher values create stronger blur.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.blur(); // Light blur with default radius
+image.blur(3); // Stronger blur effect
+```
+
+#### `gaussianBlur(radius?: number, sigma?: number): this`
+
+Apply a Gaussian blur filter to the image. Gaussian blur provides more natural,
+edge-preserving results compared to box blur.
+
+**Parameters:**
+
+- `radius` - Blur radius (default: 1)
+- `sigma` - Optional standard deviation for the Gaussian kernel. If not
+  provided, calculated from radius (radius / 3)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.gaussianBlur(); // Natural blur with default parameters
+image.gaussianBlur(2); // Medium blur
+image.gaussianBlur(3, 1.5); // Custom blur with specific sigma
+```
+
+#### `sharpen(amount?: number): this`
+
+Apply a sharpening filter to enhance edges and details in the image.
+
+**Parameters:**
+
+- `amount` - Sharpening amount (0 to 1, default: 0.5). Higher values create
+  stronger sharpening.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.sharpen(); // Moderate sharpening
+image.sharpen(0.3); // Light sharpening
+image.sharpen(0.8); // Strong sharpening
+```
+
+#### `medianFilter(radius?: number): this`
+
+Apply a median filter to reduce noise, especially effective for salt-and-pepper
+noise while preserving edges.
+
+**Parameters:**
+
+- `radius` - Filter radius (default: 1). Higher values provide stronger noise
+  reduction but slower processing.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.medianFilter(); // Light noise reduction
+image.medianFilter(2); // Stronger noise reduction
+```
+
 #### `fillRect(x: number, y: number, width: number, height: number, r: number, g: number, b: number, a?: number): this`
 
 Fill a rectangular region with a solid color.
