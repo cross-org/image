@@ -448,3 +448,131 @@ test("TIFF: grayscale with LZW compression", async () => {
     }
   }
 });
+
+test("TIFF: encode and decode RGB (no alpha) image", async () => {
+  const format = new TIFFFormat();
+
+  // Create a colorful 4x4 image
+  const width = 4;
+  const height = 4;
+  const data = new Uint8Array(width * height * 4);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      data[i] = x * 60; // R varies by x
+      data[i + 1] = y * 60; // G varies by y
+      data[i + 2] = 128; // B constant
+      data[i + 3] = 255; // A (will be dropped)
+    }
+  }
+
+  const imageData = { width, height, data };
+
+  // Encode as RGB (no alpha)
+  const encoded = await format.encode(imageData, { rgb: true });
+
+  // Should be a valid TIFF
+  assertEquals(format.canDecode(encoded), true);
+
+  // Decode and verify
+  const decoded = await format.decode(encoded);
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+
+  // Verify RGB values are preserved (alpha should be 255)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      assertEquals(decoded.data[i], data[i], `R mismatch at ${x},${y}`);
+      assertEquals(decoded.data[i + 1], data[i + 1], `G mismatch at ${x},${y}`);
+      assertEquals(decoded.data[i + 2], data[i + 2], `B mismatch at ${x},${y}`);
+      assertEquals(
+        decoded.data[i + 3],
+        255,
+        `Alpha should be 255 at ${x},${y}`,
+      );
+    }
+  }
+});
+
+test("TIFF: RGB encoding is smaller than RGBA", async () => {
+  const format = new TIFFFormat();
+
+  // Create a color image
+  const width = 50;
+  const height = 50;
+  const data = new Uint8Array(width * height * 4);
+
+  for (let i = 0; i < width * height; i++) {
+    data[i * 4] = 255; // R
+    data[i * 4 + 1] = 128; // G
+    data[i * 4 + 2] = 64; // B
+    data[i * 4 + 3] = 255; // A
+  }
+
+  const imageData = { width, height, data };
+
+  // Encode as RGBA and RGB
+  const rgbaEncoded = await format.encode(imageData);
+  const rgbEncoded = await format.encode(imageData, { rgb: true });
+
+  console.log(
+    `RGBA: ${rgbaEncoded.length} bytes, RGB: ${rgbEncoded.length} bytes`,
+  );
+
+  // RGB should be smaller (3 bytes per pixel vs 4)
+  assertEquals(rgbEncoded.length < rgbaEncoded.length, true);
+});
+
+test("TIFF: RGB with LZW compression", async () => {
+  const format = new TIFFFormat();
+
+  // Create a color pattern
+  const width = 8;
+  const height = 8;
+  const data = new Uint8Array(width * height * 4);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const isRed = (x + y) % 2 === 0;
+      data[i] = isRed ? 255 : 0; // R
+      data[i + 1] = isRed ? 0 : 255; // G
+      data[i + 2] = 0; // B
+      data[i + 3] = 255; // A
+    }
+  }
+
+  const imageData = { width, height, data };
+
+  // Encode as RGB with LZW
+  const encoded = await format.encode(imageData, {
+    rgb: true,
+    compression: "lzw",
+  });
+
+  // Decode and verify
+  const decoded = await format.decode(encoded);
+  assertEquals(decoded.width, width);
+  assertEquals(decoded.height, height);
+
+  // Verify pattern is preserved
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const isRed = (x + y) % 2 === 0;
+      assertEquals(
+        decoded.data[i],
+        isRed ? 255 : 0,
+        `R mismatch at ${x},${y}`,
+      );
+      assertEquals(
+        decoded.data[i + 1],
+        isRed ? 0 : 255,
+        `G mismatch at ${x},${y}`,
+      );
+      assertEquals(decoded.data[i + 2], 0, `B mismatch at ${x},${y}`);
+    }
+  }
+});

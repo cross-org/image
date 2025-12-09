@@ -42,13 +42,13 @@ uncompressed and LZW-compressed RGB/RGBA images with multi-page support:
 - ✅ Uncompressed RGBA (compression=1) - **fully implemented**
 - ✅ LZW compressed RGBA (compression=5) - **fully implemented**
 - ✅ Grayscale encoding (photometric 1=BlackIsZero) - **fully implemented**
+- ✅ RGB-only encoding (without alpha) - **fully implemented**
 - ✅ Multi-page/Multi-IFD encoding - **fully implemented**
 - ✅ Metadata injection (DPI, description, author, copyright, creation date) -
   **fully implemented**
 - ✅ Single strip encoding - **fully implemented**
 - ✅ ExtraSamples tag for alpha channel - **fully implemented**
 - ✅ Rational DPI values - **fully implemented**
-- ❌ RGB-only encoding (without alpha) - **always encodes RGBA or grayscale**
 - ❌ Big-endian byte order - **little-endian only**
 - ❌ Multiple strips per image - **not yet implemented**
 - ❌ TIFF tiles - **not yet implemented**
@@ -300,6 +300,34 @@ Grayscale TIFFs are ideal for:
 - B&W photography
 - Reducing file size for monochrome content
 
+### RGB-Only Encoding (No Alpha)
+
+```typescript
+import { Image } from "@cross/image";
+
+// Create a color image
+const colorImg = Image.create(200, 150, 255, 128, 64);
+
+// Encode as RGB TIFF (strips alpha channel)
+const rgbTiff = await colorImg.encode("tiff", { rgb: true });
+
+// RGB TIFFs are smaller than RGBA (3 bytes per pixel vs 4)
+console.log(`RGB TIFF size: ${rgbTiff.length} bytes`);
+
+// Can combine with LZW compression
+const compressedRgb = await colorImg.encode("tiff", {
+  rgb: true,
+  compression: "lzw",
+});
+```
+
+RGB-only encoding is ideal for:
+
+- Color images without transparency
+- Reducing file size when alpha is not needed
+- Compatibility with systems that don't support alpha
+- Standard photography and graphics
+
 ### Multi-Page TIFF
 
 ```typescript
@@ -368,11 +396,10 @@ Potential improvements to the TIFF implementation:
 5. **Palette/indexed color** - Smaller files for limited color images
 6. **Predictor (compression=2)** - Better LZW compression for continuous-tone
    images
-7. **RGB-only encoding** - Save space when alpha channel is not needed
-8. **Big-endian encoding** - Better compatibility with certain systems
-9. **PackBits compression** - Pure-JS implementation for additional compression
+7. **Big-endian encoding** - Better compatibility with certain systems
+8. **PackBits compression** - Pure-JS implementation for additional compression
    option
-10. **Grayscale with alpha** - Support for grayscale images with transparency
+9. **Grayscale with alpha** - Support for grayscale images with transparency
 
 ## References
 

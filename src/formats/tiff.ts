@@ -18,6 +18,8 @@ export interface TIFFEncodeOptions {
   compression?: "none" | "lzw";
   /** Encode as grayscale instead of RGB/RGBA */
   grayscale?: boolean;
+  /** Encode as RGB without alpha channel (ignored if grayscale is true) */
+  rgb?: boolean;
 }
 
 /**
@@ -207,11 +209,15 @@ export class TIFFFormat implements ImageFormat {
     const opts = options as TIFFEncodeOptions | undefined;
     const compression = opts?.compression ?? "none";
     const grayscale = opts?.grayscale ?? false;
+    const rgb = opts?.rgb ?? false;
 
     // Convert RGBA to grayscale if requested
     let sourceData: Uint8Array;
+    let samplesPerPixel: number;
+
     if (grayscale) {
       sourceData = new Uint8Array(width * height);
+      samplesPerPixel = 1;
       for (let i = 0; i < width * height; i++) {
         const r = data[i * 4];
         const g = data[i * 4 + 1];
@@ -219,8 +225,19 @@ export class TIFFFormat implements ImageFormat {
         // Use standard luminance formula
         sourceData[i] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
       }
+    } else if (rgb) {
+      // Convert RGBA to RGB (strip alpha channel)
+      sourceData = new Uint8Array(width * height * 3);
+      samplesPerPixel = 3;
+      for (let i = 0; i < width * height; i++) {
+        sourceData[i * 3] = data[i * 4]; // R
+        sourceData[i * 3 + 1] = data[i * 4 + 1]; // G
+        sourceData[i * 3 + 2] = data[i * 4 + 2]; // B
+      }
     } else {
+      // Keep as RGBA
       sourceData = data;
+      samplesPerPixel = 4;
     }
 
     // Prepare pixel data (compress if needed)
@@ -258,7 +275,10 @@ export class TIFFFormat implements ImageFormat {
     const ifdStart = result.length;
 
     // Count number of entries (including metadata)
-    let numEntries = grayscale ? 10 : 12; // Grayscale doesn't need ExtraSamples
+    // Grayscale: 10 entries (no ExtraSamples)
+    // RGB: 11 entries (no ExtraSamples)
+    // RGBA: 12 entries (includes ExtraSamples)
+    let numEntries = grayscale ? 10 : (rgb ? 11 : 12);
     if (metadata?.description) numEntries++;
     if (metadata?.author) numEntries++;
     if (metadata?.copyright) numEntries++;
@@ -280,6 +300,10 @@ export class TIFFFormat implements ImageFormat {
     if (grayscale) {
       // Single value for grayscale
       this.writeIFDEntry(result, 0x0102, 3, 1, 8);
+    } else if (rgb) {
+      // 3 values for RGB
+      this.writeIFDEntry(result, 0x0102, 3, 3, dataOffset);
+      dataOffset += 6; // 3 x 2-byte values
     } else {
       // 4 values for RGBA
       this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
@@ -295,8 +319,8 @@ export class TIFFFormat implements ImageFormat {
     // StripOffsets (0x0111)
     this.writeIFDEntry(result, 0x0111, 4, 1, 8);
 
-    // SamplesPerPixel (0x0115) - 1 for grayscale, 4 for RGBA
-    this.writeIFDEntry(result, 0x0115, 3, 1, grayscale ? 1 : 4);
+    // SamplesPerPixel (0x0115) - 1 for grayscale, 3 for RGB, 4 for RGBA
+    this.writeIFDEntry(result, 0x0115, 3, 1, samplesPerPixel);
 
     // RowsPerStrip (0x0116)
     this.writeIFDEntry(result, 0x0116, 4, 1, height);
@@ -315,7 +339,7 @@ export class TIFFFormat implements ImageFormat {
     dataOffset += 8;
 
     // ExtraSamples (0x0152) - 2 = unassociated alpha (only for RGBA)
-    if (!grayscale) {
+    if (!grayscale && !rgb) {
       this.writeIFDEntry(result, 0x0152, 3, 1, 2);
     }
 
@@ -358,8 +382,12 @@ export class TIFFFormat implements ImageFormat {
     this.writeUint32LE(result, 0);
 
     // Write variable-length data
-    // BitsPerSample values (only for RGBA, not for grayscale)
-    if (!grayscale) {
+    // BitsPerSample values (only for RGB and RGBA, not for grayscale)
+    if (rgb) {
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+      this.writeUint16LE(result, 8);
+    } else if (!grayscale) {
       this.writeUint16LE(result, 8);
       this.writeUint16LE(result, 8);
       this.writeUint16LE(result, 8);
