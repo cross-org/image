@@ -74,6 +74,12 @@ export function resizeNearest(
 
 /**
  * Cubic interpolation kernel (Catmull-Rom)
+ *
+ * The Catmull-Rom spline provides smooth interpolation through control points.
+ * It's a special case of the cubic Hermite spline with specific tangent values.
+ *
+ * @param x Distance from the sample point
+ * @returns Weight for the sample at distance x
  */
 function cubicKernel(x: number): number {
   const absX = Math.abs(x);
@@ -87,6 +93,17 @@ function cubicKernel(x: number): number {
 
 /**
  * Get pixel value with bounds checking
+ *
+ * Clamps coordinates to valid image bounds to prevent out-of-bounds access.
+ * This ensures that edge pixels are repeated when sampling outside the image.
+ *
+ * @param src Source image data
+ * @param x X coordinate (may be outside bounds)
+ * @param y Y coordinate (may be outside bounds)
+ * @param width Image width
+ * @param height Image height
+ * @param channel Channel index (0=R, 1=G, 2=B, 3=A)
+ * @returns Pixel value at the clamped coordinates
  */
 function getPixel(
   src: Uint8Array,
