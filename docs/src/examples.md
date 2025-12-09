@@ -1,6 +1,6 @@
 ---
-title: Examples
-order: 3
+title: "Examples"
+nav_order: 4
 ---
 
 # Examples

@@ -3,7 +3,7 @@
 A pure JavaScript, dependency-free, cross-runtime image processing library for
 Deno, Node.js, and Bun.
 
-📚 **[Full Documentation](https://cross-org.github.io/image/)**
+📚 **[Full Documentation](https://cross-image.56k.guru/)**
 
 ## Features
 
@@ -113,20 +113,20 @@ await writeFile("output.jpg", jpeg);
 | TIFF   | ⚠️ Basic    | Pure-JS uncompressed + LZW      |
 
 See the
-[full format support documentation](https://cross-org.github.io/image/formats.html)
+[full format support documentation](https://cross-image.56k.guru/formats.html)
 for detailed compatibility information.
 
 ## Documentation
 
-- **[API Reference](https://cross-org.github.io/image/api.html)** - Complete API
+- **[API Reference](https://cross-image.56k.guru/api.html)** - Complete API
   documentation
-- **[Examples](https://cross-org.github.io/image/examples.html)** - Usage
-  examples for common tasks
-- **[Format Support](https://cross-org.github.io/image/formats.html)** -
-  Supported formats and specifications
-- **[JPEG Implementation](https://cross-org.github.io/image/jpeg-implementation.html)** -
+- **[Examples](https://cross-image.56k.guru/examples.html)** - Usage examples
+  for common tasks
+- **[Format Support](https://cross-image.56k.guru/formats.html)** - Supported
+  formats and specifications
+- **[JPEG Implementation](https://cross-image.56k.guru/implementation/jpeg-implementation.html)** -
   Technical details for JPEG
-- **[WebP Implementation](https://cross-org.github.io/image/webp-implementation.html)** -
+- **[WebP Implementation](https://cross-image.56k.guru/implementation/webp-implementation.html)** -
   Technical details for WebP
 
 ## Development

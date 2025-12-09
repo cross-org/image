@@ -99,18 +99,15 @@ test("GIF: encodeFrames - encode multi-frame data", async () => {
   // Should be able to decode as multi-frame
   const decoded = await format.decodeFrames(encoded);
   assertEquals(decoded.frames.length, 3);
-  
   // Check frame colors (sampling center pixel)
   // Frame 1: Red
   assertEquals(decoded.frames[0].data[0], 255);
   assertEquals(decoded.frames[0].data[1], 0);
   assertEquals(decoded.frames[0].data[2], 0);
-  
   // Frame 2: Green
   assertEquals(decoded.frames[1].data[0], 0);
   assertEquals(decoded.frames[1].data[1], 255);
   assertEquals(decoded.frames[1].data[2], 0);
-  
   // Frame 3: Blue
   assertEquals(decoded.frames[2].data[0], 0);
   assertEquals(decoded.frames[2].data[1], 0);

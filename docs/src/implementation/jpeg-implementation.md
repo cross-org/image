@@ -1,6 +1,7 @@
 ---
-title: JPEG Implementation
-order: 10
+title: "JPEG"
+parent: "Implementation Notes"
+nav_order: 1
 ---
 
 # JPEG Pure-JS Implementation Notes
