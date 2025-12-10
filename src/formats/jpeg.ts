@@ -1431,12 +1431,11 @@ export class JPEGFormat implements ImageFormat {
         marker >= 0xc0 && marker <= 0xcf &&
         marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc
       ) {
-        const _length = (data[pos] << 8) | data[pos + 1];
+        const length = (data[pos] << 8) | data[pos + 1];
         // precision at pos+2
         height = (data[pos + 3] << 8) | data[pos + 4];
         width = (data[pos + 5] << 8) | data[pos + 6];
         // Don't break - continue parsing for metadata
-        const length = (data[pos] << 8) | data[pos + 1];
         pos += length;
         continue;
       }
