@@ -22,6 +22,8 @@ Do before you commit:
 
 - **Always run**:
   `deno fmt --check && deno lint && deno check mod.ts && deno check test/*.test.ts`
+- **Always use `test()` from `@cross/test` instead of `Deno.test` for
+  cross-runtime compatibility**
 - Deno: deno test -A; deno run -A jsr:@check/deps (no outdated deps allowed
   here)
 - Bun: tests run with bun test after jsr/npm deps install
