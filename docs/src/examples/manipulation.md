@@ -31,6 +31,20 @@ import { Image } from "@cross/image";
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
 
+// Easy way: Use fit mode to maintain aspect ratio
+image.resize({ width: 800, height: 600, fit: "fit" });
+
+await Deno.writeFile("fitted.png", await image.encode("png"));
+```
+
+### Maintain Aspect Ratio (Manual Calculation)
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.decode(data);
+
 const aspectRatio = image.width / image.height;
 
 // Resize to width, calculate height
@@ -39,6 +53,34 @@ const targetHeight = Math.round(targetWidth / aspectRatio);
 image.resize({ width: targetWidth, height: targetHeight });
 
 await Deno.writeFile("aspect-ratio.png", await image.encode("png"));
+```
+
+### Cover Mode (Fill with Crop)
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.decode(data);
+
+// Fill dimensions maintaining aspect ratio (center crop if needed)
+image.resize({ width: 800, height: 600, fit: "cover" });
+
+await Deno.writeFile("covered.png", await image.encode("png"));
+```
+
+### High-Quality Resize (Bicubic)
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Use bicubic interpolation for best quality
+image.resize({ width: 800, height: 600, method: "bicubic" });
+
+await Deno.writeFile("high-quality.jpg", await image.encode("jpeg"));
 ```
 
 ### Create Thumbnails
@@ -488,6 +530,86 @@ for (const file of files) {
 
   console.log(`Watermarked ${file}`);
 }
+```
+
+## Rotation and Flipping
+
+### Rotate Image
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Rotate 90 degrees clockwise
+image.rotate(90);
+
+await Deno.writeFile("rotated.jpg", await image.encode("jpeg"));
+```
+
+### Flip Image
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Create horizontal mirror
+image.flipHorizontal();
+
+await Deno.writeFile("flipped.jpg", await image.encode("jpeg"));
+```
+
+### EXIF Orientation Correction
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Apply EXIF orientation to pixel data
+const orientation = image.metadata?.orientation;
+if (orientation === 3) {
+  image.rotate180();
+} else if (orientation === 6) {
+  image.rotate90();
+} else if (orientation === 8) {
+  image.rotate270();
+}
+
+await Deno.writeFile("corrected.jpg", await image.encode("jpeg"));
+```
+
+### Create Kaleidoscope Effect
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Crop to square
+const size = Math.min(image.width, image.height);
+image.crop(0, 0, size, size);
+
+// Create quadrants
+const half = size / 2;
+const tl = image.clone().crop(0, 0, half, half);
+const tr = tl.clone().flipHorizontal();
+const bl = tl.clone().flipVertical();
+const br = tl.clone().flipHorizontal().flipVertical();
+
+// Combine into kaleidoscope on transparent canvas
+const canvas = Image.create(size, size, 0, 0, 0, 0);
+canvas.composite(tl, 0, 0);
+canvas.composite(tr, half, 0);
+canvas.composite(bl, 0, half);
+canvas.composite(br, half, half);
+
+await Deno.writeFile("kaleidoscope.jpg", await canvas.encode("jpeg"));
 ```
 
 ## Node.js Examples
