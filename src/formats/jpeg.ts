@@ -320,6 +320,8 @@ export class JPEGFormat implements ImageFormat {
         ? exifData[ifd0Offset] | (exifData[ifd0Offset + 1] << 8)
         : (exifData[ifd0Offset] << 8) | exifData[ifd0Offset + 1];
 
+      let gpsIfdOffset = 0;
+
       // Parse entries
       for (let i = 0; i < numEntries; i++) {
         const entryOffset = ifd0Offset + 2 + i * 12;
@@ -421,10 +423,149 @@ export class JPEGFormat implements ImageFormat {
             }
           }
         }
+
+        // GPS IFD Pointer tag (0x8825)
+        if (tag === 0x8825) {
+          gpsIfdOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+        }
+      }
+
+      // Parse GPS IFD if present
+      if (gpsIfdOffset > 0 && gpsIfdOffset + 2 <= exifData.length) {
+        this.parseGPSIFD(exifData, gpsIfdOffset, littleEndian, metadata);
       }
     } catch (_e) {
       // Ignore EXIF parsing errors
     }
+  }
+
+  private parseGPSIFD(
+    exifData: Uint8Array,
+    gpsIfdOffset: number,
+    littleEndian: boolean,
+    metadata: ImageMetadata,
+  ): void {
+    try {
+      const numEntries = littleEndian
+        ? exifData[gpsIfdOffset] | (exifData[gpsIfdOffset + 1] << 8)
+        : (exifData[gpsIfdOffset] << 8) | exifData[gpsIfdOffset + 1];
+
+      let latRef = "";
+      let lonRef = "";
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+
+      for (let i = 0; i < numEntries; i++) {
+        const entryOffset = gpsIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > exifData.length) break;
+
+        const tag = littleEndian
+          ? exifData[entryOffset] | (exifData[entryOffset + 1] << 8)
+          : (exifData[entryOffset] << 8) | exifData[entryOffset + 1];
+
+        const type = littleEndian
+          ? exifData[entryOffset + 2] | (exifData[entryOffset + 3] << 8)
+          : (exifData[entryOffset + 2] << 8) | exifData[entryOffset + 3];
+
+        const valueOffset = littleEndian
+          ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+            (exifData[entryOffset + 10] << 16) |
+            (exifData[entryOffset + 11] << 24)
+          : (exifData[entryOffset + 8] << 24) |
+            (exifData[entryOffset + 9] << 16) |
+            (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+        // GPSLatitudeRef (0x0001) - 'N' or 'S'
+        if (tag === 0x0001 && type === 2) {
+          latRef = String.fromCharCode(exifData[entryOffset + 8]);
+        }
+
+        // GPSLatitude (0x0002) - three rationals: degrees, minutes, seconds
+        if (
+          tag === 0x0002 && type === 5 && valueOffset + 24 <= exifData.length
+        ) {
+          const degrees = this.readRational(
+            exifData,
+            valueOffset,
+            littleEndian,
+          );
+          const minutes = this.readRational(
+            exifData,
+            valueOffset + 8,
+            littleEndian,
+          );
+          const seconds = this.readRational(
+            exifData,
+            valueOffset + 16,
+            littleEndian,
+          );
+          latitude = degrees + minutes / 60 + seconds / 3600;
+        }
+
+        // GPSLongitudeRef (0x0003) - 'E' or 'W'
+        if (tag === 0x0003 && type === 2) {
+          lonRef = String.fromCharCode(exifData[entryOffset + 8]);
+        }
+
+        // GPSLongitude (0x0004) - three rationals: degrees, minutes, seconds
+        if (
+          tag === 0x0004 && type === 5 && valueOffset + 24 <= exifData.length
+        ) {
+          const degrees = this.readRational(
+            exifData,
+            valueOffset,
+            littleEndian,
+          );
+          const minutes = this.readRational(
+            exifData,
+            valueOffset + 8,
+            littleEndian,
+          );
+          const seconds = this.readRational(
+            exifData,
+            valueOffset + 16,
+            littleEndian,
+          );
+          longitude = degrees + minutes / 60 + seconds / 3600;
+        }
+      }
+
+      // Apply hemisphere references
+      if (latitude !== undefined && latRef) {
+        metadata.latitude = latRef === "S" ? -latitude : latitude;
+      }
+      if (longitude !== undefined && lonRef) {
+        metadata.longitude = lonRef === "W" ? -longitude : longitude;
+      }
+    } catch (_e) {
+      // Ignore GPS parsing errors
+    }
+  }
+
+  private readRational(
+    data: Uint8Array,
+    offset: number,
+    littleEndian: boolean,
+  ): number {
+    const numerator = littleEndian
+      ? data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) |
+        (data[offset + 3] << 24)
+      : (data[offset] << 24) | (data[offset + 1] << 16) |
+        (data[offset + 2] << 8) | data[offset + 3];
+
+    const denominator = littleEndian
+      ? data[offset + 4] | (data[offset + 5] << 8) | (data[offset + 6] << 16) |
+        (data[offset + 7] << 24)
+      : (data[offset + 4] << 24) | (data[offset + 5] << 16) |
+        (data[offset + 6] << 8) | data[offset + 7];
+
+    return denominator !== 0 ? numerator / denominator : 0;
   }
 
   private createEXIFData(metadata: ImageMetadata): number[] {
@@ -478,7 +619,11 @@ export class JPEGFormat implements ImageFormat {
       });
     }
 
-    if (entries.length === 0) return [];
+    // Check if we have GPS data
+    const hasGPS = metadata.latitude !== undefined &&
+      metadata.longitude !== undefined;
+
+    if (entries.length === 0 && !hasGPS) return [];
 
     // Build EXIF structure
     const exif: number[] = [];
@@ -490,11 +635,12 @@ export class JPEGFormat implements ImageFormat {
     // Offset to IFD0 (8 bytes from start)
     exif.push(0x08, 0x00, 0x00, 0x00);
 
-    // Number of entries
-    exif.push(entries.length & 0xff, (entries.length >> 8) & 0xff);
+    // Number of entries (add GPS IFD pointer if we have GPS data)
+    const ifd0Entries = entries.length + (hasGPS ? 1 : 0);
+    exif.push(ifd0Entries & 0xff, (ifd0Entries >> 8) & 0xff);
 
     // Calculate data offset
-    let dataOffset = 8 + 2 + entries.length * 12 + 4;
+    let dataOffset = 8 + 2 + ifd0Entries * 12 + 4;
 
     for (const entry of entries) {
       // Tag
@@ -525,6 +671,22 @@ export class JPEGFormat implements ImageFormat {
       }
     }
 
+    // Add GPS IFD pointer if we have GPS data
+    let gpsIfdOffset = 0;
+    if (hasGPS) {
+      gpsIfdOffset = dataOffset;
+      // GPS IFD Pointer tag (0x8825), type 4 (LONG), count 1
+      exif.push(0x25, 0x88); // Tag
+      exif.push(0x04, 0x00); // Type
+      exif.push(0x01, 0x00, 0x00, 0x00); // Count
+      exif.push(
+        gpsIfdOffset & 0xff,
+        (gpsIfdOffset >> 8) & 0xff,
+        (gpsIfdOffset >> 16) & 0xff,
+        (gpsIfdOffset >> 24) & 0xff,
+      );
+    }
+
     // Next IFD offset (0 = no more IFDs)
     exif.push(0x00, 0x00, 0x00, 0x00);
 
@@ -537,6 +699,112 @@ export class JPEGFormat implements ImageFormat {
       }
     }
 
+    // Add GPS IFD if we have GPS data
+    if (hasGPS) {
+      const gpsIfd = this.createGPSIFD(metadata, gpsIfdOffset);
+      for (const byte of gpsIfd) {
+        exif.push(byte);
+      }
+    }
+
     return exif;
+  }
+
+  private createGPSIFD(metadata: ImageMetadata, gpsIfdStart: number): number[] {
+    const gps: number[] = [];
+
+    // We'll create 4 GPS entries: LatitudeRef, Latitude, LongitudeRef, Longitude
+    const numEntries = 4;
+    gps.push(numEntries & 0xff, (numEntries >> 8) & 0xff);
+
+    const latitude = metadata.latitude!;
+    const longitude = metadata.longitude!;
+
+    // Convert to absolute values for DMS calculation
+    const absLat = Math.abs(latitude);
+    const absLon = Math.abs(longitude);
+
+    // Calculate degrees, minutes, seconds
+    const latDeg = Math.floor(absLat);
+    const latMin = Math.floor((absLat - latDeg) * 60);
+    const latSec = ((absLat - latDeg) * 60 - latMin) * 60;
+
+    const lonDeg = Math.floor(absLon);
+    const lonMin = Math.floor((absLon - lonDeg) * 60);
+    const lonSec = ((absLon - lonDeg) * 60 - lonMin) * 60;
+
+    // Calculate offset for rational data (relative to start of EXIF data, not GPS IFD)
+    let dataOffset = gpsIfdStart + 2 + numEntries * 12 + 4;
+
+    // Entry 1: GPSLatitudeRef (tag 0x0001)
+    gps.push(0x01, 0x00); // Tag
+    gps.push(0x02, 0x00); // Type (ASCII)
+    gps.push(0x02, 0x00, 0x00, 0x00); // Count (2 bytes including null)
+    // Value stored inline: 'N' or 'S' + null
+    gps.push(latitude >= 0 ? 78 : 83, 0x00, 0x00, 0x00); // 'N' = 78, 'S' = 83
+
+    // Entry 2: GPSLatitude (tag 0x0002)
+    gps.push(0x02, 0x00); // Tag
+    gps.push(0x05, 0x00); // Type (RATIONAL)
+    gps.push(0x03, 0x00, 0x00, 0x00); // Count (3 rationals)
+    gps.push(
+      dataOffset & 0xff,
+      (dataOffset >> 8) & 0xff,
+      (dataOffset >> 16) & 0xff,
+      (dataOffset >> 24) & 0xff,
+    );
+    dataOffset += 24; // 3 rationals * 8 bytes
+
+    // Entry 3: GPSLongitudeRef (tag 0x0003)
+    gps.push(0x03, 0x00); // Tag
+    gps.push(0x02, 0x00); // Type (ASCII)
+    gps.push(0x02, 0x00, 0x00, 0x00); // Count
+    gps.push(longitude >= 0 ? 69 : 87, 0x00, 0x00, 0x00); // 'E' = 69, 'W' = 87
+
+    // Entry 4: GPSLongitude (tag 0x0004)
+    gps.push(0x04, 0x00); // Tag
+    gps.push(0x05, 0x00); // Type (RATIONAL)
+    gps.push(0x03, 0x00, 0x00, 0x00); // Count
+    gps.push(
+      dataOffset & 0xff,
+      (dataOffset >> 8) & 0xff,
+      (dataOffset >> 16) & 0xff,
+      (dataOffset >> 24) & 0xff,
+    );
+
+    // Next IFD offset (0 = no more IFDs)
+    gps.push(0x00, 0x00, 0x00, 0x00);
+
+    // Write latitude rationals (degrees, minutes, seconds)
+    this.writeRational(gps, latDeg, 1);
+    this.writeRational(gps, latMin, 1);
+    this.writeRational(gps, Math.round(latSec * 1000000), 1000000);
+
+    // Write longitude rationals
+    this.writeRational(gps, lonDeg, 1);
+    this.writeRational(gps, lonMin, 1);
+    this.writeRational(gps, Math.round(lonSec * 1000000), 1000000);
+
+    return gps;
+  }
+
+  private writeRational(
+    output: number[],
+    numerator: number,
+    denominator: number,
+  ): void {
+    // Write as little endian
+    output.push(
+      numerator & 0xff,
+      (numerator >> 8) & 0xff,
+      (numerator >> 16) & 0xff,
+      (numerator >> 24) & 0xff,
+    );
+    output.push(
+      denominator & 0xff,
+      (denominator >> 8) & 0xff,
+      (denominator >> 16) & 0xff,
+      (denominator >> 24) & 0xff,
+    );
   }
 }

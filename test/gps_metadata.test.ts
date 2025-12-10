@@ -1,10 +1,9 @@
 import { assertEquals } from "@std/assert";
 import { test } from "@cross/test";
 import { Image } from "../src/image.ts";
+import { JPEGFormat } from "../src/formats/jpeg.ts";
 
 // Test GPS metadata through public API
-// Note: GPS coordinates are stored in ImageMetadata but may not be persisted
-// in EXIF format currently. These tests document the expected behavior.
 
 test("GPS: Public API - setPosition and getPosition", () => {
   const data = new Uint8Array([255, 0, 0, 255]);
@@ -187,4 +186,178 @@ test("GPS: Metadata - negative coordinates", () => {
   const position = image.getPosition();
   assertEquals(position?.latitude, -34.6037);
   assertEquals(position?.longitude, -58.3816);
+});
+
+// GPS Persistence Tests
+
+test("GPS: JPEG - roundtrip GPS coordinates", async () => {
+  const format = new JPEGFormat();
+
+  const imageData = {
+    width: 50,
+    height: 50,
+    data: new Uint8Array(50 * 50 * 4).fill(128),
+    metadata: {
+      latitude: 40.7128,
+      longitude: -74.0060,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // GPS coordinates should be preserved
+  assertEquals(decoded.metadata?.latitude, 40.7128);
+  assertEquals(decoded.metadata?.longitude, -74.0060);
+});
+
+test("GPS: JPEG - roundtrip with various coordinates", async () => {
+  const format = new JPEGFormat();
+
+  const testCases = [
+    { lat: 0, lon: 0, name: "Null Island" },
+    { lat: 90, lon: 0, name: "North Pole" },
+    { lat: -90, lon: 0, name: "South Pole" },
+    { lat: 35.6762, lon: 139.6503, name: "Tokyo" },
+    { lat: -33.8688, lon: 151.2093, name: "Sydney" },
+    { lat: 51.5074, lon: -0.1278, name: "London" },
+  ];
+
+  for (const testCase of testCases) {
+    const imageData = {
+      width: 10,
+      height: 10,
+      data: new Uint8Array(10 * 10 * 4).fill(100),
+      metadata: {
+        latitude: testCase.lat,
+        longitude: testCase.lon,
+      },
+    };
+
+    const encoded = await format.encode(imageData);
+    const decoded = await format.decode(encoded);
+
+    const latDiff = Math.abs((decoded.metadata?.latitude ?? 0) - testCase.lat);
+    const lonDiff = Math.abs((decoded.metadata?.longitude ?? 0) - testCase.lon);
+
+    // Allow small rounding error due to DMS conversion
+    assertEquals(
+      latDiff < 0.001,
+      true,
+      `${testCase.name} latitude: expected ${testCase.lat}, got ${decoded.metadata?.latitude}`,
+    );
+    assertEquals(
+      lonDiff < 0.001,
+      true,
+      `${testCase.name} longitude: expected ${testCase.lon}, got ${decoded.metadata?.longitude}`,
+    );
+  }
+});
+
+test("GPS: JPEG - GPS with other metadata", async () => {
+  const format = new JPEGFormat();
+  const testDate = new Date("2024-06-15T10:30:00");
+
+  const imageData = {
+    width: 32,
+    height: 32,
+    data: new Uint8Array(32 * 32 * 4).fill(150),
+    metadata: {
+      latitude: 48.8566,
+      longitude: 2.3522,
+      author: "Test Photographer",
+      description: "Photo from Paris",
+      copyright: "© 2024",
+      creationDate: testDate,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // All metadata should be preserved (with tolerance for GPS coordinates)
+  const latDiff = Math.abs((decoded.metadata?.latitude ?? 0) - 48.8566);
+  const lonDiff = Math.abs((decoded.metadata?.longitude ?? 0) - 2.3522);
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
+  assertEquals(decoded.metadata?.author, "Test Photographer");
+  assertEquals(decoded.metadata?.description, "Photo from Paris");
+  assertEquals(decoded.metadata?.copyright, "© 2024");
+  assertEquals(decoded.metadata?.creationDate?.getFullYear(), 2024);
+});
+
+test("GPS: JPEG via Image API - roundtrip", async () => {
+  const data = new Uint8Array(64 * 64 * 4).fill(200);
+  const image = Image.fromRGBA(64, 64, data);
+
+  image.setPosition(37.7749, -122.4194); // San Francisco
+  image.setMetadata({
+    author: "Test Author",
+    title: "SF Photo",
+  });
+
+  // Save as JPEG
+  const encoded = await image.save("jpeg");
+
+  // Load and verify
+  const loaded = await Image.read(encoded);
+
+  const position = loaded.getPosition();
+  const latDiff = Math.abs((position?.latitude ?? 0) - 37.7749);
+  const lonDiff = Math.abs((position?.longitude ?? 0) - (-122.4194));
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
+  assertEquals(loaded.metadata?.author, "Test Author");
+});
+
+test("GPS: JPEG - only GPS metadata", async () => {
+  const format = new JPEGFormat();
+
+  const imageData = {
+    width: 16,
+    height: 16,
+    data: new Uint8Array(16 * 16 * 4).fill(100),
+    metadata: {
+      latitude: 34.0522,
+      longitude: -118.2437,
+      // No other metadata
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  const latDiff = Math.abs((decoded.metadata?.latitude ?? 0) - 34.0522);
+  const lonDiff = Math.abs((decoded.metadata?.longitude ?? 0) - (-118.2437));
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
+  assertEquals(decoded.metadata?.author, undefined);
+  assertEquals(decoded.metadata?.description, undefined);
+});
+
+test("GPS: JPEG - high precision coordinates", async () => {
+  const format = new JPEGFormat();
+
+  const imageData = {
+    width: 10,
+    height: 10,
+    data: new Uint8Array(10 * 10 * 4).fill(128),
+    metadata: {
+      latitude: 51.5074123456,
+      longitude: -0.1277583456,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // High precision should be preserved (within reasonable tolerance)
+  const latDiff = Math.abs((decoded.metadata?.latitude ?? 0) - 51.5074123456);
+  const lonDiff = Math.abs(
+    (decoded.metadata?.longitude ?? 0) - (-0.1277583456),
+  );
+
+  // GPS uses microsecond precision which is about 6 decimal places
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
 });
