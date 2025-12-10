@@ -11,6 +11,8 @@ import {
   resizeNearest,
 } from "./utils/resize.ts";
 import {
+  addBorder,
+  addBorderSides,
   adjustBrightness,
   adjustContrast,
   adjustExposure,
@@ -19,6 +21,8 @@ import {
   boxBlur,
   composite,
   crop,
+  drawCircle,
+  drawLine,
   fillRect,
   flipHorizontal,
   flipVertical,
@@ -1099,6 +1103,185 @@ export class Image {
       this.imageData.data,
       this.imageData.width,
       this.imageData.height,
+    );
+
+    return this;
+  }
+
+  /**
+   * Add a border around the image
+   * @param width Border width in pixels (applied to all sides)
+   * @param r Red component (0-255, default: 0)
+   * @param g Green component (0-255, default: 0)
+   * @param b Blue component (0-255, default: 0)
+   * @param a Alpha component (0-255, default: 255)
+   * @returns This image instance for chaining
+   */
+  border(width: number, r = 0, g = 0, b = 0, a = 255): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    const result = addBorder(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      width,
+      r,
+      g,
+      b,
+      a,
+    );
+
+    this.imageData.width = result.width;
+    this.imageData.height = result.height;
+    this.imageData.data = result.data;
+
+    // Update physical dimensions if DPI is set
+    if (this.imageData.metadata) {
+      const metadata = this.imageData.metadata;
+      if (metadata.dpiX) {
+        this.imageData.metadata.physicalWidth = result.width / metadata.dpiX;
+      }
+      if (metadata.dpiY) {
+        this.imageData.metadata.physicalHeight = result.height / metadata.dpiY;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Add a border with different widths for each side
+   * @param top Top border width in pixels
+   * @param right Right border width in pixels
+   * @param bottom Bottom border width in pixels
+   * @param left Left border width in pixels
+   * @param r Red component (0-255, default: 0)
+   * @param g Green component (0-255, default: 0)
+   * @param b Blue component (0-255, default: 0)
+   * @param a Alpha component (0-255, default: 255)
+   * @returns This image instance for chaining
+   */
+  borderSides(
+    top: number,
+    right: number,
+    bottom: number,
+    left: number,
+    r = 0,
+    g = 0,
+    b = 0,
+    a = 255,
+  ): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    const result = addBorderSides(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      top,
+      right,
+      bottom,
+      left,
+      r,
+      g,
+      b,
+      a,
+    );
+
+    this.imageData.width = result.width;
+    this.imageData.height = result.height;
+    this.imageData.data = result.data;
+
+    // Update physical dimensions if DPI is set
+    if (this.imageData.metadata) {
+      const metadata = this.imageData.metadata;
+      if (metadata.dpiX) {
+        this.imageData.metadata.physicalWidth = result.width / metadata.dpiX;
+      }
+      if (metadata.dpiY) {
+        this.imageData.metadata.physicalHeight = result.height / metadata.dpiY;
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Draw a line from (x0, y0) to (x1, y1)
+   * @param x0 Starting X coordinate
+   * @param y0 Starting Y coordinate
+   * @param x1 Ending X coordinate
+   * @param y1 Ending Y coordinate
+   * @param r Red component (0-255)
+   * @param g Green component (0-255)
+   * @param b Blue component (0-255)
+   * @param a Alpha component (0-255, default: 255)
+   * @returns This image instance for chaining
+   */
+  drawLine(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    r: number,
+    g: number,
+    b: number,
+    a = 255,
+  ): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = drawLine(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      x0,
+      y0,
+      x1,
+      y1,
+      r,
+      g,
+      b,
+      a,
+    );
+
+    return this;
+  }
+
+  /**
+   * Draw a circle at the specified position
+   * @param centerX Center X coordinate
+   * @param centerY Center Y coordinate
+   * @param radius Circle radius in pixels
+   * @param r Red component (0-255)
+   * @param g Green component (0-255)
+   * @param b Blue component (0-255)
+   * @param a Alpha component (0-255, default: 255)
+   * @param filled Whether to fill the circle (default: false, outline only)
+   * @returns This image instance for chaining
+   */
+  drawCircle(
+    centerX: number,
+    centerY: number,
+    radius: number,
+    r: number,
+    g: number,
+    b: number,
+    a = 255,
+    filled = false,
+  ): this {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    this.imageData.data = drawCircle(
+      this.imageData.data,
+      this.imageData.width,
+      this.imageData.height,
+      centerX,
+      centerY,
+      radius,
+      r,
+      g,
+      b,
+      a,
+      filled,
     );
 
     return this;
