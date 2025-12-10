@@ -6,6 +6,16 @@ import type {
 } from "../types.ts";
 import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
 import { validateImageDimensions } from "../utils/security.ts";
+import {
+  createInteropIFD,
+  EXIF_VERSION,
+  IFD0_TAGS,
+  parseEXIFDate,
+  parseInteropIFD,
+  read16,
+  read32,
+} from "../utils/metadata/exif.ts";
+import { createGPSIFD, parseGPSIFD } from "../utils/metadata/gps.ts";
 
 // Constants for unit conversions
 const DEFAULT_DPI = 72;
@@ -1361,5 +1371,37 @@ export class TIFFFormat implements ImageFormat {
     }
 
     return rgba;
+  }
+
+  /**
+   * Get list of metadata fields supported by TIFF format
+   * TIFF supports extensive EXIF metadata including GPS and InteropIFD
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "creationDate",
+      "description",
+      "author",
+      "copyright",
+      "cameraMake",
+      "cameraModel",
+      "orientation",
+      "software",
+      "iso",
+      "exposureTime",
+      "fNumber",
+      "focalLength",
+      "flash",
+      "whiteBalance",
+      "lensMake",
+      "lensModel",
+      "userComment",
+      "latitude",
+      "longitude",
+      "dpiX",
+      "dpiY",
+      "physicalWidth",
+      "physicalHeight",
+    ];
   }
 }
