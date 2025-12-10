@@ -16,7 +16,8 @@ dependencies.
   PAM, PPM, PCX and ASCII support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
 - 🎛️ **Image processing** - Chainable filters including `brightness`,
-  `contrast`, `saturation`, `exposure`, `blur`, `sharpen`, `sepia`, and more
+  `contrast`, `saturation`, `hue`, `exposure`, `blur`, `sharpen`, `sepia`, and
+  more
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
 - 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface

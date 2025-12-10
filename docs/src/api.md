@@ -397,6 +397,33 @@ image.saturation(-0.3); // Desaturate
 image.saturation(-1); // Full grayscale (same as image.grayscale())
 ```
 
+#### `hue(degrees: number): this`
+
+Adjust the hue of the image by rotating the color wheel.
+
+**Parameters:**
+
+- `degrees` - Hue rotation in degrees. Any value is accepted and wraps at 360
+  degrees. Positive values rotate clockwise, negative values rotate
+  counter-clockwise. 0 means no change.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.hue(30); // Shift colors towards yellow/orange
+image.hue(120); // Shift reds to greens, greens to blues, blues to reds
+image.hue(-60); // Shift colors towards blue/purple
+```
+
+**Use Cases:**
+
+- Color correction (e.g., adjusting skin tones, sky colors)
+- Creative color grading effects
+- Fixing white balance issues
+- Seasonal color shifts (autumn/spring effects)
+
 #### `invert(): this`
 
 Invert all colors in the image (negative effect).
