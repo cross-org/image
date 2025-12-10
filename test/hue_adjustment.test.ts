@@ -1,7 +1,8 @@
 import { assertEquals } from "@std/assert";
-import { Image } from "../mod.ts";
+import { test } from "@cross/test";
+import { Image } from "../src/image.ts";
 
-Deno.test("Hue adjustment: no change with 0 degrees", () => {
+test("Hue adjustment: no change with 0 degrees", () => {
   // Create a simple red, green, blue image
   const image = Image.create(3, 1, 0, 0, 0);
   const data = image.data;
@@ -37,7 +38,7 @@ Deno.test("Hue adjustment: no change with 0 degrees", () => {
   assertEquals(image.data[10], original[10]);
 });
 
-Deno.test("Hue adjustment: 120 degree rotation shifts red to green", () => {
+test("Hue adjustment: 120 degree rotation shifts red to green", () => {
   // Create a pure red pixel
   const image = Image.create(1, 1, 255, 0, 0);
 
@@ -66,7 +67,7 @@ Deno.test("Hue adjustment: 120 degree rotation shifts red to green", () => {
   assertEquals(data[3], 255); // Alpha unchanged
 });
 
-Deno.test("Hue adjustment: 240 degree rotation shifts red to blue", () => {
+test("Hue adjustment: 240 degree rotation shifts red to blue", () => {
   // Create a pure red pixel
   const image = Image.create(1, 1, 255, 0, 0);
 
@@ -94,7 +95,7 @@ Deno.test("Hue adjustment: 240 degree rotation shifts red to blue", () => {
   assertEquals(data[3], 255);
 });
 
-Deno.test("Hue adjustment: -120 degree rotation shifts red to blue", () => {
+test("Hue adjustment: -120 degree rotation shifts red to blue", () => {
   // Create a pure red pixel
   const image = Image.create(1, 1, 255, 0, 0);
 
@@ -122,7 +123,7 @@ Deno.test("Hue adjustment: -120 degree rotation shifts red to blue", () => {
   assertEquals(data[3], 255);
 });
 
-Deno.test("Hue adjustment: 360 degree rotation is full circle", () => {
+test("Hue adjustment: 360 degree rotation is full circle", () => {
   // Create a red pixel
   const image = Image.create(1, 1, 255, 0, 0);
   const original = new Uint8Array(image.data);
@@ -139,7 +140,7 @@ Deno.test("Hue adjustment: 360 degree rotation is full circle", () => {
   assertEquals(data[3], 255);
 });
 
-Deno.test("Hue adjustment: grayscale pixels remain unchanged", () => {
+test("Hue adjustment: grayscale pixels remain unchanged", () => {
   // Create grayscale pixels (no saturation, so hue doesn't matter)
   const image = Image.create(3, 1, 0, 0, 0);
   const data = image.data;
@@ -175,7 +176,7 @@ Deno.test("Hue adjustment: grayscale pixels remain unchanged", () => {
   assertEquals(image.data[10], original[10]);
 });
 
-Deno.test("Hue adjustment: alpha channel is preserved", () => {
+test("Hue adjustment: alpha channel is preserved", () => {
   // Create pixels with different alpha values
   const image = Image.create(3, 1, 255, 0, 0);
   const data = image.data;
@@ -193,7 +194,7 @@ Deno.test("Hue adjustment: alpha channel is preserved", () => {
   assertEquals(image.data[11], 0);
 });
 
-Deno.test("Hue adjustment: chainable with other operations", () => {
+test("Hue adjustment: chainable with other operations", () => {
   // Create a red image
   const image = Image.create(2, 2, 255, 0, 0);
 
@@ -213,7 +214,7 @@ Deno.test("Hue adjustment: chainable with other operations", () => {
   assertEquals(data[1] > data[2], true, "Green should be greater than blue");
 });
 
-Deno.test("Hue adjustment: works with desaturated colors", () => {
+test("Hue adjustment: works with desaturated colors", () => {
   // Create a desaturated red (pink-ish)
   const image = Image.create(1, 1, 200, 100, 100);
 
@@ -236,7 +237,7 @@ Deno.test("Hue adjustment: works with desaturated colors", () => {
   );
 });
 
-Deno.test("Hue adjustment: handles large rotation values", () => {
+test("Hue adjustment: handles large rotation values", () => {
   // Create a red pixel
   const image = Image.create(1, 1, 255, 0, 0);
 
@@ -251,7 +252,7 @@ Deno.test("Hue adjustment: handles large rotation values", () => {
   assertEquals(Math.abs(data[2] - 0) < 5, true);
 });
 
-Deno.test("Hue adjustment: handles negative rotation values", () => {
+test("Hue adjustment: handles negative rotation values", () => {
   // Create a green pixel
   const image = Image.create(1, 1, 0, 255, 0);
 
@@ -266,7 +267,7 @@ Deno.test("Hue adjustment: handles negative rotation values", () => {
   assertEquals(Math.abs(data[2] - 255) < 5, true);
 });
 
-Deno.test("Hue adjustment: preserves image dimensions", () => {
+test("Hue adjustment: preserves image dimensions", () => {
   const image = Image.create(100, 50, 255, 128, 0);
 
   image.hue(45);
