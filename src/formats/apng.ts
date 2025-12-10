@@ -447,4 +447,98 @@ export class APNGFormat extends PNGBase implements ImageFormat {
 
     return rgba;
   }
+
+  /**
+   * Extract metadata from APNG data without fully decoding the pixel data
+   * This quickly parses PNG chunks to extract metadata including frame count
+   * @param data Raw APNG data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    let pos = 8; // Skip PNG signature
+    let width = 0;
+    let height = 0;
+    let frameCount = 0;
+    const metadata: ImageMetadata = {
+      format: "apng",
+      compression: "deflate",
+    };
+
+    // Parse chunks for metadata only
+    while (pos < data.length) {
+      if (pos + 8 > data.length) break;
+
+      const length = this.readUint32(data, pos);
+      pos += 4;
+      const type = String.fromCharCode(
+        data[pos],
+        data[pos + 1],
+        data[pos + 2],
+        data[pos + 3],
+      );
+      pos += 4;
+
+      if (pos + length + 4 > data.length) break;
+
+      const chunkData = data.slice(pos, pos + length);
+      pos += length;
+      pos += 4; // Skip CRC
+
+      if (type === "IHDR") {
+        width = this.readUint32(chunkData, 0);
+        height = this.readUint32(chunkData, 4);
+        // Parse bit depth and color type from IHDR
+        if (chunkData.length >= 9) {
+          metadata.bitDepth = chunkData[8];
+          const colorTypeCode = chunkData[9];
+          // PNG color types: 0=grayscale, 2=rgb, 3=indexed, 4=grayscale+alpha, 6=rgba
+          switch (colorTypeCode) {
+            case 0:
+              metadata.colorType = "grayscale";
+              break;
+            case 2:
+              metadata.colorType = "rgb";
+              break;
+            case 3:
+              metadata.colorType = "indexed";
+              break;
+            case 4:
+              metadata.colorType = "grayscale-alpha";
+              break;
+            case 6:
+              metadata.colorType = "rgba";
+              break;
+          }
+        }
+      } else if (type === "acTL") {
+        // Animation control chunk - contains frame count
+        if (chunkData.length >= 4) {
+          frameCount = this.readUint32(chunkData, 0);
+          metadata.frameCount = frameCount;
+        }
+      } else if (type === "pHYs") {
+        // Physical pixel dimensions
+        this.parsePhysChunk(chunkData, metadata, width, height);
+      } else if (type === "tEXt") {
+        // Text chunk
+        this.parseTextChunk(chunkData, metadata);
+      } else if (type === "iTXt") {
+        // International text chunk
+        this.parseITxtChunk(chunkData, metadata);
+      } else if (type === "eXIf") {
+        // EXIF chunk
+        this.parseExifChunk(chunkData, metadata);
+      } else if (type === "IEND") {
+        break;
+      }
+    }
+
+    return Promise.resolve(
+      Object.keys(metadata).length > 0 ? metadata : undefined,
+    );
+  }
 }

@@ -53,6 +53,18 @@ export interface ImageMetadata {
   /** User comment / notes */
   userComment?: string;
 
+  // File format information (extracted without decoding)
+  /** Image file format (e.g., "png", "jpeg", "gif", "webp", "tiff") */
+  format?: string;
+  /** Compression algorithm used (e.g., "deflate", "lzw", "dct", "vp8", "vp8l", "none") */
+  compression?: string;
+  /** Number of frames in multi-frame images (e.g., animated GIFs, APNGs, multi-page TIFFs) */
+  frameCount?: number;
+  /** Bit depth per channel (e.g., 8, 16) */
+  bitDepth?: number;
+  /** Color type (e.g., "grayscale", "rgb", "rgba", "indexed", "grayscale-alpha") */
+  colorType?: string;
+
   /** Custom metadata fields */
   custom?: Record<string, string | number | boolean>;
 }

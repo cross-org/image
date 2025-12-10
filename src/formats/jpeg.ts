@@ -1413,7 +1413,13 @@ export class JPEGFormat implements ImageFormat {
 
     // Parse JPEG structure to extract metadata
     let pos = 2; // Skip initial FF D8
-    const metadata: ImageMetadata = {};
+    const metadata: ImageMetadata = {
+      format: "jpeg",
+      compression: "dct",
+      frameCount: 1,
+      bitDepth: 8,
+      colorType: "rgb",
+    };
     let width = 0;
     let height = 0;
 
@@ -1433,8 +1439,17 @@ export class JPEGFormat implements ImageFormat {
       ) {
         const length = (data[pos] << 8) | data[pos + 1];
         // precision at pos+2
+        const precision = data[pos + 2];
+        if (precision && precision !== 8) {
+          metadata.bitDepth = precision;
+        }
         height = (data[pos + 3] << 8) | data[pos + 4];
         width = (data[pos + 5] << 8) | data[pos + 6];
+        // Check number of components
+        const numComponents = data[pos + 7];
+        if (numComponents === 1) {
+          metadata.colorType = "grayscale";
+        }
         // Don't break - continue parsing for metadata
         pos += length;
         continue;
