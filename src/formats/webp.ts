@@ -842,17 +842,15 @@ export class WebPFormat implements ImageFormat {
           // Loop count at bytes 4-5
           const _loopCount = readUint16LE(chunkData, 4);
           // Note: Frame count is not directly in ANIM chunk, need to count ANMF chunks
-          // For now, just mark as animated
-          metadata.frameCount = undefined; // Will be counted below if needed
+          // Reset frame count to 0 to start counting ANMF frames
+          metadata.frameCount = 0;
         }
       } else if (chunkType === "ANMF") {
         // Animation frame - count frames
-        if (metadata.frameCount === undefined) {
-          metadata.frameCount = 1;
-        } else if (metadata.frameCount === 1) {
-          metadata.frameCount = 2;
+        if (metadata.frameCount !== undefined) {
+          metadata.frameCount++;
         } else {
-          metadata.frameCount!++;
+          metadata.frameCount = 1;
         }
       } else if (chunkType === "EXIF") {
         // EXIF metadata chunk
