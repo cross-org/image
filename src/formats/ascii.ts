@@ -1,4 +1,9 @@
-import type { ASCIIOptions, ImageData, ImageFormat } from "../types.ts";
+import type {
+  ASCIIOptions,
+  ImageData,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -213,5 +218,26 @@ export class ASCIIFormat implements ImageFormat {
     }
 
     return options;
+  }
+
+  /**
+   * Extract metadata from ASCII art data without fully decoding
+   * @param data Raw ASCII art data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    const metadata: ImageMetadata = {
+      format: "ascii",
+      compression: "none",
+      frameCount: 1,
+      bitDepth: 1, // ASCII is 1-bit (character or no character)
+      colorType: "grayscale",
+    };
+
+    return Promise.resolve(metadata);
   }
 }

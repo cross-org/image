@@ -1,4 +1,4 @@
-import type { ImageData, ImageFormat } from "../types.ts";
+import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -274,5 +274,36 @@ export class PPMFormat implements ImageFormat {
    */
   private isWhitespace(byte: number): boolean {
     return byte === 0x20 || byte === 0x09 || byte === 0x0a || byte === 0x0d;
+  }
+
+  /**
+   * Extract metadata from PPM data without fully decoding the pixel data
+   * @param data Raw PPM data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    const metadata: ImageMetadata = {
+      format: "ppm",
+      compression: "none",
+      frameCount: 1,
+      bitDepth: 8,
+      colorType: "rgb",
+    };
+
+    // PPM is always RGB, uncompressed, and typically 8-bit
+    // P3 is ASCII, P6 is binary
+    if (data[1] === 0x33) {
+      // '3'
+      metadata.compression = "none"; // ASCII encoding
+    } else if (data[1] === 0x36) {
+      // '6'
+      metadata.compression = "none"; // Binary encoding
+    }
+
+    return Promise.resolve(metadata);
   }
 }

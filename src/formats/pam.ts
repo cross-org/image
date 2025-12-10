@@ -1,4 +1,4 @@
-import type { ImageData, ImageFormat } from "../types.ts";
+import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -199,5 +199,69 @@ export class PAMFormat implements ImageFormat {
     output.set(data, headerBytes.length);
 
     return Promise.resolve(output);
+  }
+
+  /**
+   * Extract metadata from PAM data without fully decoding the pixel data
+   * @param data Raw PAM data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    const metadata: ImageMetadata = {
+      format: "pam",
+      compression: "none",
+      frameCount: 1,
+      bitDepth: 8, // PAM typically uses 8 bits per channel
+      colorType: "rgba",
+    };
+
+    // Try to parse the header to get actual color type
+    const decoder = new TextDecoder();
+    const headerText = decoder.decode(
+      data.slice(0, Math.min(200, data.length)),
+    );
+
+    // Look for TUPLTYPE to determine color type
+    const tupltypeMatch = headerText.match(/TUPLTYPE\s+(\S+)/);
+    if (tupltypeMatch) {
+      const tupltype = tupltypeMatch[1];
+      if (tupltype === "GRAYSCALE") {
+        metadata.colorType = "grayscale";
+      } else if (tupltype === "RGB") {
+        metadata.colorType = "rgb";
+      } else if (tupltype === "RGB_ALPHA") {
+        metadata.colorType = "rgba";
+      }
+    }
+
+    // Look for DEPTH to determine number of channels
+    const depthMatch = headerText.match(/DEPTH\s+(\d+)/);
+    if (depthMatch) {
+      const depth = parseInt(depthMatch[1]);
+      if (depth === 1) {
+        metadata.colorType = "grayscale";
+      } else if (depth === 3) {
+        metadata.colorType = "rgb";
+      } else if (depth === 4) {
+        metadata.colorType = "rgba";
+      }
+    }
+
+    // Look for MAXVAL to determine bit depth
+    const maxvalMatch = headerText.match(/MAXVAL\s+(\d+)/);
+    if (maxvalMatch) {
+      const maxval = parseInt(maxvalMatch[1]);
+      if (maxval === 255) {
+        metadata.bitDepth = 8;
+      } else if (maxval === 65535) {
+        metadata.bitDepth = 16;
+      }
+    }
+
+    return Promise.resolve(metadata);
   }
 }
