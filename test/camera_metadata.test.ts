@@ -28,14 +28,14 @@ test("Camera Metadata: JPEG - roundtrip camera settings", async () => {
   assertEquals(decoded.metadata?.cameraMake, "Canon");
   assertEquals(decoded.metadata?.cameraModel, "EOS 5D Mark IV");
   assertEquals(decoded.metadata?.iso, 1600);
-  
+
   // Allow small tolerance for rational conversions
   const expDiff = Math.abs((decoded.metadata?.exposureTime ?? 0) - 0.0125);
   assertEquals(expDiff < 0.0001, true);
-  
+
   const fNumDiff = Math.abs((decoded.metadata?.fNumber ?? 0) - 2.8);
   assertEquals(fNumDiff < 0.01, true);
-  
+
   const focalDiff = Math.abs((decoded.metadata?.focalLength ?? 0) - 50);
   assertEquals(focalDiff < 0.01, true);
 });
@@ -119,7 +119,10 @@ test("Camera Metadata: JPEG - software and user comment", async () => {
   const decoded = await format.decode(encoded);
 
   assertEquals(decoded.metadata?.software, "Adobe Lightroom Classic 12.0");
-  assertEquals(decoded.metadata?.userComment, "Beautiful sunset at the beach 🌅");
+  assertEquals(
+    decoded.metadata?.userComment,
+    "Beautiful sunset at the beach 🌅",
+  );
 });
 
 test("Camera Metadata: JPEG - combined metadata", async () => {
@@ -166,7 +169,7 @@ test("Camera Metadata: JPEG - combined metadata", async () => {
   assertEquals(decoded.metadata?.orientation, 1);
   assertEquals(decoded.metadata?.software, "Capture One");
   assertEquals(decoded.metadata?.userComment, "Test shot");
-  
+
   // Basic metadata
   assertEquals(decoded.metadata?.author, "John Photographer");
   assertEquals(decoded.metadata?.copyright, "© 2024 John Doe");
@@ -193,14 +196,14 @@ test("Camera Metadata: JPEG via Image API", async () => {
   assertEquals(loaded.metadata?.cameraMake, "Sony");
   assertEquals(loaded.metadata?.cameraModel, "A7 III");
   assertEquals(loaded.metadata?.iso, 800);
-  
+
   const expDiff = Math.abs((loaded.metadata?.exposureTime ?? 0) - 0.02);
   assertEquals(expDiff < 0.0001, true);
 });
 
 test("Camera Metadata: getSupportedMetadata - JPEG", () => {
   const supported = Image.getSupportedMetadata("jpeg");
-  
+
   assertEquals(supported?.includes("cameraMake"), true);
   assertEquals(supported?.includes("cameraModel"), true);
   assertEquals(supported?.includes("iso"), true);
@@ -218,11 +221,11 @@ test("Camera Metadata: getSupportedMetadata - JPEG", () => {
 
 test("Camera Metadata: getSupportedMetadata - PNG", () => {
   const supported = Image.getSupportedMetadata("png");
-  
+
   // PNG doesn't support camera metadata in EXIF
   assertEquals(supported?.includes("cameraMake"), false);
   assertEquals(supported?.includes("iso"), false);
-  
+
   // But it supports basic metadata
   assertEquals(supported?.includes("creationDate"), true);
   assertEquals(supported?.includes("latitude"), true);
@@ -231,11 +234,11 @@ test("Camera Metadata: getSupportedMetadata - PNG", () => {
 
 test("Camera Metadata: getSupportedMetadata - WebP", () => {
   const supported = Image.getSupportedMetadata("webp");
-  
+
   // WebP doesn't support camera metadata
   assertEquals(supported?.includes("cameraMake"), false);
   assertEquals(supported?.includes("iso"), false);
-  
+
   // But it supports basic metadata via XMP and EXIF
   assertEquals(supported?.includes("creationDate"), true);
   assertEquals(supported?.includes("title"), true);

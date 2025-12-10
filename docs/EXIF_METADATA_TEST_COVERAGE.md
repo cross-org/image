@@ -15,17 +15,37 @@ features work.
 
 The JPEG format implementation supports the following EXIF tags:
 
+**IFD0 (Main directory):**
+
+- **Make** (0x010F): Maps to `metadata.cameraMake`
+- **Model** (0x0110): Maps to `metadata.cameraModel`
+- **Orientation** (0x0112): Maps to `metadata.orientation`
+- **Software** (0x0131): Maps to `metadata.software`
 - **DateTime** (0x0132): Maps to `metadata.creationDate`
 - **ImageDescription** (0x010E): Maps to `metadata.description`
 - **Artist** (0x013B): Maps to `metadata.author`
 - **Copyright** (0x8298): Maps to `metadata.copyright`
-- **GPS IFD** (0x8825): GPS coordinates with the following tags:
-  - **GPSLatitudeRef** (0x0001): 'N' or 'S'
-  - **GPSLatitude** (0x0002): Maps to `metadata.latitude`
-  - **GPSLongitudeRef** (0x0003): 'E' or 'W'
-  - **GPSLongitude** (0x0004): Maps to `metadata.longitude`
 
-DPI information is stored in JFIF APP0 marker:
+**Exif Sub-IFD:**
+
+- **ISOSpeedRatings** (0x8827): Maps to `metadata.iso`
+- **ExposureTime** (0x829A): Maps to `metadata.exposureTime`
+- **FNumber** (0x829D): Maps to `metadata.fNumber`
+- **FocalLength** (0x920A): Maps to `metadata.focalLength`
+- **Flash** (0x9209): Maps to `metadata.flash`
+- **UserComment** (0x9286): Maps to `metadata.userComment`
+- **WhiteBalance** (0xA403): Maps to `metadata.whiteBalance`
+- **LensMake** (0xA433): Maps to `metadata.lensMake`
+- **LensModel** (0xA434): Maps to `metadata.lensModel`
+
+**GPS IFD:**
+
+- **GPSLatitudeRef** (0x0001): 'N' or 'S'
+- **GPSLatitude** (0x0002): Maps to `metadata.latitude`
+- **GPSLongitudeRef** (0x0003): 'E' or 'W'
+- **GPSLongitude** (0x0004): Maps to `metadata.longitude`
+
+**DPI information** is stored in JFIF APP0 marker:
 
 - **DPI X/Y**: Maps to `metadata.dpiX` and `metadata.dpiY`
 
@@ -164,6 +184,25 @@ image.getDimensions(): {
 GPS IFD tags in JPEG, PNG (eXIf chunk), and WebP (EXIF chunk) formats with
 microsecond precision.
 
+### Camera Metadata Tests (test/camera_metadata.test.ts)
+
+**JPEG Camera Settings Tests:**
+
+- ✅ Roundtrip camera settings (Make, Model, ISO, Exposure, Aperture, Focal
+  Length)
+- ✅ Roundtrip lens information (Lens Make, Lens Model)
+- ✅ Roundtrip flash and white balance
+- ✅ Orientation (1, 3, 6, 8 values)
+- ✅ Software and user comment (including Unicode)
+- ✅ Combined metadata (all camera fields + basic metadata + GPS)
+- ✅ Camera metadata via Image API
+
+**getSupportedMetadata Tests:**
+
+- ✅ JPEG format returns all camera metadata fields
+- ✅ PNG format returns limited fields (no camera metadata)
+- ✅ WebP format returns limited fields (no camera metadata)
+
 ### Existing Metadata Tests (test/metadata.test.ts)
 
 The library also has comprehensive metadata tests covering:
@@ -192,27 +231,41 @@ Metadata preservation is tested across various scenarios:
 
 ### ✅ Fully Implemented and Tested
 
-- JPEG EXIF metadata reading (DateTime, ImageDescription, Artist, Copyright,
-  GPS)
-- JPEG EXIF metadata writing (DateTime, ImageDescription, Artist, Copyright,
-  GPS)
-- JPEG JFIF DPI reading and writing
-- PNG EXIF DateTime reading and writing (eXIf chunk)
-- PNG EXIF GPS reading and writing (eXIf chunk)
-- PNG pHYs DPI reading and writing
-- WebP EXIF DateTime reading and writing
-- WebP EXIF GPS reading and writing
-- WebP XMP metadata reading and writing
-- Public API for metadata management
-- Public API for GPS coordinates (fully persisted in EXIF)
-- Public API for DPI
+**JPEG Format:**
+
+- IFD0 tags: Make, Model, Orientation, Software, DateTime, ImageDescription,
+  Artist, Copyright
+- Exif Sub-IFD: ISO, ExposureTime, FNumber, FocalLength, Flash, UserComment,
+  WhiteBalance, LensMake, LensModel
+- GPS IFD: Latitude, Longitude with hemisphere references
+- JFIF DPI reading and writing
+
+**PNG Format:**
+
+- eXIf chunk: DateTime, GPS coordinates
+- pHYs chunk: DPI information
+- tEXt chunks: Title, Author, Description, Copyright
+
+**WebP Format:**
+
+- EXIF chunk: DateTime, GPS coordinates
+- XMP chunk: Title, Description, Author, Copyright
+
+**Public API:**
+
+- Metadata management (`setMetadata`, `getMetadata`, `getMetadataField`)
+- GPS coordinates (`setPosition`, `getPosition`) - fully persisted
+- DPI settings (`setDPI`, `getDimensions`)
+- Format capability discovery (`getSupportedMetadata`)
 
 ### 📋 Not Implemented
 
-- Additional EXIF tags (camera model, ISO, focal length, orientation, etc.)
+- Additional EXIF tags (GPS altitude, timestamp, camera serial number, etc.)
+- EXIF Makernote tags (proprietary camera-specific data)
 - EXIF thumbnail generation
 - IPTC metadata
-- JPEG ImageDescription, Artist, Copyright in PNG (eXIf chunk)
+- XMP packet parsing (beyond basic Dublin Core)
+- JPEG ImageDescription, Artist, Copyright in PNG eXIf chunk
 
 ## Data Types and Constraints
 
@@ -263,12 +316,22 @@ import { Image } from "@cross/image";
 // Create or load image
 const image = await Image.read(await Deno.readFile("photo.jpg"));
 
-// Set EXIF metadata including GPS
+// Check what metadata is supported
+const jpegSupports = Image.getSupportedMetadata("jpeg");
+console.log(jpegSupports); // Includes camera metadata, GPS, etc.
+
+// Set EXIF metadata including camera settings and GPS
 image.setMetadata({
   author: "John Doe",
   description: "A beautiful sunset",
   copyright: "© 2024 John Doe",
   creationDate: new Date("2024-06-15T18:30:00"),
+  cameraMake: "Canon",
+  cameraModel: "EOS 5D Mark IV",
+  iso: 800,
+  exposureTime: 0.004, // 1/250s
+  fNumber: 2.8,
+  focalLength: 50,
   dpiX: 300,
   dpiY: 300,
 });
@@ -283,6 +346,8 @@ await Deno.writeFile("photo_with_exif.jpg", encoded);
 // Load and verify
 const loaded = await Image.read(encoded);
 console.log(loaded.metadata?.author); // "John Doe"
+console.log(loaded.metadata?.cameraMake); // "Canon"
+console.log(loaded.metadata?.iso); // 800
 console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 } ✅
 ```
 
@@ -291,12 +356,18 @@ console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 }
 The @cross/image library has comprehensive test coverage for EXIF metadata
 reading and writing through a well-designed public API. The tests cover:
 
-- **25 EXIF-specific tests** covering JPEG and WebP formats
+- **25 EXIF-specific tests** for basic metadata
 - **22 GPS metadata tests** including 10 tests for GPS persistence
-- **Full roundtrip testing** for all supported metadata fields including GPS
+- **10 camera metadata tests** for extended EXIF fields
+- **Full roundtrip testing** for all supported metadata fields including GPS and
+  camera settings
 - **Edge cases** including special characters, long text, and date precision
 
 All public API methods for metadata management are thoroughly tested and working
 correctly. The implementation properly handles EXIF metadata in JPEG (APP1
-marker), PNG (eXIf chunk), and WebP (EXIF/XMP chunks) formats. GPS coordinates
-are fully supported across all three formats with microsecond precision.
+marker with IFD0, Exif Sub-IFD, and GPS IFD), PNG (eXIf chunk), and WebP
+(EXIF/XMP chunks) formats.
+
+Camera metadata (ISO, exposure, aperture, focal length, etc.) is fully supported
+in JPEG format, while GPS coordinates are fully supported across all three
+formats with microsecond precision.

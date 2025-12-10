@@ -124,6 +124,87 @@ See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for
 detailed compatibility information.
 
+## Metadata Support
+
+@cross/image provides comprehensive metadata support for image files, including
+EXIF metadata for camera information and GPS coordinates.
+
+### Supported Metadata Fields
+
+**Basic Metadata:**
+
+- `title`, `description`, `author`, `copyright`
+- `creationDate` - Date/time image was created
+
+**Camera Settings (JPEG only):**
+
+- `cameraMake`, `cameraModel` - Camera manufacturer and model
+- `lensMake`, `lensModel` - Lens information
+- `iso` - ISO speed rating
+- `exposureTime` - Shutter speed in seconds
+- `fNumber` - Aperture (f-number)
+- `focalLength` - Focal length in mm
+- `flash`, `whiteBalance` - Capture settings
+- `orientation` - Image orientation (1=normal, 3=180°, 6=90°CW, 8=90°CCW)
+- `software` - Software used
+- `userComment` - User notes
+
+**GPS Coordinates (JPEG, PNG, WebP):**
+
+- `latitude`, `longitude` - GPS coordinates in decimal degrees
+
+**DPI (JPEG, PNG):**
+
+- `dpiX`, `dpiY` - Dots per inch for printing
+
+### Example Usage
+
+```typescript
+import { Image } from "@cross/image";
+
+// Load an image
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Set metadata
+image.setMetadata({
+  author: "Jane Photographer",
+  copyright: "© 2024",
+  cameraMake: "Canon",
+  cameraModel: "EOS R5",
+  iso: 800,
+  exposureTime: 0.004, // 1/250s
+  fNumber: 2.8,
+  focalLength: 50,
+});
+
+// Set GPS coordinates
+image.setPosition(40.7128, -74.0060); // NYC
+
+// Check what metadata a format supports
+const jpegSupports = Image.getSupportedMetadata("jpeg");
+console.log(jpegSupports); // Includes ISO, camera info, GPS, etc.
+
+// Save with metadata
+const jpeg = await image.save("jpeg");
+await Deno.writeFile("output.jpg", jpeg);
+
+// Metadata is preserved on reload!
+const loaded = await Image.decode(jpeg);
+console.log(loaded.metadata?.cameraMake); // "Canon"
+console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 }
+```
+
+### Format-Specific Support
+
+Use `Image.getSupportedMetadata(format)` to check which fields are supported:
+
+```typescript
+Image.getSupportedMetadata("jpeg"); // Full camera metadata + GPS
+Image.getSupportedMetadata("png"); // DateTime, GPS, DPI, basic text
+Image.getSupportedMetadata("webp"); // DateTime, GPS, basic text (XMP)
+```
+
 ## Documentation
 
 - **[API Reference](https://cross-image.56k.guru/api/)** - Complete API
