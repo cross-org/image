@@ -156,23 +156,23 @@ const pngFields = Image.getSupportedMetadata("png");
 
 // Check HEIC support
 const heicFields = Image.getSupportedMetadata("heic");
-// HEIC supports camera metadata and GPS (11 fields)
+// HEIC supports full camera metadata and GPS (19 fields)
 
 // Check AVIF support
 const avifFields = Image.getSupportedMetadata("avif");
-// AVIF supports camera metadata and GPS (11 fields)
+// AVIF supports full camera metadata and GPS (19 fields)
 ```
 
 ### Format Comparison
 
-| Format   | Fields | Implementation                            |
-| -------- | ------ | ----------------------------------------- |
-| **JPEG** | 21     | Full EXIF (IFD0 + Exif Sub-IFD + GPS IFD) |
-| **TIFF** | 23+    | Complete EXIF 3.0 support with InteropIFD |
-| **WebP** | 15     | EXIF DateTime/GPS + Enhanced XMP          |
-| **PNG**  | 9      | eXIf chunk + pHYs + tEXt chunks           |
-| **HEIC** | 11     | EXIF metadata extraction (runtime-based)  |
-| **AVIF** | 11     | EXIF metadata extraction (runtime-based)  |
+| Format   | Fields | Implementation                                            |
+| -------- | ------ | --------------------------------------------------------- |
+| **JPEG** | 21     | Full EXIF (IFD0 + Exif Sub-IFD + GPS IFD)                 |
+| **TIFF** | 23+    | Complete EXIF 3.0 support with InteropIFD                 |
+| **HEIC** | 19     | Full EXIF metadata extraction (IFD0 + Exif Sub-IFD + GPS) |
+| **AVIF** | 19     | Full EXIF metadata extraction (IFD0 + Exif Sub-IFD + GPS) |
+| **WebP** | 15     | EXIF DateTime/GPS + Enhanced XMP                          |
+| **PNG**  | 9      | eXIf chunk + pHYs + tEXt chunks                           |
 
 ## EXIF 3.0 Specification Compliance
 
