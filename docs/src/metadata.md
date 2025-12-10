@@ -6,8 +6,8 @@ nav_order: 6
 # Metadata Support
 
 @cross/image provides comprehensive EXIF 3.0 compliant metadata support for
-image files. Metadata can be embedded in and extracted from JPEG, PNG, WebP, and
-TIFF formats.
+image files. Metadata can be embedded in and extracted from JPEG, PNG, WebP,
+TIFF, HEIC, and AVIF formats.
 
 ## Supported Metadata Fields
 
@@ -23,7 +23,7 @@ All formats support basic descriptive metadata:
 
 ### Camera Settings
 
-Available in JPEG, TIFF, and WebP (via XMP):
+Available in JPEG, TIFF, HEIC, AVIF, and WebP (via XMP):
 
 - **cameraMake** - Camera manufacturer (e.g., "Canon", "Nikon")
 - **cameraModel** - Camera model (e.g., "EOS R5", "D850")
@@ -41,7 +41,7 @@ Available in JPEG, TIFF, and WebP (via XMP):
 
 ### GPS Coordinates
 
-Available in JPEG, PNG, WebP, and TIFF via EXIF GPS IFD:
+Available in JPEG, PNG, WebP, TIFF, HEIC, and AVIF via EXIF GPS IFD:
 
 - **latitude** - Latitude in decimal degrees (-90 to 90)
 - **longitude** - Longitude in decimal degrees (-180 to 180)
@@ -153,6 +153,14 @@ const webpFields = Image.getSupportedMetadata("webp");
 // Check PNG support
 const pngFields = Image.getSupportedMetadata("png");
 // PNG supports DateTime, GPS, DPI, and basic text metadata
+
+// Check HEIC support
+const heicFields = Image.getSupportedMetadata("heic");
+// HEIC supports camera metadata and GPS (11 fields)
+
+// Check AVIF support
+const avifFields = Image.getSupportedMetadata("avif");
+// AVIF supports camera metadata and GPS (11 fields)
 ```
 
 ### Format Comparison
@@ -163,6 +171,8 @@ const pngFields = Image.getSupportedMetadata("png");
 | **TIFF** | 23+    | Complete EXIF 3.0 support with InteropIFD |
 | **WebP** | 15     | EXIF DateTime/GPS + Enhanced XMP          |
 | **PNG**  | 9      | eXIf chunk + pHYs + tEXt chunks           |
+| **HEIC** | 11     | EXIF metadata extraction (runtime-based)  |
+| **AVIF** | 11     | EXIF metadata extraction (runtime-based)  |
 
 ## EXIF 3.0 Specification Compliance
 
@@ -212,6 +222,18 @@ All EXIF/TIFF data types are supported:
 - Complete IFD structure with EXIF Sub-IFD and GPS IFD
 - InteropIFD for compatibility
 - Native DPI in IFD tags
+
+**HEIC:**
+
+- EXIF metadata extraction via simplified ISOBMFF parsing
+- Runtime-based encoding (metadata injection not yet implemented)
+- Supports camera settings, GPS, and timestamps
+
+**AVIF:**
+
+- EXIF metadata extraction via simplified ISOBMFF parsing
+- Runtime-based encoding (metadata injection not yet implemented)
+- Supports camera settings, GPS, and timestamps
 
 ## Complete Example
 

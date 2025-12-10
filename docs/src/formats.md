@@ -27,6 +27,8 @@ status:
 | GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
 | WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
 | TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed, LZW, & grayscale   |
+| HEIC   | ✅   | ✅    | ❌             | ❌             | ✅ ImageDecoder   | ✅ OffscreenCanvas | Requires runtime API support                 |
+| AVIF   | ✅   | ✅    | ❌             | ❌             | ✅ ImageDecoder   | ✅ OffscreenCanvas | Requires runtime API support                 |
 
 **Legend:**
 
@@ -98,6 +100,13 @@ This table shows which format standards and variants are supported:
 |        | - Multiple character sets           | ✅ Full           | Pure-JS        |
 |        | - Configurable width & aspect ratio | ✅ Full           | Pure-JS        |
 |        | - Brightness inversion              | ✅ Full           | Pure-JS        |
+| HEIC   | HEIC/HEIF (ISO BMFF)                | ✅ Runtime only   | ImageDecoder   |
+|        | - Brand: heic, heix, hevc, hevx     | ✅ Full           | ImageDecoder   |
+|        | - Brand: mif1, msf1                 | ✅ Full           | ImageDecoder   |
+|        | - EXIF metadata extraction          | ✅ Full           | Pure-JS        |
+| AVIF   | AVIF (AV1 Image File Format)        | ✅ Runtime only   | ImageDecoder   |
+|        | - Brand: avif, avis, avio           | ✅ Full           | ImageDecoder   |
+|        | - EXIF metadata extraction          | ✅ Full           | Pure-JS        |
 
 ## Runtime Compatibility by Format
 
@@ -114,6 +123,8 @@ This table shows which format standards and variants are supported:
 | JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full   |
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full   |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW+grayscale |
+| HEIC   | ✅       | ⚠️ Runtime  | ✅          | ✅  | Requires ImageDecoder API support           |
+| AVIF   | ✅       | ⚠️ Runtime  | ✅          | ✅  | Requires ImageDecoder API support           |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP,
 GIF, ASCII, PCX, PPM or DNG formats which have complete pure-JS implementations.
