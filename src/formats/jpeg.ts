@@ -1399,4 +1399,76 @@ export class JPEGFormat implements ImageFormat {
       "dpiY",
     ];
   }
+
+  /**
+   * Extract metadata from JPEG data without fully decoding the pixel data
+   * This quickly parses JFIF and EXIF markers to extract metadata
+   * @param data Raw JPEG data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    // Parse JPEG structure to extract metadata
+    let pos = 2; // Skip initial FF D8
+    const metadata: ImageMetadata = {};
+    let width = 0;
+    let height = 0;
+
+    while (pos < data.length - 1) {
+      if (data[pos] !== 0xff) {
+        pos++;
+        continue;
+      }
+
+      const marker = data[pos + 1];
+      pos += 2;
+
+      // SOF markers (Start of Frame) - get dimensions for DPI calculation
+      if (
+        marker >= 0xc0 && marker <= 0xcf &&
+        marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc
+      ) {
+        const length = (data[pos] << 8) | data[pos + 1];
+        // precision at pos+2
+        height = (data[pos + 3] << 8) | data[pos + 4];
+        width = (data[pos + 5] << 8) | data[pos + 6];
+        // Don't break - continue parsing for metadata
+        pos += length;
+        continue;
+      }
+
+      // APP0 marker (JFIF)
+      if (marker === 0xe0) {
+        const length = (data[pos] << 8) | data[pos + 1];
+        const appData = data.slice(pos + 2, pos + length);
+        this.parseJFIF(appData, metadata, width, height);
+        pos += length;
+        continue;
+      }
+
+      // APP1 marker (EXIF)
+      if (marker === 0xe1) {
+        const length = (data[pos] << 8) | data[pos + 1];
+        const appData = data.slice(pos + 2, pos + length);
+        this.parseEXIF(appData, metadata);
+        pos += length;
+        continue;
+      }
+
+      // Skip other markers
+      if (marker === 0xd9 || marker === 0xda) break; // EOI or SOS
+      if (marker >= 0xd0 && marker <= 0xd8) continue; // RST markers have no length
+      if (marker === 0x01) continue; // TEM has no length
+
+      const length = (data[pos] << 8) | data[pos + 1];
+      pos += length;
+    }
+
+    return Promise.resolve(
+      Object.keys(metadata).length > 0 ? metadata : undefined,
+    );
+  }
 }

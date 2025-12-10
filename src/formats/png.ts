@@ -149,4 +149,65 @@ export class PNGFormat extends PNGBase implements ImageFormat {
     // Concatenate all chunks
     return this.concatenateArrays(chunks);
   }
+
+  /**
+   * Extract metadata from PNG data without fully decoding the pixel data
+   * This quickly parses PNG chunks to extract metadata
+   * @param data Raw PNG data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    let pos = 8; // Skip PNG signature
+    let width = 0;
+    let height = 0;
+    const metadata: ImageMetadata = {};
+
+    // Parse chunks for metadata only
+    while (pos < data.length) {
+      if (pos + 8 > data.length) break;
+
+      const length = this.readUint32(data, pos);
+      pos += 4;
+      const type = String.fromCharCode(
+        data[pos],
+        data[pos + 1],
+        data[pos + 2],
+        data[pos + 3],
+      );
+      pos += 4;
+
+      if (pos + length + 4 > data.length) break;
+
+      const chunkData = data.slice(pos, pos + length);
+      pos += length;
+      pos += 4; // Skip CRC
+
+      if (type === "IHDR") {
+        width = this.readUint32(chunkData, 0);
+        height = this.readUint32(chunkData, 4);
+      } else if (type === "pHYs") {
+        // Physical pixel dimensions
+        this.parsePhysChunk(chunkData, metadata, width, height);
+      } else if (type === "tEXt") {
+        // Text chunk
+        this.parseTextChunk(chunkData, metadata);
+      } else if (type === "iTXt") {
+        // International text chunk
+        this.parseITxtChunk(chunkData, metadata);
+      } else if (type === "eXIf") {
+        // EXIF chunk
+        this.parseExifChunk(chunkData, metadata);
+      } else if (type === "IEND") {
+        break;
+      }
+    }
+
+    return Promise.resolve(
+      Object.keys(metadata).length > 0 ? metadata : undefined,
+    );
+  }
 }

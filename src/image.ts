@@ -267,6 +267,36 @@ export class Image {
   }
 
   /**
+   * Extract metadata from image data without fully decoding the pixel data
+   * This is useful for quickly reading EXIF, XMP, or other metadata from images
+   * that may have unsupported features or compression methods
+   * @param data Raw image data
+   * @param format Optional format hint (e.g., "png", "jpeg", "webp")
+   * @returns Metadata extracted from the image, or undefined if extraction fails or format is unsupported
+   */
+  static async extractMetadata(
+    data: Uint8Array,
+    format?: string,
+  ): Promise<ImageMetadata | undefined> {
+    // Try specified format first
+    if (format) {
+      const handler = Image.formats.find((f) => f.name === format);
+      if (handler && handler.canDecode(data) && handler.extractMetadata) {
+        return await handler.extractMetadata(data);
+      }
+    }
+
+    // Auto-detect format
+    for (const handler of Image.formats) {
+      if (handler.canDecode(data) && handler.extractMetadata) {
+        return await handler.extractMetadata(data);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Read an image from bytes
    * @deprecated Use `decode()` instead. This method will be removed in a future version.
    * @param data Raw image data

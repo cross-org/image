@@ -1394,4 +1394,146 @@ export class TIFFFormat implements ImageFormat {
       "physicalHeight",
     ];
   }
+
+  /**
+   * Extract metadata from TIFF data without fully decoding the pixel data
+   * This quickly parses IFD entries to extract metadata
+   * @param data Raw TIFF data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    // Determine byte order
+    const isLittleEndian = data[0] === 0x49 && data[1] === 0x49;
+    if (
+      !isLittleEndian && !(data[0] === 0x4d && data[1] === 0x4d)
+    ) {
+      return Promise.resolve(undefined);
+    }
+
+    // Read IFD offset
+    const ifdOffset = this.readUint32(data, 4, isLittleEndian);
+    if (ifdOffset >= data.length) {
+      return Promise.resolve(undefined);
+    }
+
+    // Get dimensions for DPI calculation
+    const width = this.getIFDValue(data, ifdOffset, 0x0100, isLittleEndian);
+    const height = this.getIFDValue(data, ifdOffset, 0x0101, isLittleEndian);
+
+    if (!width || !height) {
+      return Promise.resolve(undefined);
+    }
+
+    // Extract metadata from TIFF tags
+    const metadata: ImageMetadata = {};
+
+    // XResolution (0x011a) and YResolution (0x011b) for DPI
+    const xResOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x011a,
+      isLittleEndian,
+    );
+    const yResOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x011b,
+      isLittleEndian,
+    );
+
+    if (xResOffset && xResOffset < data.length - 8) {
+      const numerator = this.readUint32(data, xResOffset, isLittleEndian);
+      const denominator = this.readUint32(
+        data,
+        xResOffset + 4,
+        isLittleEndian,
+      );
+      if (denominator > 0) {
+        metadata.dpiX = Math.round(numerator / denominator);
+      }
+    }
+
+    if (yResOffset && yResOffset < data.length - 8) {
+      const numerator = this.readUint32(data, yResOffset, isLittleEndian);
+      const denominator = this.readUint32(
+        data,
+        yResOffset + 4,
+        isLittleEndian,
+      );
+      if (denominator > 0) {
+        metadata.dpiY = Math.round(numerator / denominator);
+      }
+    }
+
+    // Calculate physical dimensions if DPI is available
+    if (metadata.dpiX && metadata.dpiY) {
+      metadata.physicalWidth = width / metadata.dpiX;
+      metadata.physicalHeight = height / metadata.dpiY;
+    }
+
+    // ImageDescription (0x010e)
+    const descOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x010e,
+      isLittleEndian,
+    );
+    if (descOffset && descOffset < data.length) {
+      metadata.description = this.readString(data, descOffset);
+    }
+
+    // Artist (0x013b)
+    const artistOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x013b,
+      isLittleEndian,
+    );
+    if (artistOffset && artistOffset < data.length) {
+      metadata.author = this.readString(data, artistOffset);
+    }
+
+    // Copyright (0x8298)
+    const copyrightOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x8298,
+      isLittleEndian,
+    );
+    if (copyrightOffset && copyrightOffset < data.length) {
+      metadata.copyright = this.readString(data, copyrightOffset);
+    }
+
+    // DateTime (0x0132)
+    const dateTimeOffset = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0132,
+      isLittleEndian,
+    );
+    if (dateTimeOffset && dateTimeOffset < data.length) {
+      const dateStr = this.readString(data, dateTimeOffset);
+      const match = dateStr.match(
+        /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+      );
+      if (match) {
+        metadata.creationDate = new Date(
+          parseInt(match[1]),
+          parseInt(match[2]) - 1,
+          parseInt(match[3]),
+          parseInt(match[4]),
+          parseInt(match[5]),
+          parseInt(match[6]),
+        );
+      }
+    }
+
+    return Promise.resolve(
+      Object.keys(metadata).length > 0 ? metadata : undefined,
+    );
+  }
 }

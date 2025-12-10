@@ -224,4 +224,13 @@ export interface ImageFormat {
    * @returns Array of metadata field names that can be persisted
    */
   getSupportedMetadata?(): Array<keyof ImageMetadata>;
+
+  /**
+   * Extract metadata from image data without fully decoding the pixel data
+   * This is useful for quickly reading EXIF, XMP, or other metadata from images
+   * that may have unsupported features or compression methods
+   * @param data Raw image data
+   * @returns Metadata extracted from the image, or undefined if extraction fails
+   */
+  extractMetadata?(data: Uint8Array): Promise<ImageMetadata | undefined>;
 }

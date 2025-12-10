@@ -68,7 +68,7 @@ export class GIFFormat implements ImageFormat {
       validateImageDimensions(result.width, result.height);
 
       // Extract metadata from comment extensions
-      const metadata = this.extractMetadata(data);
+      const metadata = this.extractGIFMetadata(data);
 
       return {
         width: result.width,
@@ -92,7 +92,7 @@ export class GIFFormat implements ImageFormat {
       validateImageDimensions(width, height);
 
       const rgba = await this.decodeUsingRuntime(data, width, height);
-      const metadata = this.extractMetadata(data);
+      const metadata = this.extractGIFMetadata(data);
 
       return {
         width,
@@ -103,7 +103,7 @@ export class GIFFormat implements ImageFormat {
     }
   }
 
-  private extractMetadata(data: Uint8Array): ImageMetadata {
+  private extractGIFMetadata(data: Uint8Array): ImageMetadata {
     const metadata: ImageMetadata = {};
     let pos = 6; // Skip "GIF89a" or "GIF87a"
 
@@ -234,7 +234,7 @@ export class GIFFormat implements ImageFormat {
       const result = decoder.decodeAllFrames();
 
       // Extract metadata from comment extensions
-      const metadata = this.extractMetadata(data);
+      const metadata = this.extractGIFMetadata(data);
 
       return Promise.resolve({
         width: result.width,
