@@ -367,3 +367,246 @@ image.resize({ width: 512, height: 512 });
 
 await Deno.writeFile("square.png", await image.encode("png"));
 ```
+
+## Border
+
+Add a uniform or custom border around an image.
+
+### Signature
+
+```ts
+border(width: number, r?: number, g?: number, b?: number, a?: number): this
+borderSides(top: number, right: number, bottom: number, left: number, r?: number, g?: number, b?: number, a?: number): this
+```
+
+### Parameters
+
+- `width` - Border width in pixels (all sides) for `border()`
+- `top`, `right`, `bottom`, `left` - Border widths per side for `borderSides()`
+- `r` - Red component (0-255, default: 0)
+- `g` - Green component (0-255, default: 0)
+- `b` - Blue component (0-255, default: 0)
+- `a` - Alpha component (0-255, default: 255)
+
+### Example
+
+```ts
+import { Image } from "@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Add a 10-pixel black border
+image.border(10);
+
+// Add a 5-pixel white border
+image.border(5, 255, 255, 255);
+
+// Add a 20-pixel semi-transparent blue border
+image.border(20, 0, 0, 255, 128);
+
+// Add different borders per side (top=10, right=5, bottom=10, left=5)
+image.borderSides(10, 5, 10, 5, 0, 0, 0, 255);
+
+const output = await image.encode("png");
+await Deno.writeFile("bordered.png", output);
+```
+
+### Use Cases
+
+- Creating framed thumbnails
+- Adding spacing around images
+- Creating polaroid-style effects
+- Preparing images for display with consistent padding
+- Adding decorative borders
+
+### Tips
+
+- Border increases image dimensions by `2 * width` (or sum of sides)
+- Use transparent borders (a=0) for padding without visible border
+- Chain with other operations: `image.border(10).resize(...)`
+- Metadata (DPI, physical dimensions) is preserved and updated
+
+## Draw Line
+
+Draw a straight line between two points using Bresenham's algorithm.
+
+### Signature
+
+```ts
+drawLine(x0: number, y0: number, x1: number, y1: number, r: number, g: number, b: number, a?: number): this
+```
+
+### Parameters
+
+- `x0`, `y0` - Starting coordinates
+- `x1`, `y1` - Ending coordinates
+- `r` - Red component (0-255)
+- `g` - Green component (0-255)
+- `b` - Blue component (0-255)
+- `a` - Alpha component (0-255, default: 255)
+
+### Example
+
+```ts
+import { Image } from "@cross/image";
+
+// Create a blank canvas
+const canvas = Image.create(400, 400, 255, 255, 255);
+
+// Draw a red horizontal line
+canvas.drawLine(50, 200, 350, 200, 255, 0, 0);
+
+// Draw a blue vertical line
+canvas.drawLine(200, 50, 200, 350, 0, 0, 255);
+
+// Draw a green diagonal line
+canvas.drawLine(50, 50, 350, 350, 0, 255, 0);
+
+// Draw a semi-transparent yellow line
+canvas.drawLine(50, 350, 350, 50, 255, 255, 0, 128);
+
+const output = await canvas.encode("png");
+await Deno.writeFile("lines.png", output);
+```
+
+### Use Cases
+
+- Creating grid overlays
+- Drawing coordinate axes
+- Adding guidelines or annotations
+- Creating geometric patterns
+- Technical drawings
+
+### Tips
+
+- Lines are drawn with pixel precision using Bresenham's algorithm
+- Coordinates are automatically clipped to image bounds
+- Supports any angle (horizontal, vertical, diagonal)
+- Can be chained with other operations
+- Use alpha channel for semi-transparent lines
+
+## Draw Circle
+
+Draw a circle (outline or filled) at a specified position.
+
+### Signature
+
+```ts
+drawCircle(centerX: number, centerY: number, radius: number, r: number, g: number, b: number, a?: number, filled?: boolean): this
+```
+
+### Parameters
+
+- `centerX`, `centerY` - Circle center coordinates
+- `radius` - Circle radius in pixels
+- `r` - Red component (0-255)
+- `g` - Green component (0-255)
+- `b` - Blue component (0-255)
+- `a` - Alpha component (0-255, default: 255)
+- `filled` - Whether to fill the circle (default: false, outline only)
+
+### Example
+
+```ts
+import { Image } from "@cross/image";
+
+// Create a blank canvas
+const canvas = Image.create(400, 400, 255, 255, 255);
+
+// Draw a red circle outline
+canvas.drawCircle(100, 100, 50, 255, 0, 0);
+
+// Draw a filled blue circle
+canvas.drawCircle(300, 100, 50, 0, 0, 255, 255, true);
+
+// Draw a filled semi-transparent green circle
+canvas.drawCircle(200, 300, 75, 0, 255, 0, 128, true);
+
+// Draw multiple concentric circles
+for (let r = 10; r <= 100; r += 20) {
+  canvas.drawCircle(200, 200, r, 0, 0, 0);
+}
+
+const output = await canvas.encode("png");
+await Deno.writeFile("circles.png", output);
+```
+
+### Use Cases
+
+- Creating dot markers or indicators
+- Drawing targets or focus areas
+- Creating geometric patterns
+- Adding decorative elements
+- Highlighting regions of interest
+
+### Tips
+
+- Use `filled: false` for circle outline (default)
+- Use `filled: true` for solid filled circle
+- Circle is automatically clipped to image bounds
+- Outline uses midpoint circle algorithm for efficiency
+- Can be chained with other operations
+
+## Drawing Workflow Examples
+
+### Creating a Simple Chart
+
+```ts
+const chart = Image.create(400, 300, 255, 255, 255);
+
+// Draw axes
+chart.drawLine(50, 250, 350, 250, 0, 0, 0); // X-axis
+chart.drawLine(50, 50, 50, 250, 0, 0, 0); // Y-axis
+
+// Plot data points
+const data = [100, 150, 120, 200, 180];
+for (let i = 0; i < data.length; i++) {
+  const x = 80 + i * 60;
+  const y = 250 - data[i];
+  chart.drawCircle(x, y, 5, 255, 0, 0, 255, true);
+}
+
+// Connect points with lines
+for (let i = 0; i < data.length - 1; i++) {
+  const x0 = 80 + i * 60;
+  const y0 = 250 - data[i];
+  const x1 = 80 + (i + 1) * 60;
+  const y1 = 250 - data[i + 1];
+  chart.drawLine(x0, y0, x1, y1, 0, 0, 255);
+}
+
+await Deno.writeFile("chart.png", await chart.encode("png"));
+```
+
+### Creating a Frame Effect
+
+```ts
+const image = await Image.decode(await Deno.readFile("photo.jpg"));
+
+// Add a white border
+image.border(20, 255, 255, 255);
+
+// Draw decorative corners
+const w = image.width;
+const h = image.height;
+const len = 30;
+
+// Top-left corner
+image.drawLine(0, 0, len, 0, 200, 150, 0, 255);
+image.drawLine(0, 0, 0, len, 200, 150, 0, 255);
+
+// Top-right corner
+image.drawLine(w - 1, 0, w - len - 1, 0, 200, 150, 0, 255);
+image.drawLine(w - 1, 0, w - 1, len, 200, 150, 0, 255);
+
+// Bottom-left corner
+image.drawLine(0, h - 1, len, h - 1, 200, 150, 0, 255);
+image.drawLine(0, h - 1, 0, h - len - 1, 200, 150, 0, 255);
+
+// Bottom-right corner
+image.drawLine(w - 1, h - 1, w - len - 1, h - 1, 200, 150, 0, 255);
+image.drawLine(w - 1, h - 1, w - 1, h - len - 1, 200, 150, 0, 255);
+
+await Deno.writeFile("framed.png", await image.encode("png"));
+```

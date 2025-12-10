@@ -14,11 +14,12 @@ dependencies.
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
 - 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
   PAM, PPM, PCX and ASCII support
-- ✂️ **Image manipulation** - Resize, crop, composite, and more
+- ✂️ **Image manipulation** - Resize, crop, composite, border, and more
 - 🎛️ **Image processing** - Chainable filters including `brightness`,
   `contrast`, `saturation`, `hue`, `exposure`, `blur`, `sharpen`, `sepia`, and
   more
-- 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
+- 🖌️ **Drawing operations** - Draw lines, circles, rectangles, and manipulate
+  pixels
 - 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface
 
@@ -66,16 +67,22 @@ console.log(`Image size: ${image.width}x${image.height}`);
 // Create a new blank image
 const canvas = Image.create(800, 600, 255, 255, 255); // white background
 
+// Draw some shapes
+canvas
+  .drawCircle(400, 300, 100, 255, 0, 0, 255, true) // red filled circle
+  .drawLine(0, 0, 800, 600, 0, 0, 255); // blue diagonal line
+
 // Composite the loaded image on top
 canvas.composite(image, 50, 50);
 
-// Apply image processing filters
+// Apply image processing filters and add border
 canvas
   .brightness(0.1)
   .contrast(0.2)
   .saturation(-0.1)
   .blur(1)
-  .sharpen(0.3);
+  .sharpen(0.3)
+  .border(10, 0, 0, 0); // 10px black border
 
 // Encode in a different format
 const jpeg = await canvas.encode("jpeg");

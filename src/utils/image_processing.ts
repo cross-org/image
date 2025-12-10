@@ -879,3 +879,268 @@ export function flipVertical(
 
   return result;
 }
+
+/**
+ * Add a border around an image
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param borderWidth Border width in pixels (all sides)
+ * @param r Red component (0-255)
+ * @param g Green component (0-255)
+ * @param b Blue component (0-255)
+ * @param a Alpha component (0-255, default: 255)
+ * @returns Object with new dimensions and bordered image data
+ */
+export function addBorder(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  borderWidth: number,
+  r: number,
+  g: number,
+  b: number,
+  a = 255,
+): { data: Uint8Array; width: number; height: number } {
+  const newWidth = width + borderWidth * 2;
+  const newHeight = height + borderWidth * 2;
+  const result = new Uint8Array(newWidth * newHeight * 4);
+
+  // Fill entire image with border color
+  for (let i = 0; i < result.length; i += 4) {
+    result[i] = r;
+    result[i + 1] = g;
+    result[i + 2] = b;
+    result[i + 3] = a;
+  }
+
+  // Copy original image to center
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 4;
+      const dstX = x + borderWidth;
+      const dstY = y + borderWidth;
+      const dstIdx = (dstY * newWidth + dstX) * 4;
+
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+
+  return { data: result, width: newWidth, height: newHeight };
+}
+
+/**
+ * Add a border with different widths for each side
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param top Top border width in pixels
+ * @param right Right border width in pixels
+ * @param bottom Bottom border width in pixels
+ * @param left Left border width in pixels
+ * @param r Red component (0-255)
+ * @param g Green component (0-255)
+ * @param b Blue component (0-255)
+ * @param a Alpha component (0-255, default: 255)
+ * @returns Object with new dimensions and bordered image data
+ */
+export function addBorderSides(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  top: number,
+  right: number,
+  bottom: number,
+  left: number,
+  r: number,
+  g: number,
+  b: number,
+  a = 255,
+): { data: Uint8Array; width: number; height: number } {
+  const newWidth = width + left + right;
+  const newHeight = height + top + bottom;
+  const result = new Uint8Array(newWidth * newHeight * 4);
+
+  // Fill entire image with border color
+  for (let i = 0; i < result.length; i += 4) {
+    result[i] = r;
+    result[i + 1] = g;
+    result[i + 2] = b;
+    result[i + 3] = a;
+  }
+
+  // Copy original image to position
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * width + x) * 4;
+      const dstX = x + left;
+      const dstY = y + top;
+      const dstIdx = (dstY * newWidth + dstX) * 4;
+
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+
+  return { data: result, width: newWidth, height: newHeight };
+}
+
+/**
+ * Draw a line from (x0, y0) to (x1, y1) using Bresenham's algorithm
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param x0 Starting X coordinate
+ * @param y0 Starting Y coordinate
+ * @param x1 Ending X coordinate
+ * @param y1 Ending Y coordinate
+ * @param r Red component (0-255)
+ * @param g Green component (0-255)
+ * @param b Blue component (0-255)
+ * @param a Alpha component (0-255, default: 255)
+ * @returns Modified image data with line drawn
+ */
+export function drawLine(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  r: number,
+  g: number,
+  b: number,
+  a = 255,
+): Uint8Array {
+  const result = new Uint8Array(data);
+
+  // Helper to set pixel with bounds checking
+  const setPixel = (x: number, y: number) => {
+    if (x >= 0 && x < width && y >= 0 && y < height) {
+      const idx = (y * width + x) * 4;
+      result[idx] = r;
+      result[idx + 1] = g;
+      result[idx + 2] = b;
+      result[idx + 3] = a;
+    }
+  };
+
+  // Bresenham's line algorithm
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+
+  let x = Math.round(x0);
+  let y = Math.round(y0);
+  const endX = Math.round(x1);
+  const endY = Math.round(y1);
+
+  while (true) {
+    setPixel(x, y);
+
+    if (x === endX && y === endY) break;
+
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y += sy;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Draw a circle at (centerX, centerY) with the given radius
+ * @param data Image data (RGBA)
+ * @param width Image width
+ * @param height Image height
+ * @param centerX Center X coordinate
+ * @param centerY Center Y coordinate
+ * @param radius Circle radius in pixels
+ * @param r Red component (0-255)
+ * @param g Green component (0-255)
+ * @param b Blue component (0-255)
+ * @param a Alpha component (0-255, default: 255)
+ * @param filled Whether to fill the circle (default: false)
+ * @returns Modified image data with circle drawn
+ */
+export function drawCircle(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  r: number,
+  g: number,
+  b: number,
+  a = 255,
+  filled = false,
+): Uint8Array {
+  const result = new Uint8Array(data);
+
+  // Helper to set pixel with bounds checking
+  const setPixel = (x: number, y: number) => {
+    if (x >= 0 && x < width && y >= 0 && y < height) {
+      const idx = (y * width + x) * 4;
+      result[idx] = r;
+      result[idx + 1] = g;
+      result[idx + 2] = b;
+      result[idx + 3] = a;
+    }
+  };
+
+  const cx = Math.round(centerX);
+  const cy = Math.round(centerY);
+  const rad = Math.round(radius);
+
+  if (filled) {
+    // Fill circle using bounding box approach
+    for (let y = -rad; y <= rad; y++) {
+      for (let x = -rad; x <= rad; x++) {
+        if (x * x + y * y <= rad * rad) {
+          setPixel(cx + x, cy + y);
+        }
+      }
+    }
+  } else {
+    // Midpoint circle algorithm for outline
+    let x = rad;
+    let y = 0;
+    let err = 0;
+
+    while (x >= y) {
+      // Draw 8 octants
+      setPixel(cx + x, cy + y);
+      setPixel(cx + y, cy + x);
+      setPixel(cx - y, cy + x);
+      setPixel(cx - x, cy + y);
+      setPixel(cx - x, cy - y);
+      setPixel(cx - y, cy - x);
+      setPixel(cx + y, cy - x);
+      setPixel(cx + x, cy - y);
+
+      y++;
+      err += 1 + 2 * y;
+      if (2 * (err - x) + 1 > 0) {
+        x--;
+        err += 1 - 2 * x;
+      }
+    }
+  }
+
+  return result;
+}
