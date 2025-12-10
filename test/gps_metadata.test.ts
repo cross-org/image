@@ -361,3 +361,101 @@ test("GPS: JPEG - high precision coordinates", async () => {
   assertEquals(latDiff < 0.000001, true);
   assertEquals(lonDiff < 0.000001, true);
 });
+
+// PNG GPS tests
+
+test("GPS: PNG - roundtrip GPS coordinates", async () => {
+  const PNGFormat = (await import("../src/formats/png.ts")).PNGFormat;
+  const format = new PNGFormat();
+
+  const imageData = {
+    width: 50,
+    height: 50,
+    data: new Uint8Array(50 * 50 * 4).fill(128),
+    metadata: {
+      latitude: 40.7128,
+      longitude: -74.0060,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // GPS coordinates should be preserved
+  const latDiff = Math.abs((decoded.metadata?.latitude ?? 0) - 40.7128);
+  const lonDiff = Math.abs((decoded.metadata?.longitude ?? 0) - (-74.0060));
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
+});
+
+test("GPS: PNG via Image API - roundtrip", async () => {
+  const data = new Uint8Array(64 * 64 * 4).fill(200);
+  const image = Image.fromRGBA(64, 64, data);
+
+  image.setPosition(35.6762, 139.6503); // Tokyo
+  image.setMetadata({
+    creationDate: new Date("2024-01-01"),
+  });
+
+  // Save as PNG
+  const encoded = await image.save("png");
+
+  // Load and verify
+  const loaded = await Image.read(encoded);
+
+  const position = loaded.getPosition();
+  const latDiff = Math.abs((position?.latitude ?? 0) - 35.6762);
+  const lonDiff = Math.abs((position?.longitude ?? 0) - 139.6503);
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
+});
+
+// WebP GPS tests
+
+test("GPS: WebP - roundtrip GPS coordinates", async () => {
+  const WebPFormat = (await import("../src/formats/webp.ts")).WebPFormat;
+  const format = new WebPFormat();
+
+  const imageData = {
+    width: 50,
+    height: 50,
+    data: new Uint8Array(50 * 50 * 4).fill(128),
+    metadata: {
+      latitude: -33.8688,
+      longitude: 151.2093,
+    },
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  // GPS coordinates should be preserved
+  const latDiff = Math.abs((decoded.metadata?.latitude ?? 0) - (-33.8688));
+  const lonDiff = Math.abs((decoded.metadata?.longitude ?? 0) - 151.2093);
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
+});
+
+test("GPS: WebP via Image API - roundtrip", async () => {
+  const data = new Uint8Array(64 * 64 * 4).fill(200);
+  const image = Image.fromRGBA(64, 64, data);
+
+  image.setPosition(51.5074, -0.1278); // London
+  image.setMetadata({
+    creationDate: new Date("2024-06-15"),
+    title: "London Photo",
+  });
+
+  // Save as WebP
+  const encoded = await image.save("webp");
+
+  // Load and verify
+  const loaded = await Image.read(encoded);
+
+  const position = loaded.getPosition();
+  const latDiff = Math.abs((position?.latitude ?? 0) - 51.5074);
+  const lonDiff = Math.abs((position?.longitude ?? 0) - (-0.1278));
+  assertEquals(latDiff < 0.000001, true);
+  assertEquals(lonDiff < 0.000001, true);
+  assertEquals(loaded.metadata?.title, "London Photo");
+});
