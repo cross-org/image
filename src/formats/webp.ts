@@ -770,4 +770,57 @@ export class WebPFormat implements ImageFormat {
       "focalLength",
     ];
   }
+
+  /**
+   * Extract metadata from WebP data without fully decoding the pixel data
+   * This quickly parses RIFF chunks to extract EXIF and XMP metadata
+   * @param data Raw WebP data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    const metadata: ImageMetadata = {};
+    let pos = 12; // Skip "RIFF" + size + "WEBP"
+
+    const readUint32LE = (data: Uint8Array, offset: number): number => {
+      return data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) |
+        (data[offset + 3] << 24);
+    };
+
+    // Parse chunks for metadata
+    while (pos + 8 <= data.length) {
+      const chunkType = String.fromCharCode(
+        data[pos],
+        data[pos + 1],
+        data[pos + 2],
+        data[pos + 3],
+      );
+      const chunkSize = readUint32LE(data, pos + 4);
+      pos += 8;
+
+      // Stop if we've gone past the end
+      if (pos + chunkSize > data.length) break;
+
+      const chunkData = data.slice(pos, pos + chunkSize);
+
+      if (chunkType === "EXIF") {
+        // EXIF metadata chunk
+        this.parseEXIF(chunkData, metadata);
+      } else if (chunkType === "XMP ") {
+        // XMP metadata chunk
+        this.parseXMP(chunkData, metadata);
+      }
+
+      pos += chunkSize;
+      // Chunks are padded to even length
+      if (chunkSize % 2 === 1) pos++;
+    }
+
+    return Promise.resolve(
+      Object.keys(metadata).length > 0 ? metadata : undefined,
+    );
+  }
 }
