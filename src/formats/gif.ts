@@ -474,4 +474,140 @@ export class GIFFormat implements ImageFormat {
 
     return parts.length > 0 ? parts.join("\n") : null;
   }
+
+  /**
+   * Extract metadata from GIF data without fully decoding the pixel data
+   * This quickly parses GIF structure to extract metadata including frame count
+   * @param data Raw GIF data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    const metadata: ImageMetadata = {
+      format: "gif",
+      compression: "lzw",
+      frameCount: 0,
+      bitDepth: 8,
+      colorType: "indexed",
+    };
+
+    let pos = 6; // Skip "GIF89a" or "GIF87a"
+
+    // Read Logical Screen Descriptor
+    const _width = readUint16LE(data, pos);
+    pos += 2;
+    const _height = readUint16LE(data, pos);
+    pos += 2;
+    const packed = data[pos++];
+    const _backgroundColorIndex = data[pos++];
+    const _aspectRatio = data[pos++];
+
+    // Parse packed fields
+    const hasGlobalColorTable = (packed & 0x80) !== 0;
+    const globalColorTableSize = 2 << (packed & 0x07);
+
+    // Skip global color table if present
+    if (hasGlobalColorTable) {
+      pos += globalColorTableSize * 3;
+    }
+
+    // Parse data stream to count frames and extract metadata
+    while (pos < data.length) {
+      const separator = data[pos++];
+
+      if (separator === 0x21) {
+        // Extension
+        const label = data[pos++];
+
+        if (label === 0xf9) {
+          // Graphics Control Extension - indicates a frame
+          metadata.frameCount!++;
+          // Skip block
+          const blockSize = data[pos++];
+          pos += blockSize;
+          pos++; // Block terminator
+        } else if (label === 0xfe) {
+          // Comment Extension
+          const commentResult = this.readDataSubBlocks(data, pos);
+          pos = commentResult.endPos;
+          this.parseGIFCommentMetadata(commentResult.text, metadata);
+        } else if (label === 0xff) {
+          // Application Extension
+          const blockSize = data[pos++];
+          pos += blockSize;
+          // Skip sub-blocks
+          pos += this.getSubBlocksSize(data, pos);
+        } else {
+          // Other extension - skip sub-blocks
+          pos += this.getSubBlocksSize(data, pos);
+        }
+      } else if (separator === 0x2c) {
+        // Image Descriptor - frame data
+        if (metadata.frameCount === 0) {
+          metadata.frameCount = 1;
+        }
+        pos += 8; // Skip left, top, width, height
+        const localPacked = data[pos++];
+        const hasLocalColorTable = (localPacked & 0x80) !== 0;
+        if (hasLocalColorTable) {
+          const localColorTableSize = 2 << (localPacked & 0x07);
+          pos += localColorTableSize * 3;
+        }
+        // Skip LZW minimum code size
+        pos++;
+        // Skip image data sub-blocks
+        pos += this.getSubBlocksSize(data, pos);
+      } else if (separator === 0x3b) {
+        // Trailer - end of GIF
+        break;
+      } else if (separator === 0x00) {
+        // Padding - skip
+        continue;
+      } else {
+        // Unknown - try to continue
+        break;
+      }
+    }
+
+    // If no frames were counted, assume at least 1
+    if (metadata.frameCount === 0) {
+      metadata.frameCount = 1;
+    }
+
+    return Promise.resolve(
+      Object.keys(metadata).length > 0 ? metadata : undefined,
+    );
+  }
+
+  private getSubBlocksSize(data: Uint8Array, pos: number): number {
+    let size = 0;
+    while (pos + size < data.length) {
+      const blockSize = data[pos + size];
+      size++; // For block size byte
+      if (blockSize === 0) break;
+      size += blockSize;
+    }
+    return size;
+  }
+
+  private parseGIFCommentMetadata(
+    commentText: string,
+    metadata: ImageMetadata,
+  ): void {
+    const lines = commentText.split("\n");
+    for (const line of lines) {
+      const colonIndex = line.indexOf(":");
+      if (colonIndex > 0) {
+        const key = line.substring(0, colonIndex).trim();
+        const value = line.substring(colonIndex + 1).trim();
+        if (key === "Title") metadata.title = value;
+        else if (key === "Description") metadata.description = value;
+        else if (key === "Author") metadata.author = value;
+        else if (key === "Copyright") metadata.copyright = value;
+      }
+    }
+  }
 }

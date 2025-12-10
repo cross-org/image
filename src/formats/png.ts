@@ -164,7 +164,11 @@ export class PNGFormat extends PNGBase implements ImageFormat {
     let pos = 8; // Skip PNG signature
     let width = 0;
     let height = 0;
-    const metadata: ImageMetadata = {};
+    const metadata: ImageMetadata = {
+      format: "png",
+      compression: "deflate",
+      frameCount: 1,
+    };
 
     // Parse chunks for metadata only
     while (pos < data.length) {
@@ -189,6 +193,29 @@ export class PNGFormat extends PNGBase implements ImageFormat {
       if (type === "IHDR") {
         width = this.readUint32(chunkData, 0);
         height = this.readUint32(chunkData, 4);
+        // Parse bit depth and color type from IHDR
+        if (chunkData.length >= 9) {
+          metadata.bitDepth = chunkData[8];
+          const colorTypeCode = chunkData[9];
+          // PNG color types: 0=grayscale, 2=rgb, 3=indexed, 4=grayscale+alpha, 6=rgba
+          switch (colorTypeCode) {
+            case 0:
+              metadata.colorType = "grayscale";
+              break;
+            case 2:
+              metadata.colorType = "rgb";
+              break;
+            case 3:
+              metadata.colorType = "indexed";
+              break;
+            case 4:
+              metadata.colorType = "grayscale-alpha";
+              break;
+            case 6:
+              metadata.colorType = "rgba";
+              break;
+          }
+        }
       } else if (type === "pHYs") {
         // Physical pixel dimensions
         this.parsePhysChunk(chunkData, metadata, width, height);

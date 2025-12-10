@@ -782,12 +782,20 @@ export class WebPFormat implements ImageFormat {
       return Promise.resolve(undefined);
     }
 
-    const metadata: ImageMetadata = {};
+    const metadata: ImageMetadata = {
+      format: "webp",
+      frameCount: 1,
+      bitDepth: 8,
+    };
     let pos = 12; // Skip "RIFF" + size + "WEBP"
 
     const readUint32LE = (data: Uint8Array, offset: number): number => {
       return data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) |
         (data[offset + 3] << 24);
+    };
+
+    const readUint16LE = (data: Uint8Array, offset: number): number => {
+      return data[offset] | (data[offset + 1] << 8);
     };
 
     // Parse chunks for metadata
@@ -806,7 +814,45 @@ export class WebPFormat implements ImageFormat {
 
       const chunkData = data.slice(pos, pos + chunkSize);
 
-      if (chunkType === "EXIF") {
+      if (chunkType === "VP8 ") {
+        // Lossy VP8 chunk
+        metadata.compression = "vp8";
+        metadata.colorType = "rgb";
+      } else if (chunkType === "VP8L") {
+        // Lossless VP8L chunk
+        metadata.compression = "vp8l";
+        metadata.colorType = "rgba";
+      } else if (chunkType === "VP8X") {
+        // Extended format chunk - contains animation info
+        if (chunkData.length >= 10) {
+          const flags = chunkData[0];
+          const _hasAnimation = (flags & 0x02) !== 0;
+          const hasAlpha = (flags & 0x10) !== 0;
+          if (hasAlpha) {
+            metadata.colorType = "rgba";
+          } else {
+            metadata.colorType = "rgb";
+          }
+          // Animation is handled in ANIM chunk
+        }
+      } else if (chunkType === "ANIM") {
+        // Animation parameters chunk
+        if (chunkData.length >= 6) {
+          // Background color at bytes 0-3
+          // Loop count at bytes 4-5
+          const _loopCount = readUint16LE(chunkData, 4);
+          // Note: Frame count is not directly in ANIM chunk, need to count ANMF chunks
+          // Reset frame count to 0 to start counting ANMF frames
+          metadata.frameCount = 0;
+        }
+      } else if (chunkType === "ANMF") {
+        // Animation frame - count frames
+        if (metadata.frameCount !== undefined) {
+          metadata.frameCount++;
+        } else {
+          metadata.frameCount = 1;
+        }
+      } else if (chunkType === "EXIF") {
         // EXIF metadata chunk
         this.parseEXIF(chunkData, metadata);
       } else if (chunkType === "XMP ") {

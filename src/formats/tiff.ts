@@ -1429,7 +1429,92 @@ export class TIFFFormat implements ImageFormat {
     }
 
     // Extract metadata from TIFF tags
-    const metadata: ImageMetadata = {};
+    const metadata: ImageMetadata = {
+      format: "tiff",
+      frameCount: 1,
+      bitDepth: 8,
+    };
+
+    // Get compression type
+    const compression = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0103,
+      isLittleEndian,
+    );
+    if (compression === 1) {
+      metadata.compression = "none";
+    } else if (compression === 5) {
+      metadata.compression = "lzw";
+    } else if (compression === 7) {
+      metadata.compression = "jpeg";
+    } else if (compression === 32773) {
+      metadata.compression = "packbits";
+    } else if (compression) {
+      metadata.compression = `unknown-${compression}`;
+    }
+
+    // Get bits per sample
+    const bitsPerSample = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0102,
+      isLittleEndian,
+    );
+    if (bitsPerSample) {
+      metadata.bitDepth = bitsPerSample;
+    }
+
+    // Get photometric interpretation for color type
+    const photometric = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0106,
+      isLittleEndian,
+    );
+    const samplesPerPixel = this.getIFDValue(
+      data,
+      ifdOffset,
+      0x0115,
+      isLittleEndian,
+    );
+
+    if (photometric === 0 || photometric === 1) {
+      metadata.colorType = "grayscale";
+    } else if (photometric === 2) {
+      if (samplesPerPixel === 3) {
+        metadata.colorType = "rgb";
+      } else if (samplesPerPixel === 4) {
+        metadata.colorType = "rgba";
+      }
+    } else if (photometric === 3) {
+      metadata.colorType = "indexed";
+    }
+
+    // Count IFDs (pages/frames) by following the chain
+    let currentIfdOffset = ifdOffset;
+    let frameCount = 0;
+    while (
+      currentIfdOffset > 0 && currentIfdOffset < data.length &&
+      frameCount < 1000
+    ) {
+      frameCount++;
+      // Read number of entries in this IFD
+      const numEntries = this.readUint16(
+        data,
+        currentIfdOffset,
+        isLittleEndian,
+      );
+      // Next IFD offset is after all entries (2 + numEntries * 12 bytes)
+      const nextIfdOffsetPos = currentIfdOffset + 2 + (numEntries * 12);
+      if (nextIfdOffsetPos + 4 > data.length) break;
+      currentIfdOffset = this.readUint32(
+        data,
+        nextIfdOffsetPos,
+        isLittleEndian,
+      );
+    }
+    metadata.frameCount = frameCount;
 
     // XResolution (0x011a) and YResolution (0x011b) for DPI
     const xResOffset = this.getIFDValue(

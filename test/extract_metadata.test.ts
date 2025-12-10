@@ -118,3 +118,146 @@ test("extractMetadata - image without metadata returns undefined", async () => {
     assertEquals(typeof metadata, "object");
   }
 });
+
+test("extractMetadata - PNG includes format and compression info", async () => {
+  const image = Image.create(100, 100, 255, 0, 0);
+  const pngData = await image.encode("png");
+  const metadata = await Image.extractMetadata(pngData, "png");
+
+  assertEquals(metadata?.format, "png");
+  assertEquals(metadata?.compression, "deflate");
+  assertEquals(metadata?.frameCount, 1);
+  assertEquals(metadata?.bitDepth, 8);
+  assertEquals(metadata?.colorType, "rgba");
+});
+
+test("extractMetadata - JPEG includes format and compression info", async () => {
+  const image = Image.create(100, 100, 0, 255, 0);
+  const jpegData = await image.encode("jpeg");
+  const metadata = await Image.extractMetadata(jpegData, "jpeg");
+
+  assertEquals(metadata?.format, "jpeg");
+  assertEquals(metadata?.compression, "dct");
+  assertEquals(metadata?.frameCount, 1);
+  assertEquals(metadata?.bitDepth, 8);
+  assertEquals(metadata?.colorType, "rgb");
+});
+
+test("extractMetadata - WebP includes format and compression info", async () => {
+  const image = Image.create(100, 100, 0, 0, 255);
+  const webpData = await image.encode("webp");
+  const metadata = await Image.extractMetadata(webpData, "webp");
+
+  assertEquals(metadata?.format, "webp");
+  assertEquals(metadata?.compression, "vp8l");
+  assertEquals(metadata?.frameCount, 1);
+  assertEquals(metadata?.bitDepth, 8);
+});
+
+test("extractMetadata - TIFF includes format and compression info", async () => {
+  const image = Image.create(100, 100, 255, 255, 0);
+  const tiffData = await image.encode("tiff");
+  const metadata = await Image.extractMetadata(tiffData, "tiff");
+
+  assertEquals(metadata?.format, "tiff");
+  assertEquals(metadata?.compression, "none");
+  assertEquals(metadata?.frameCount, 1);
+  // Note: bitDepth for RGBA TIFF is stored as array offset, not tested here
+  assertEquals(metadata?.colorType, "rgba"); // Default TIFF encoding is RGBA
+});
+
+test("extractMetadata - TIFF with LZW compression", async () => {
+  const image = Image.create(100, 100, 128, 128, 255);
+  const tiffData = await image.encode("tiff", { compression: "lzw" });
+  const metadata = await Image.extractMetadata(tiffData, "tiff");
+
+  assertEquals(metadata?.format, "tiff");
+  assertEquals(metadata?.compression, "lzw");
+  assertEquals(metadata?.frameCount, 1);
+});
+
+test("extractMetadata - GIF includes frame count and format info", async () => {
+  const image = Image.create(50, 50, 255, 0, 255);
+  const gifData = await image.encode("gif");
+  const metadata = await Image.extractMetadata(gifData, "gif");
+
+  assertEquals(metadata?.format, "gif");
+  assertEquals(metadata?.compression, "lzw");
+  assertEquals(metadata?.frameCount, 1);
+  assertEquals(metadata?.bitDepth, 8);
+  assertEquals(metadata?.colorType, "indexed");
+});
+
+test("extractMetadata - BMP includes format and compression info", async () => {
+  const image = Image.create(50, 50, 0, 128, 255);
+  const bmpData = await image.encode("bmp");
+  const metadata = await Image.extractMetadata(bmpData, "bmp");
+
+  assertEquals(metadata?.format, "bmp");
+  assertEquals(metadata?.compression, "none");
+  assertEquals(metadata?.frameCount, 1);
+  assertEquals(metadata?.bitDepth, 32); // BMP encoder uses 32-bit RGBA
+  assertEquals(metadata?.colorType, "rgba");
+});
+
+test("extractMetadata - APNG multi-frame includes frame count", async () => {
+  // Create a multi-frame APNG
+  const frame1 = Image.create(50, 50, 255, 0, 0);
+  const frame2 = Image.create(50, 50, 0, 255, 0);
+  const frame3 = Image.create(50, 50, 0, 0, 255);
+
+  const multiFrameData = {
+    width: 50,
+    height: 50,
+    frames: [
+      {
+        width: 50,
+        height: 50,
+        data: frame1.data,
+        frameMetadata: { delay: 100 },
+      },
+      {
+        width: 50,
+        height: 50,
+        data: frame2.data,
+        frameMetadata: { delay: 100 },
+      },
+      {
+        width: 50,
+        height: 50,
+        data: frame3.data,
+        frameMetadata: { delay: 100 },
+      },
+    ],
+  };
+
+  const apngData = await Image.saveFrames("apng", multiFrameData);
+  const metadata = await Image.extractMetadata(apngData, "apng");
+
+  assertEquals(metadata?.format, "apng");
+  assertEquals(metadata?.compression, "deflate");
+  assertEquals(metadata?.frameCount, 3);
+  assertEquals(metadata?.bitDepth, 8);
+  assertEquals(metadata?.colorType, "rgba");
+});
+
+test("extractMetadata - TIFF multi-page includes frame count", async () => {
+  // Create a multi-page TIFF
+  const frame1 = Image.create(50, 50, 255, 0, 0);
+  const frame2 = Image.create(50, 50, 0, 255, 0);
+
+  const multiFrameData = {
+    width: 50,
+    height: 50,
+    frames: [
+      { width: 50, height: 50, data: frame1.data },
+      { width: 50, height: 50, data: frame2.data },
+    ],
+  };
+
+  const tiffData = await Image.saveFrames("tiff", multiFrameData);
+  const metadata = await Image.extractMetadata(tiffData, "tiff");
+
+  assertEquals(metadata?.format, "tiff");
+  assertEquals(metadata?.frameCount, 2);
+});

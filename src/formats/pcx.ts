@@ -1,4 +1,4 @@
-import type { ImageData, ImageFormat } from "../types.ts";
+import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 
 /**
  * PCX format handler
@@ -206,5 +206,42 @@ export class PCXFormat implements ImageFormat {
     result.set(rleData, header.length);
 
     return Promise.resolve(result);
+  }
+
+  /**
+   * Extract metadata from PCX data without fully decoding the pixel data
+   * @param data Raw PCX data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    const metadata: ImageMetadata = {
+      format: "pcx",
+      compression: "rle",
+      frameCount: 1,
+      bitDepth: data[3], // Bits per pixel per plane
+      colorType: "rgb",
+    };
+
+    // Check number of planes to determine color type
+    const numPlanes = data[65];
+    if (numPlanes === 1) {
+      metadata.colorType = "indexed";
+    } else if (numPlanes === 3) {
+      metadata.colorType = "rgb";
+    } else if (numPlanes === 4) {
+      metadata.colorType = "rgba";
+    }
+
+    // DPI information
+    const dpiX = data[12] | (data[13] << 8);
+    const dpiY = data[14] | (data[15] << 8);
+    if (dpiX > 0) metadata.dpiX = dpiX;
+    if (dpiY > 0) metadata.dpiY = dpiY;
+
+    return Promise.resolve(metadata);
   }
 }

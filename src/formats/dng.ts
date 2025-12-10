@@ -1,4 +1,4 @@
-import type { ImageData } from "../types.ts";
+import type { ImageData, ImageMetadata } from "../types.ts";
 import { TIFFFormat } from "./tiff.ts";
 
 /**
@@ -217,4 +217,24 @@ export class DNGFormat extends TIFFFormat {
   // and we can't easily access them if they are private.
   // Let's check TIFFFormat visibility.
   // The read/write helpers were not exported in the previous read_file output.
+
+  /**
+   * Extract metadata from DNG data without fully decoding the pixel data
+   * DNG is TIFF-based, so we can use the parent extractMetadata and override format
+   * @param data Raw DNG data
+   * @returns Extracted metadata or undefined
+   */
+  override async extractMetadata(
+    data: Uint8Array,
+  ): Promise<ImageMetadata | undefined> {
+    // Use parent TIFF extractMetadata
+    const metadata = await super.extractMetadata(data);
+
+    if (metadata) {
+      // Override format to indicate this is a DNG
+      metadata.format = "dng";
+    }
+
+    return metadata;
+  }
 }

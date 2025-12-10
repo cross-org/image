@@ -195,4 +195,72 @@ export class BMPFormat implements ImageFormat {
 
     return Promise.resolve(result);
   }
+
+  /**
+   * Extract metadata from BMP data without fully decoding the pixel data
+   * @param data Raw BMP data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    const metadata: ImageMetadata = {
+      format: "bmp",
+      frameCount: 1,
+      bitDepth: 24,
+      colorType: "rgb",
+    };
+
+    // Read BMP header to determine version
+    const headerSize = readUint32LE(data, 14);
+
+    if (headerSize >= 40) {
+      // BITMAPINFOHEADER or later
+      const bitsPerPixel = readUint16LE(data, 28);
+      metadata.bitDepth = bitsPerPixel;
+
+      if (bitsPerPixel === 1 || bitsPerPixel === 8) {
+        metadata.colorType = "indexed";
+      } else if (bitsPerPixel === 24) {
+        metadata.colorType = "rgb";
+      } else if (bitsPerPixel === 32) {
+        metadata.colorType = "rgba";
+      }
+
+      const compression = readUint32LE(data, 30);
+      if (compression === 0) {
+        metadata.compression = "none";
+      } else if (compression === 1) {
+        metadata.compression = "rle8";
+      } else if (compression === 2) {
+        metadata.compression = "rle4";
+      } else if (compression === 3) {
+        metadata.compression = "bitfields";
+      } else {
+        metadata.compression = `unknown-${compression}`;
+      }
+
+      // DPI information (pixels per meter)
+      if (headerSize >= 40) {
+        const xPelsPerMeter = readUint32LE(data, 38);
+        const yPelsPerMeter = readUint32LE(data, 42);
+
+        if (xPelsPerMeter > 0) {
+          metadata.dpiX = Math.round(xPelsPerMeter * 0.0254);
+        }
+        if (yPelsPerMeter > 0) {
+          metadata.dpiY = Math.round(yPelsPerMeter * 0.0254);
+        }
+      }
+    } else {
+      // BITMAPCOREHEADER
+      metadata.compression = "none";
+    }
+
+    return Promise.resolve(
+      Object.keys(metadata).length > 0 ? metadata : undefined,
+    );
+  }
 }

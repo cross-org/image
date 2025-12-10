@@ -1,4 +1,4 @@
-import type { ImageData, ImageFormat } from "../types.ts";
+import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { PNGFormat } from "./png.ts";
 import {
@@ -252,5 +252,29 @@ export class ICOFormat implements ImageFormat {
     result.set(pngData, 22);
 
     return result;
+  }
+
+  /**
+   * Extract metadata from ICO data without fully decoding the pixel data
+   * @param data Raw ICO data
+   * @returns Extracted metadata or undefined
+   */
+  extractMetadata(data: Uint8Array): Promise<ImageMetadata | undefined> {
+    if (!this.canDecode(data)) {
+      return Promise.resolve(undefined);
+    }
+
+    // ICO files can contain multiple images, count them
+    const count = readUint16LE(data, 4);
+
+    const metadata: ImageMetadata = {
+      format: "ico",
+      compression: "none", // ICO typically contains uncompressed PNG or BMP
+      frameCount: count,
+      bitDepth: 32, // Most modern ICOs use 32-bit RGBA
+      colorType: "rgba",
+    };
+
+    return Promise.resolve(metadata);
   }
 }
