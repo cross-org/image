@@ -6,6 +6,7 @@ import type {
 } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { readUint32LE } from "../utils/byte_utils.ts";
+import { createXMP, parseXMP } from "../utils/metadata/xmp.ts";
 
 // Default quality for WebP encoding when not specified
 const DEFAULT_WEBP_QUALITY = 90;
@@ -259,6 +260,8 @@ export class WebPFormat implements ImageFormat {
         ? data[ifd0Offset] | (data[ifd0Offset + 1] << 8)
         : (data[ifd0Offset] << 8) | data[ifd0Offset + 1];
 
+      let gpsIfdOffset = 0;
+
       // Parse basic EXIF tags (simplified version)
       for (let i = 0; i < numEntries && i < 50; i++) {
         const entryOffset = ifd0Offset + 2 + i * 12;
@@ -298,36 +301,143 @@ export class WebPFormat implements ImageFormat {
             }
           }
         }
+
+        // GPS IFD Pointer tag (0x8825)
+        if (tag === 0x8825) {
+          gpsIfdOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+        }
+      }
+
+      // Parse GPS IFD if present
+      if (gpsIfdOffset > 0 && gpsIfdOffset + 2 <= data.length) {
+        this.parseGPSIFD(data, gpsIfdOffset, littleEndian, metadata);
       }
     } catch (_e) {
       // Ignore EXIF parsing errors
     }
   }
 
+  private parseGPSIFD(
+    data: Uint8Array,
+    gpsIfdOffset: number,
+    littleEndian: boolean,
+    metadata: ImageMetadata,
+  ): void {
+    try {
+      const numEntries = littleEndian
+        ? data[gpsIfdOffset] | (data[gpsIfdOffset + 1] << 8)
+        : (data[gpsIfdOffset] << 8) | data[gpsIfdOffset + 1];
+
+      let latRef = "";
+      let lonRef = "";
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+
+      for (let i = 0; i < numEntries; i++) {
+        const entryOffset = gpsIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > data.length) break;
+
+        const tag = littleEndian
+          ? data[entryOffset] | (data[entryOffset + 1] << 8)
+          : (data[entryOffset] << 8) | data[entryOffset + 1];
+
+        const type = littleEndian
+          ? data[entryOffset + 2] | (data[entryOffset + 3] << 8)
+          : (data[entryOffset + 2] << 8) | data[entryOffset + 3];
+
+        const valueOffset = littleEndian
+          ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+            (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+          : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+            (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+        // GPSLatitudeRef (0x0001)
+        if (tag === 0x0001 && type === 2) {
+          latRef = String.fromCharCode(data[entryOffset + 8]);
+        }
+
+        // GPSLatitude (0x0002)
+        if (tag === 0x0002 && type === 5 && valueOffset + 24 <= data.length) {
+          const degrees = this.readRational(data, valueOffset, littleEndian);
+          const minutes = this.readRational(
+            data,
+            valueOffset + 8,
+            littleEndian,
+          );
+          const seconds = this.readRational(
+            data,
+            valueOffset + 16,
+            littleEndian,
+          );
+          latitude = degrees + minutes / 60 + seconds / 3600;
+        }
+
+        // GPSLongitudeRef (0x0003)
+        if (tag === 0x0003 && type === 2) {
+          lonRef = String.fromCharCode(data[entryOffset + 8]);
+        }
+
+        // GPSLongitude (0x0004)
+        if (tag === 0x0004 && type === 5 && valueOffset + 24 <= data.length) {
+          const degrees = this.readRational(data, valueOffset, littleEndian);
+          const minutes = this.readRational(
+            data,
+            valueOffset + 8,
+            littleEndian,
+          );
+          const seconds = this.readRational(
+            data,
+            valueOffset + 16,
+            littleEndian,
+          );
+          longitude = degrees + minutes / 60 + seconds / 3600;
+        }
+      }
+
+      // Apply hemisphere references
+      if (latitude !== undefined && latRef) {
+        metadata.latitude = latRef === "S" ? -latitude : latitude;
+      }
+      if (longitude !== undefined && lonRef) {
+        metadata.longitude = lonRef === "W" ? -longitude : longitude;
+      }
+    } catch (_e) {
+      // Ignore GPS parsing errors
+    }
+  }
+
+  private readRational(
+    data: Uint8Array,
+    offset: number,
+    littleEndian: boolean,
+  ): number {
+    const numerator = littleEndian
+      ? data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) |
+        (data[offset + 3] << 24)
+      : (data[offset] << 24) | (data[offset + 1] << 16) |
+        (data[offset + 2] << 8) | data[offset + 3];
+
+    const denominator = littleEndian
+      ? data[offset + 4] | (data[offset + 5] << 8) | (data[offset + 6] << 16) |
+        (data[offset + 7] << 24)
+      : (data[offset + 4] << 24) | (data[offset + 5] << 16) |
+        (data[offset + 6] << 8) | data[offset + 7];
+
+    return denominator !== 0 ? numerator / denominator : 0;
+  }
+
   private parseXMP(data: Uint8Array, metadata: ImageMetadata): void {
-    // XMP is XML-based metadata - simple parsing for common fields
+    // Parse XMP using the centralized utility
     try {
       const xmpStr = new TextDecoder().decode(data);
+      const parsedMetadata = parseXMP(xmpStr);
 
-      // Extract title
-      const titleMatch = xmpStr.match(/<dc:title[^>]*>([^<]+)<\/dc:title>/);
-      if (titleMatch) metadata.title = titleMatch[1].trim();
-
-      // Extract description
-      const descMatch = xmpStr.match(
-        /<dc:description[^>]*>([^<]+)<\/dc:description>/,
-      );
-      if (descMatch) metadata.description = descMatch[1].trim();
-
-      // Extract creator/author
-      const creatorMatch = xmpStr.match(
-        /<dc:creator[^>]*>([^<]+)<\/dc:creator>/,
-      );
-      if (creatorMatch) metadata.author = creatorMatch[1].trim();
-
-      // Extract rights/copyright
-      const rightsMatch = xmpStr.match(/<dc:rights[^>]*>([^<]+)<\/dc:rights>/);
-      if (rightsMatch) metadata.copyright = rightsMatch[1].trim();
+      // Merge parsed metadata into the existing metadata object
+      Object.assign(metadata, parsedMetadata);
     } catch (_e) {
       // Ignore XMP parsing errors
     }
@@ -348,8 +458,11 @@ export class WebPFormat implements ImageFormat {
     // Create metadata chunks
     const metadataChunks: Uint8Array[] = [];
 
-    // Create EXIF chunk if we have date or other EXIF data
-    if (metadata.creationDate) {
+    // Create EXIF chunk if we have date or GPS data
+    if (
+      metadata.creationDate ||
+      (metadata.latitude !== undefined && metadata.longitude !== undefined)
+    ) {
       const exifData = this.createEXIFChunk(metadata);
       if (exifData) {
         metadataChunks.push(exifData);
@@ -421,7 +534,11 @@ export class WebPFormat implements ImageFormat {
   }
 
   private createEXIFChunk(metadata: ImageMetadata): Uint8Array | null {
-    if (!metadata.creationDate) return null;
+    const hasDate = metadata.creationDate !== undefined;
+    const hasGPS = metadata.latitude !== undefined &&
+      metadata.longitude !== undefined;
+
+    if (!hasDate && !hasGPS) return null;
 
     const exifData: number[] = [];
 
@@ -432,36 +549,81 @@ export class WebPFormat implements ImageFormat {
     // IFD0 offset
     exifData.push(0x08, 0x00, 0x00, 0x00);
 
-    // Number of entries
-    exifData.push(0x01, 0x00);
+    // Number of entries (DateTime + GPS IFD pointer if needed)
+    const numEntries = (hasDate ? 1 : 0) + (hasGPS ? 1 : 0);
+    exifData.push(numEntries & 0xff, (numEntries >> 8) & 0xff);
 
-    // DateTime entry
-    const date = metadata.creationDate;
-    const dateStr = `${date.getFullYear()}:${
-      String(date.getMonth() + 1).padStart(2, "0")
-    }:${String(date.getDate()).padStart(2, "0")} ${
-      String(date.getHours()).padStart(2, "0")
-    }:${String(date.getMinutes()).padStart(2, "0")}:${
-      String(date.getSeconds()).padStart(2, "0")
-    }\0`;
-    const dateBytes = new TextEncoder().encode(dateStr);
+    let dataOffset = 8 + 2 + numEntries * 12 + 4;
 
-    // Tag 0x0132, Type 2 (ASCII), Count, Offset
-    exifData.push(0x32, 0x01, 0x02, 0x00);
-    exifData.push(
-      dateBytes.length & 0xff,
-      (dateBytes.length >> 8) & 0xff,
-      (dateBytes.length >> 16) & 0xff,
-      (dateBytes.length >> 24) & 0xff,
-    );
-    exifData.push(0x12, 0x00, 0x00, 0x00); // Offset to data
+    // DateTime entry (if present)
+    if (hasDate) {
+      const date = metadata.creationDate!;
+      const dateStr = `${date.getFullYear()}:${
+        String(date.getMonth() + 1).padStart(2, "0")
+      }:${String(date.getDate()).padStart(2, "0")} ${
+        String(date.getHours()).padStart(2, "0")
+      }:${String(date.getMinutes()).padStart(2, "0")}:${
+        String(date.getSeconds()).padStart(2, "0")
+      }\0`;
+      const dateBytes = new TextEncoder().encode(dateStr);
+
+      // Tag 0x0132, Type 2 (ASCII), Count, Offset
+      exifData.push(0x32, 0x01, 0x02, 0x00);
+      exifData.push(
+        dateBytes.length & 0xff,
+        (dateBytes.length >> 8) & 0xff,
+        (dateBytes.length >> 16) & 0xff,
+        (dateBytes.length >> 24) & 0xff,
+      );
+      exifData.push(
+        dataOffset & 0xff,
+        (dataOffset >> 8) & 0xff,
+        (dataOffset >> 16) & 0xff,
+        (dataOffset >> 24) & 0xff,
+      );
+      dataOffset += dateBytes.length;
+    }
+
+    // GPS IFD pointer (if present)
+    let gpsIfdOffset = 0;
+    if (hasGPS) {
+      gpsIfdOffset = dataOffset;
+      exifData.push(0x25, 0x88); // Tag 0x8825
+      exifData.push(0x04, 0x00); // Type LONG
+      exifData.push(0x01, 0x00, 0x00, 0x00); // Count 1
+      exifData.push(
+        gpsIfdOffset & 0xff,
+        (gpsIfdOffset >> 8) & 0xff,
+        (gpsIfdOffset >> 16) & 0xff,
+        (gpsIfdOffset >> 24) & 0xff,
+      );
+    }
 
     // Next IFD
     exifData.push(0x00, 0x00, 0x00, 0x00);
 
-    // Date string data
-    for (const byte of dateBytes) {
-      exifData.push(byte);
+    // Date string data (if present)
+    if (hasDate) {
+      const date = metadata.creationDate!;
+      const dateStr = `${date.getFullYear()}:${
+        String(date.getMonth() + 1).padStart(2, "0")
+      }:${String(date.getDate()).padStart(2, "0")} ${
+        String(date.getHours()).padStart(2, "0")
+      }:${String(date.getMinutes()).padStart(2, "0")}:${
+        String(date.getSeconds()).padStart(2, "0")
+      }\0`;
+      const dateBytes = new TextEncoder().encode(dateStr);
+      for (const byte of dateBytes) {
+        exifData.push(byte);
+      }
+    }
+
+    // GPS IFD data (if present)
+    if (hasGPS) {
+      const gpsIfd = this.createGPSIFD(metadata, gpsIfdOffset);
+      for (const byte of gpsIfd) {
+        exifData.push(byte);
+      }
     }
 
     // Create chunk header
@@ -477,44 +639,99 @@ export class WebPFormat implements ImageFormat {
     return chunk;
   }
 
+  private createGPSIFD(metadata: ImageMetadata, gpsIfdStart: number): number[] {
+    const gps: number[] = [];
+
+    const numEntries = 4;
+    gps.push(numEntries & 0xff, (numEntries >> 8) & 0xff);
+
+    const latitude = metadata.latitude!;
+    const longitude = metadata.longitude!;
+
+    const absLat = Math.abs(latitude);
+    const absLon = Math.abs(longitude);
+
+    const latDeg = Math.floor(absLat);
+    const latMin = Math.floor((absLat - latDeg) * 60);
+    const latSec = ((absLat - latDeg) * 60 - latMin) * 60;
+
+    const lonDeg = Math.floor(absLon);
+    const lonMin = Math.floor((absLon - lonDeg) * 60);
+    const lonSec = ((absLon - lonDeg) * 60 - lonMin) * 60;
+
+    let dataOffset = gpsIfdStart + 2 + numEntries * 12 + 4;
+
+    // GPSLatitudeRef
+    gps.push(0x01, 0x00);
+    gps.push(0x02, 0x00);
+    gps.push(0x02, 0x00, 0x00, 0x00);
+    gps.push(latitude >= 0 ? 78 : 83, 0x00, 0x00, 0x00);
+
+    // GPSLatitude
+    gps.push(0x02, 0x00);
+    gps.push(0x05, 0x00);
+    gps.push(0x03, 0x00, 0x00, 0x00);
+    gps.push(
+      dataOffset & 0xff,
+      (dataOffset >> 8) & 0xff,
+      (dataOffset >> 16) & 0xff,
+      (dataOffset >> 24) & 0xff,
+    );
+    dataOffset += 24;
+
+    // GPSLongitudeRef
+    gps.push(0x03, 0x00);
+    gps.push(0x02, 0x00);
+    gps.push(0x02, 0x00, 0x00, 0x00);
+    gps.push(longitude >= 0 ? 69 : 87, 0x00, 0x00, 0x00);
+
+    // GPSLongitude
+    gps.push(0x04, 0x00);
+    gps.push(0x05, 0x00);
+    gps.push(0x03, 0x00, 0x00, 0x00);
+    gps.push(
+      dataOffset & 0xff,
+      (dataOffset >> 8) & 0xff,
+      (dataOffset >> 16) & 0xff,
+      (dataOffset >> 24) & 0xff,
+    );
+
+    gps.push(0x00, 0x00, 0x00, 0x00);
+
+    // Write rationals
+    this.writeRational(gps, latDeg, 1);
+    this.writeRational(gps, latMin, 1);
+    this.writeRational(gps, Math.round(latSec * 1000000), 1000000);
+
+    this.writeRational(gps, lonDeg, 1);
+    this.writeRational(gps, lonMin, 1);
+    this.writeRational(gps, Math.round(lonSec * 1000000), 1000000);
+
+    return gps;
+  }
+
+  private writeRational(
+    output: number[],
+    numerator: number,
+    denominator: number,
+  ): void {
+    output.push(
+      numerator & 0xff,
+      (numerator >> 8) & 0xff,
+      (numerator >> 16) & 0xff,
+      (numerator >> 24) & 0xff,
+    );
+    output.push(
+      denominator & 0xff,
+      (denominator >> 8) & 0xff,
+      (denominator >> 16) & 0xff,
+      (denominator >> 24) & 0xff,
+    );
+  }
+
   private createXMPChunk(metadata: ImageMetadata): Uint8Array | null {
-    const xmpParts: string[] = [];
-    xmpParts.push('<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>');
-    xmpParts.push('<x:xmpmeta xmlns:x="adobe:ns:meta/">');
-    xmpParts.push(
-      '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">',
-    );
-    xmpParts.push(
-      '<rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/">',
-    );
-
-    if (metadata.title) {
-      xmpParts.push(`<dc:title>${this.escapeXML(metadata.title)}</dc:title>`);
-    }
-    if (metadata.description) {
-      xmpParts.push(
-        `<dc:description>${
-          this.escapeXML(metadata.description)
-        }</dc:description>`,
-      );
-    }
-    if (metadata.author) {
-      xmpParts.push(
-        `<dc:creator>${this.escapeXML(metadata.author)}</dc:creator>`,
-      );
-    }
-    if (metadata.copyright) {
-      xmpParts.push(
-        `<dc:rights>${this.escapeXML(metadata.copyright)}</dc:rights>`,
-      );
-    }
-
-    xmpParts.push("</rdf:Description>");
-    xmpParts.push("</rdf:RDF>");
-    xmpParts.push("</x:xmpmeta>");
-    xmpParts.push('<?xpacket end="w"?>');
-
-    const xmpStr = xmpParts.join("\n");
+    // Use the centralized XMP utility to create the XMP packet
+    const xmpStr = createXMP(metadata);
     const xmpData = new TextEncoder().encode(xmpStr);
 
     // Create chunk
@@ -529,12 +746,28 @@ export class WebPFormat implements ImageFormat {
     return chunk;
   }
 
-  private escapeXML(str: string): string {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
+  /**
+   * Get the list of metadata fields supported by WebP format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      // EXIF chunk
+      "creationDate",
+      "latitude",
+      "longitude",
+      // XMP chunk (enhanced support)
+      "title",
+      "description",
+      "author",
+      "copyright",
+      "cameraMake",
+      "cameraModel",
+      "orientation",
+      "software",
+      "iso",
+      "exposureTime",
+      "fNumber",
+      "focalLength",
+    ];
   }
 }

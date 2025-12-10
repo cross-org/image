@@ -250,6 +250,23 @@ export class Image {
   }
 
   /**
+   * Get supported metadata fields for a specific format
+   * @param format Format name (e.g., "jpeg", "png", "webp")
+   * @returns Array of supported metadata field names, or undefined if format doesn't support metadata
+   */
+  static getSupportedMetadata(
+    format: string,
+  ): Array<keyof ImageMetadata> | undefined {
+    const formatHandler = Image.formats.find((f) =>
+      f.name === format.toLowerCase()
+    );
+    if (!formatHandler) {
+      throw new Error(`Unknown image format: ${format}`);
+    }
+    return formatHandler.getSupportedMetadata?.();
+  }
+
+  /**
    * Read an image from bytes
    * @deprecated Use `decode()` instead. This method will be removed in a future version.
    * @param data Raw image data

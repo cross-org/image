@@ -387,6 +387,8 @@ export abstract class PNGBase {
         ? data[ifd0Offset] | (data[ifd0Offset + 1] << 8)
         : (data[ifd0Offset] << 8) | data[ifd0Offset + 1];
 
+      let gpsIfdOffset = 0;
+
       for (let i = 0; i < numEntries; i++) {
         const entryOffset = ifd0Offset + 2 + i * 12;
         if (entryOffset + 12 > data.length) break;
@@ -424,10 +426,133 @@ export abstract class PNGBase {
             }
           }
         }
+
+        // GPS IFD Pointer tag (0x8825)
+        if (tag === 0x8825) {
+          gpsIfdOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+        }
+      }
+
+      // Parse GPS IFD if present
+      if (gpsIfdOffset > 0 && gpsIfdOffset + 2 <= data.length) {
+        this.parseGPSIFD(data, gpsIfdOffset, littleEndian, metadata);
       }
     } catch (_e) {
       // Ignore EXIF parsing errors
     }
+  }
+
+  protected parseGPSIFD(
+    data: Uint8Array,
+    gpsIfdOffset: number,
+    littleEndian: boolean,
+    metadata: ImageMetadata,
+  ): void {
+    try {
+      const numEntries = littleEndian
+        ? data[gpsIfdOffset] | (data[gpsIfdOffset + 1] << 8)
+        : (data[gpsIfdOffset] << 8) | data[gpsIfdOffset + 1];
+
+      let latRef = "";
+      let lonRef = "";
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+
+      for (let i = 0; i < numEntries; i++) {
+        const entryOffset = gpsIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > data.length) break;
+
+        const tag = littleEndian
+          ? data[entryOffset] | (data[entryOffset + 1] << 8)
+          : (data[entryOffset] << 8) | data[entryOffset + 1];
+
+        const type = littleEndian
+          ? data[entryOffset + 2] | (data[entryOffset + 3] << 8)
+          : (data[entryOffset + 2] << 8) | data[entryOffset + 3];
+
+        const valueOffset = littleEndian
+          ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+            (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+          : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+            (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+        // GPSLatitudeRef (0x0001)
+        if (tag === 0x0001 && type === 2) {
+          latRef = String.fromCharCode(data[entryOffset + 8]);
+        }
+
+        // GPSLatitude (0x0002)
+        if (tag === 0x0002 && type === 5 && valueOffset + 24 <= data.length) {
+          const degrees = this.readRational(data, valueOffset, littleEndian);
+          const minutes = this.readRational(
+            data,
+            valueOffset + 8,
+            littleEndian,
+          );
+          const seconds = this.readRational(
+            data,
+            valueOffset + 16,
+            littleEndian,
+          );
+          latitude = degrees + minutes / 60 + seconds / 3600;
+        }
+
+        // GPSLongitudeRef (0x0003)
+        if (tag === 0x0003 && type === 2) {
+          lonRef = String.fromCharCode(data[entryOffset + 8]);
+        }
+
+        // GPSLongitude (0x0004)
+        if (tag === 0x0004 && type === 5 && valueOffset + 24 <= data.length) {
+          const degrees = this.readRational(data, valueOffset, littleEndian);
+          const minutes = this.readRational(
+            data,
+            valueOffset + 8,
+            littleEndian,
+          );
+          const seconds = this.readRational(
+            data,
+            valueOffset + 16,
+            littleEndian,
+          );
+          longitude = degrees + minutes / 60 + seconds / 3600;
+        }
+      }
+
+      // Apply hemisphere references
+      if (latitude !== undefined && latRef) {
+        metadata.latitude = latRef === "S" ? -latitude : latitude;
+      }
+      if (longitude !== undefined && lonRef) {
+        metadata.longitude = lonRef === "W" ? -longitude : longitude;
+      }
+    } catch (_e) {
+      // Ignore GPS parsing errors
+    }
+  }
+
+  protected readRational(
+    data: Uint8Array,
+    offset: number,
+    littleEndian: boolean,
+  ): number {
+    const numerator = littleEndian
+      ? data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) |
+        (data[offset + 3] << 24)
+      : (data[offset] << 24) | (data[offset + 1] << 16) |
+        (data[offset + 2] << 8) | data[offset + 3];
+
+    const denominator = littleEndian
+      ? data[offset + 4] | (data[offset + 5] << 8) | (data[offset + 6] << 16) |
+        (data[offset + 7] << 24)
+      : (data[offset + 4] << 24) | (data[offset + 5] << 16) |
+        (data[offset + 6] << 8) | data[offset + 7];
+
+    return denominator !== 0 ? numerator / denominator : 0;
   }
 
   /**
@@ -486,7 +611,11 @@ export abstract class PNGBase {
       });
     }
 
-    if (entries.length === 0) return null;
+    // Check if we have GPS data
+    const hasGPS = metadata.latitude !== undefined &&
+      metadata.longitude !== undefined;
+
+    if (entries.length === 0 && !hasGPS) return null;
 
     const exif: number[] = [];
 
@@ -495,9 +624,11 @@ export abstract class PNGBase {
 
     exif.push(0x08, 0x00, 0x00, 0x00);
 
-    exif.push(entries.length & 0xff, (entries.length >> 8) & 0xff);
+    // Number of entries (add GPS IFD pointer if we have GPS data)
+    const ifd0Entries = entries.length + (hasGPS ? 1 : 0);
+    exif.push(ifd0Entries & 0xff, (ifd0Entries >> 8) & 0xff);
 
-    let dataOffset = 8 + 2 + entries.length * 12 + 4;
+    let dataOffset = 8 + 2 + ifd0Entries * 12 + 4;
 
     for (const entry of entries) {
       exif.push(entry.tag & 0xff, (entry.tag >> 8) & 0xff);
@@ -524,6 +655,22 @@ export abstract class PNGBase {
       }
     }
 
+    // Add GPS IFD pointer if we have GPS data
+    let gpsIfdOffset = 0;
+    if (hasGPS) {
+      gpsIfdOffset = dataOffset;
+      // GPS IFD Pointer tag (0x8825), type 4 (LONG), count 1
+      exif.push(0x25, 0x88); // Tag
+      exif.push(0x04, 0x00); // Type
+      exif.push(0x01, 0x00, 0x00, 0x00); // Count
+      exif.push(
+        gpsIfdOffset & 0xff,
+        (gpsIfdOffset >> 8) & 0xff,
+        (gpsIfdOffset >> 16) & 0xff,
+        (gpsIfdOffset >> 24) & 0xff,
+      );
+    }
+
     exif.push(0x00, 0x00, 0x00, 0x00);
 
     for (const entry of entries) {
@@ -534,7 +681,108 @@ export abstract class PNGBase {
       }
     }
 
+    // Add GPS IFD if we have GPS data
+    if (hasGPS) {
+      const gpsIfd = this.createGPSIFD(metadata, gpsIfdOffset);
+      for (const byte of gpsIfd) {
+        exif.push(byte);
+      }
+    }
+
     return new Uint8Array(exif);
+  }
+
+  protected createGPSIFD(
+    metadata: ImageMetadata,
+    gpsIfdStart: number,
+  ): number[] {
+    const gps: number[] = [];
+
+    const numEntries = 4;
+    gps.push(numEntries & 0xff, (numEntries >> 8) & 0xff);
+
+    const latitude = metadata.latitude!;
+    const longitude = metadata.longitude!;
+
+    const absLat = Math.abs(latitude);
+    const absLon = Math.abs(longitude);
+
+    const latDeg = Math.floor(absLat);
+    const latMin = Math.floor((absLat - latDeg) * 60);
+    const latSec = ((absLat - latDeg) * 60 - latMin) * 60;
+
+    const lonDeg = Math.floor(absLon);
+    const lonMin = Math.floor((absLon - lonDeg) * 60);
+    const lonSec = ((absLon - lonDeg) * 60 - lonMin) * 60;
+
+    let dataOffset = gpsIfdStart + 2 + numEntries * 12 + 4;
+
+    // Entry 1: GPSLatitudeRef
+    gps.push(0x01, 0x00);
+    gps.push(0x02, 0x00);
+    gps.push(0x02, 0x00, 0x00, 0x00);
+    gps.push(latitude >= 0 ? 78 : 83, 0x00, 0x00, 0x00);
+
+    // Entry 2: GPSLatitude
+    gps.push(0x02, 0x00);
+    gps.push(0x05, 0x00);
+    gps.push(0x03, 0x00, 0x00, 0x00);
+    gps.push(
+      dataOffset & 0xff,
+      (dataOffset >> 8) & 0xff,
+      (dataOffset >> 16) & 0xff,
+      (dataOffset >> 24) & 0xff,
+    );
+    dataOffset += 24;
+
+    // Entry 3: GPSLongitudeRef
+    gps.push(0x03, 0x00);
+    gps.push(0x02, 0x00);
+    gps.push(0x02, 0x00, 0x00, 0x00);
+    gps.push(longitude >= 0 ? 69 : 87, 0x00, 0x00, 0x00);
+
+    // Entry 4: GPSLongitude
+    gps.push(0x04, 0x00);
+    gps.push(0x05, 0x00);
+    gps.push(0x03, 0x00, 0x00, 0x00);
+    gps.push(
+      dataOffset & 0xff,
+      (dataOffset >> 8) & 0xff,
+      (dataOffset >> 16) & 0xff,
+      (dataOffset >> 24) & 0xff,
+    );
+
+    gps.push(0x00, 0x00, 0x00, 0x00);
+
+    // Write rationals
+    this.writeRational(gps, latDeg, 1);
+    this.writeRational(gps, latMin, 1);
+    this.writeRational(gps, Math.round(latSec * 1000000), 1000000);
+
+    this.writeRational(gps, lonDeg, 1);
+    this.writeRational(gps, lonMin, 1);
+    this.writeRational(gps, Math.round(lonSec * 1000000), 1000000);
+
+    return gps;
+  }
+
+  protected writeRational(
+    output: number[],
+    numerator: number,
+    denominator: number,
+  ): void {
+    output.push(
+      numerator & 0xff,
+      (numerator >> 8) & 0xff,
+      (numerator >> 16) & 0xff,
+      (numerator >> 24) & 0xff,
+    );
+    output.push(
+      denominator & 0xff,
+      (denominator >> 8) & 0xff,
+      (denominator >> 16) & 0xff,
+      (denominator >> 24) & 0xff,
+    );
   }
 
   /**
@@ -642,5 +890,22 @@ export abstract class PNGBase {
         chunks.push(this.createChunk("eXIf", exifChunk));
       }
     }
+  }
+
+  /**
+   * Get the list of metadata fields supported by PNG format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "creationDate", // eXIf chunk
+      "latitude", // eXIf chunk (GPS IFD)
+      "longitude", // eXIf chunk (GPS IFD)
+      "dpiX", // pHYs chunk
+      "dpiY", // pHYs chunk
+      "title", // tEXt chunk
+      "author", // tEXt chunk
+      "description", // tEXt chunk
+      "copyright", // tEXt chunk
+    ];
   }
 }

@@ -124,6 +124,110 @@ See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for
 detailed compatibility information.
 
+## Metadata Support
+
+@cross/image provides comprehensive EXIF 3.0 compliant metadata support for
+image files, including camera information, GPS coordinates, and InteropIFD
+compatibility markers.
+
+### Supported Metadata Fields
+
+**Basic Metadata:**
+
+- `title`, `description`, `author`, `copyright`
+- `creationDate` - Date/time image was created
+
+**Camera Settings (JPEG, TIFF, WebP via XMP):**
+
+- `cameraMake`, `cameraModel` - Camera manufacturer and model
+- `lensMake`, `lensModel` - Lens information
+- `iso` - ISO speed rating
+- `exposureTime` - Shutter speed in seconds
+- `fNumber` - Aperture (f-number)
+- `focalLength` - Focal length in mm
+- `flash`, `whiteBalance` - Capture settings
+- `orientation` - Image orientation (1=normal, 3=180°, 6=90°CW, 8=90°CCW)
+- `software` - Software used
+- `userComment` - User notes
+
+**GPS Coordinates (All EXIF formats: JPEG, PNG, WebP, TIFF):**
+
+- `latitude`, `longitude` - GPS coordinates in decimal degrees
+- Full microsecond precision with DMS (degrees-minutes-seconds) conversion
+
+**DPI (JPEG, PNG, TIFF):**
+
+- `dpiX`, `dpiY` - Dots per inch for printing
+
+### EXIF 3.0 Specification Compliance
+
+The library implements the EXIF 3.0 specification with:
+
+- **50+ Exif Sub-IFD tags** for comprehensive camera metadata
+- **30+ IFD0 tags** for image information
+- **InteropIFD support** for format compatibility (R98/sRGB, R03/Adobe RGB,
+  THM/thumbnail)
+- **GPS IFD** with proper coordinate conversion
+- All EXIF data types (BYTE, ASCII, SHORT, LONG, RATIONAL, etc.)
+
+### Example Usage
+
+```typescript
+import { Image } from "@cross/image";
+
+// Load an image
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Set metadata
+image.setMetadata({
+  author: "Jane Photographer",
+  copyright: "© 2024",
+  cameraMake: "Canon",
+  cameraModel: "EOS R5",
+  iso: 800,
+  exposureTime: 0.004, // 1/250s
+  fNumber: 2.8,
+  focalLength: 50,
+});
+
+// Set GPS coordinates
+image.setPosition(40.7128, -74.0060); // NYC
+
+// Check what metadata a format supports
+const jpegSupports = Image.getSupportedMetadata("jpeg");
+console.log(jpegSupports); // Includes ISO, camera info, GPS, etc.
+
+// Save with metadata
+const jpeg = await image.save("jpeg");
+await Deno.writeFile("output.jpg", jpeg);
+
+// Metadata is preserved on reload!
+const loaded = await Image.decode(jpeg);
+console.log(loaded.metadata?.cameraMake); // "Canon"
+console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 }
+```
+
+### Format-Specific Support
+
+Use `Image.getSupportedMetadata(format)` to check which fields are supported:
+
+```typescript
+Image.getSupportedMetadata("jpeg"); // Full camera metadata + GPS (21 fields)
+Image.getSupportedMetadata("tiff"); // Comprehensive EXIF + GPS + InteropIFD (23+ fields)
+Image.getSupportedMetadata("png"); // DateTime, GPS, DPI, basic text (9 fields)
+Image.getSupportedMetadata("webp"); // Enhanced XMP + GPS (15 fields - includes camera metadata!)
+```
+
+**Format Highlights:**
+
+- **JPEG**: Most comprehensive EXIF support, including all camera settings and
+  GPS
+- **TIFF**: Full EXIF 3.0 support with IFD structure, InteropIFD compatibility
+- **WebP**: Enhanced XMP implementation with Dublin Core, EXIF, and TIFF
+  namespaces
+- **PNG**: Basic EXIF support via eXIf chunk plus GPS coordinates
+
 ## Documentation
 
 - **[API Reference](https://cross-image.56k.guru/api/)** - Complete API

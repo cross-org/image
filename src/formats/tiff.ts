@@ -1362,4 +1362,36 @@ export class TIFFFormat implements ImageFormat {
 
     return rgba;
   }
+
+  /**
+   * Get list of metadata fields supported by TIFF format
+   * TIFF supports extensive EXIF metadata including GPS and InteropIFD
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "creationDate",
+      "description",
+      "author",
+      "copyright",
+      "cameraMake",
+      "cameraModel",
+      "orientation",
+      "software",
+      "iso",
+      "exposureTime",
+      "fNumber",
+      "focalLength",
+      "flash",
+      "whiteBalance",
+      "lensMake",
+      "lensModel",
+      "userComment",
+      "latitude",
+      "longitude",
+      "dpiX",
+      "dpiY",
+      "physicalWidth",
+      "physicalHeight",
+    ];
+  }
 }
