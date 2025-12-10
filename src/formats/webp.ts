@@ -804,4 +804,19 @@ export class WebPFormat implements ImageFormat {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&apos;");
   }
+
+  /**
+   * Get the list of metadata fields supported by WebP format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "creationDate", // EXIF chunk
+      "latitude", // EXIF chunk (GPS IFD)
+      "longitude", // EXIF chunk (GPS IFD)
+      "title", // XMP chunk
+      "description", // XMP chunk
+      "author", // XMP chunk
+      "copyright", // XMP chunk
+    ];
+  }
 }

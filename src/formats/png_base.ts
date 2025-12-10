@@ -891,4 +891,21 @@ export abstract class PNGBase {
       }
     }
   }
+
+  /**
+   * Get the list of metadata fields supported by PNG format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "creationDate", // eXIf chunk
+      "latitude", // eXIf chunk (GPS IFD)
+      "longitude", // eXIf chunk (GPS IFD)
+      "dpiX", // pHYs chunk
+      "dpiY", // pHYs chunk
+      "title", // tEXt chunk
+      "author", // tEXt chunk
+      "description", // tEXt chunk
+      "copyright", // tEXt chunk
+    ];
+  }
 }

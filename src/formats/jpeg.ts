@@ -424,6 +424,74 @@ export class JPEGFormat implements ImageFormat {
           }
         }
 
+        // Make tag (0x010F)
+        if (tag === 0x010f) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset < exifData.length) {
+            const endIndex = exifData.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.cameraMake = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // Model tag (0x0110)
+        if (tag === 0x0110) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset < exifData.length) {
+            const endIndex = exifData.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.cameraModel = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // Orientation tag (0x0112)
+        if (tag === 0x0112) {
+          const value = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8)
+            : (exifData[entryOffset + 8] << 8) | exifData[entryOffset + 9];
+          metadata.orientation = value;
+        }
+
+        // Software tag (0x0131)
+        if (tag === 0x0131) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset < exifData.length) {
+            const endIndex = exifData.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.software = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
         // GPS IFD Pointer tag (0x8825)
         if (tag === 0x8825) {
           gpsIfdOffset = littleEndian
@@ -434,6 +502,30 @@ export class JPEGFormat implements ImageFormat {
               (exifData[entryOffset + 9] << 16) |
               (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
         }
+
+        // ExifIFD Pointer tag (0x8769) - points to EXIF Sub-IFD
+        const type = littleEndian
+          ? exifData[entryOffset + 2] | (exifData[entryOffset + 3] << 8)
+          : (exifData[entryOffset + 2] << 8) | exifData[entryOffset + 3];
+
+        if (tag === 0x8769 && type === 4) {
+          const exifIfdOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (exifIfdOffset > 0 && exifIfdOffset + 2 <= exifData.length) {
+            this.parseExifSubIFD(
+              exifData,
+              exifIfdOffset,
+              littleEndian,
+              metadata,
+            );
+          }
+        }
       }
 
       // Parse GPS IFD if present
@@ -442,6 +534,183 @@ export class JPEGFormat implements ImageFormat {
       }
     } catch (_e) {
       // Ignore EXIF parsing errors
+    }
+  }
+
+  private parseExifSubIFD(
+    exifData: Uint8Array,
+    exifIfdOffset: number,
+    littleEndian: boolean,
+    metadata: ImageMetadata,
+  ): void {
+    try {
+      const numEntries = littleEndian
+        ? exifData[exifIfdOffset] | (exifData[exifIfdOffset + 1] << 8)
+        : (exifData[exifIfdOffset] << 8) | exifData[exifIfdOffset + 1];
+
+      for (let i = 0; i < numEntries; i++) {
+        const entryOffset = exifIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > exifData.length) break;
+
+        const tag = littleEndian
+          ? exifData[entryOffset] | (exifData[entryOffset + 1] << 8)
+          : (exifData[entryOffset] << 8) | exifData[entryOffset + 1];
+
+        const type = littleEndian
+          ? exifData[entryOffset + 2] | (exifData[entryOffset + 3] << 8)
+          : (exifData[entryOffset + 2] << 8) | exifData[entryOffset + 3];
+
+        // ExposureTime tag (0x829A) - RATIONAL
+        if (tag === 0x829a && type === 5) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset + 8 <= exifData.length) {
+            metadata.exposureTime = this.readRational(
+              exifData,
+              valueOffset,
+              littleEndian,
+            );
+          }
+        }
+
+        // FNumber tag (0x829D) - RATIONAL
+        if (tag === 0x829d && type === 5) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset + 8 <= exifData.length) {
+            metadata.fNumber = this.readRational(
+              exifData,
+              valueOffset,
+              littleEndian,
+            );
+          }
+        }
+
+        // ISOSpeedRatings tag (0x8827) - SHORT
+        if (tag === 0x8827 && type === 3) {
+          metadata.iso = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8)
+            : (exifData[entryOffset + 8] << 8) | exifData[entryOffset + 9];
+        }
+
+        // FocalLength tag (0x920A) - RATIONAL
+        if (tag === 0x920a && type === 5) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset + 8 <= exifData.length) {
+            metadata.focalLength = this.readRational(
+              exifData,
+              valueOffset,
+              littleEndian,
+            );
+          }
+        }
+
+        // UserComment tag (0x9286) - UNDEFINED
+        if (tag === 0x9286) {
+          const count = littleEndian
+            ? exifData[entryOffset + 4] | (exifData[entryOffset + 5] << 8) |
+              (exifData[entryOffset + 6] << 16) |
+              (exifData[entryOffset + 7] << 24)
+            : (exifData[entryOffset + 4] << 24) |
+              (exifData[entryOffset + 5] << 16) |
+              (exifData[entryOffset + 6] << 8) | exifData[entryOffset + 7];
+
+          if (count > 8) {
+            const valueOffset = littleEndian
+              ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+                (exifData[entryOffset + 10] << 16) |
+                (exifData[entryOffset + 11] << 24)
+              : (exifData[entryOffset + 8] << 24) |
+                (exifData[entryOffset + 9] << 16) |
+                (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+            if (valueOffset + count <= exifData.length) {
+              // Skip 8-byte character code prefix
+              const commentData = exifData.slice(
+                valueOffset + 8,
+                valueOffset + count,
+              );
+              metadata.userComment = new TextDecoder().decode(commentData)
+                .replace(/\0+$/, "");
+            }
+          }
+        }
+
+        // Flash tag (0x9209) - SHORT
+        if (tag === 0x9209 && type === 3) {
+          metadata.flash = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8)
+            : (exifData[entryOffset + 8] << 8) | exifData[entryOffset + 9];
+        }
+
+        // WhiteBalance tag (0xA403) - SHORT
+        if (tag === 0xa403 && type === 3) {
+          metadata.whiteBalance = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8)
+            : (exifData[entryOffset + 8] << 8) | exifData[entryOffset + 9];
+        }
+
+        // LensMake tag (0xA433) - ASCII
+        if (tag === 0xa433 && type === 2) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset < exifData.length) {
+            const endIndex = exifData.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.lensMake = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // LensModel tag (0xA434) - ASCII
+        if (tag === 0xa434 && type === 2) {
+          const valueOffset = littleEndian
+            ? exifData[entryOffset + 8] | (exifData[entryOffset + 9] << 8) |
+              (exifData[entryOffset + 10] << 16) |
+              (exifData[entryOffset + 11] << 24)
+            : (exifData[entryOffset + 8] << 24) |
+              (exifData[entryOffset + 9] << 16) |
+              (exifData[entryOffset + 10] << 8) | exifData[entryOffset + 11];
+
+          if (valueOffset < exifData.length) {
+            const endIndex = exifData.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.lensModel = new TextDecoder().decode(
+                exifData.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+      }
+    } catch (_e) {
+      // Ignore EXIF Sub-IFD parsing errors
     }
   }
 
@@ -619,11 +888,61 @@ export class JPEGFormat implements ImageFormat {
       });
     }
 
+    // Add Make (camera manufacturer)
+    if (metadata.cameraMake) {
+      entries.push({
+        tag: 0x010f,
+        type: 2,
+        value: new TextEncoder().encode(metadata.cameraMake + "\0"),
+      });
+    }
+
+    // Add Model (camera model)
+    if (metadata.cameraModel) {
+      entries.push({
+        tag: 0x0110,
+        type: 2,
+        value: new TextEncoder().encode(metadata.cameraModel + "\0"),
+      });
+    }
+
+    // Add Orientation
+    if (metadata.orientation !== undefined) {
+      const orientationBytes = new Uint8Array(2);
+      orientationBytes[0] = metadata.orientation & 0xff;
+      orientationBytes[1] = (metadata.orientation >> 8) & 0xff;
+      entries.push({
+        tag: 0x0112,
+        type: 3, // SHORT
+        value: orientationBytes,
+      });
+    }
+
+    // Add Software
+    if (metadata.software) {
+      entries.push({
+        tag: 0x0131,
+        type: 2,
+        value: new TextEncoder().encode(metadata.software + "\0"),
+      });
+    }
+
     // Check if we have GPS data
     const hasGPS = metadata.latitude !== undefined &&
       metadata.longitude !== undefined;
 
-    if (entries.length === 0 && !hasGPS) return [];
+    // Check if we have Exif Sub-IFD data
+    const hasExifSubIFD = metadata.iso !== undefined ||
+      metadata.exposureTime !== undefined ||
+      metadata.fNumber !== undefined ||
+      metadata.focalLength !== undefined ||
+      metadata.flash !== undefined ||
+      metadata.whiteBalance !== undefined ||
+      metadata.lensMake !== undefined ||
+      metadata.lensModel !== undefined ||
+      metadata.userComment !== undefined;
+
+    if (entries.length === 0 && !hasGPS && !hasExifSubIFD) return [];
 
     // Build EXIF structure
     const exif: number[] = [];
@@ -635,8 +954,9 @@ export class JPEGFormat implements ImageFormat {
     // Offset to IFD0 (8 bytes from start)
     exif.push(0x08, 0x00, 0x00, 0x00);
 
-    // Number of entries (add GPS IFD pointer if we have GPS data)
-    const ifd0Entries = entries.length + (hasGPS ? 1 : 0);
+    // Number of entries (add GPS IFD pointer and Exif Sub-IFD pointer if needed)
+    const ifd0Entries = entries.length + (hasGPS ? 1 : 0) +
+      (hasExifSubIFD ? 1 : 0);
     exif.push(ifd0Entries & 0xff, (ifd0Entries >> 8) & 0xff);
 
     // Calculate data offset
@@ -671,6 +991,22 @@ export class JPEGFormat implements ImageFormat {
       }
     }
 
+    // Add Exif Sub-IFD pointer if we have camera metadata
+    let exifSubIfdOffset = 0;
+    if (hasExifSubIFD) {
+      exifSubIfdOffset = dataOffset;
+      // Exif IFD Pointer tag (0x8769), type 4 (LONG), count 1
+      exif.push(0x69, 0x87); // Tag
+      exif.push(0x04, 0x00); // Type
+      exif.push(0x01, 0x00, 0x00, 0x00); // Count
+      exif.push(
+        exifSubIfdOffset & 0xff,
+        (exifSubIfdOffset >> 8) & 0xff,
+        (exifSubIfdOffset >> 16) & 0xff,
+        (exifSubIfdOffset >> 24) & 0xff,
+      );
+    }
+
     // Add GPS IFD pointer if we have GPS data
     let gpsIfdOffset = 0;
     if (hasGPS) {
@@ -696,6 +1032,18 @@ export class JPEGFormat implements ImageFormat {
         for (const byte of entry.value) {
           exif.push(byte);
         }
+      }
+    }
+
+    // Add Exif Sub-IFD if we have camera metadata
+    if (hasExifSubIFD) {
+      const exifSubIfd = this.createExifSubIFD(metadata, exifSubIfdOffset);
+      for (const byte of exifSubIfd) {
+        exif.push(byte);
+      }
+      // Update GPS offset since we added the Sub-IFD
+      if (hasGPS) {
+        gpsIfdOffset = exif.length;
       }
     }
 
@@ -788,6 +1136,221 @@ export class JPEGFormat implements ImageFormat {
     return gps;
   }
 
+  private createExifSubIFD(
+    metadata: ImageMetadata,
+    exifIfdStart: number,
+  ): number[] {
+    const entries: { tag: number; type: number; data: number[] }[] = [];
+
+    // ISO Speed Ratings (0x8827) - SHORT
+    if (metadata.iso !== undefined) {
+      entries.push({
+        tag: 0x8827,
+        type: 3,
+        data: [metadata.iso & 0xff, (metadata.iso >> 8) & 0xff],
+      });
+    }
+
+    // Exposure Time (0x829A) - RATIONAL
+    if (metadata.exposureTime !== undefined) {
+      entries.push({ tag: 0x829a, type: 5, data: [] }); // Will add offset later
+    }
+
+    // FNumber (0x829D) - RATIONAL
+    if (metadata.fNumber !== undefined) {
+      entries.push({ tag: 0x829d, type: 5, data: [] }); // Will add offset later
+    }
+
+    // Flash (0x9209) - SHORT
+    if (metadata.flash !== undefined) {
+      entries.push({
+        tag: 0x9209,
+        type: 3,
+        data: [metadata.flash & 0xff, (metadata.flash >> 8) & 0xff],
+      });
+    }
+
+    // Focal Length (0x920A) - RATIONAL
+    if (metadata.focalLength !== undefined) {
+      entries.push({ tag: 0x920a, type: 5, data: [] }); // Will add offset later
+    }
+
+    // User Comment (0x9286) - UNDEFINED
+    if (metadata.userComment !== undefined) {
+      entries.push({ tag: 0x9286, type: 7, data: [] }); // Will add offset later
+    }
+
+    // White Balance (0xA403) - SHORT
+    if (metadata.whiteBalance !== undefined) {
+      entries.push({
+        tag: 0xa403,
+        type: 3,
+        data: [
+          metadata.whiteBalance & 0xff,
+          (metadata.whiteBalance >> 8) & 0xff,
+        ],
+      });
+    }
+
+    // Lens Make (0xA433) - ASCII
+    if (metadata.lensMake !== undefined) {
+      entries.push({ tag: 0xa433, type: 2, data: [] }); // Will add offset later
+    }
+
+    // Lens Model (0xA434) - ASCII
+    if (metadata.lensModel !== undefined) {
+      entries.push({ tag: 0xa434, type: 2, data: [] }); // Will add offset later
+    }
+
+    const exifSubIfd: number[] = [];
+    const numEntries = entries.length;
+    exifSubIfd.push(numEntries & 0xff, (numEntries >> 8) & 0xff);
+
+    let dataOffset = exifIfdStart + 2 + numEntries * 12 + 4;
+
+    // Write entry headers
+    for (const entry of entries) {
+      exifSubIfd.push(entry.tag & 0xff, (entry.tag >> 8) & 0xff);
+      exifSubIfd.push(entry.type & 0xff, (entry.type >> 8) & 0xff);
+
+      if (entry.tag === 0x829a && metadata.exposureTime !== undefined) {
+        // Exposure Time - 1 RATIONAL
+        exifSubIfd.push(0x01, 0x00, 0x00, 0x00); // Count
+        exifSubIfd.push(
+          dataOffset & 0xff,
+          (dataOffset >> 8) & 0xff,
+          (dataOffset >> 16) & 0xff,
+          (dataOffset >> 24) & 0xff,
+        );
+        dataOffset += 8;
+      } else if (entry.tag === 0x829d && metadata.fNumber !== undefined) {
+        // FNumber - 1 RATIONAL
+        exifSubIfd.push(0x01, 0x00, 0x00, 0x00); // Count
+        exifSubIfd.push(
+          dataOffset & 0xff,
+          (dataOffset >> 8) & 0xff,
+          (dataOffset >> 16) & 0xff,
+          (dataOffset >> 24) & 0xff,
+        );
+        dataOffset += 8;
+      } else if (entry.tag === 0x920a && metadata.focalLength !== undefined) {
+        // Focal Length - 1 RATIONAL
+        exifSubIfd.push(0x01, 0x00, 0x00, 0x00); // Count
+        exifSubIfd.push(
+          dataOffset & 0xff,
+          (dataOffset >> 8) & 0xff,
+          (dataOffset >> 16) & 0xff,
+          (dataOffset >> 24) & 0xff,
+        );
+        dataOffset += 8;
+      } else if (entry.tag === 0x9286 && metadata.userComment !== undefined) {
+        // User Comment - UNDEFINED with character code
+        const commentBytes = new TextEncoder().encode(metadata.userComment);
+        const totalLength = 8 + commentBytes.length; // 8 bytes for character code
+        exifSubIfd.push(
+          totalLength & 0xff,
+          (totalLength >> 8) & 0xff,
+          (totalLength >> 16) & 0xff,
+          (totalLength >> 24) & 0xff,
+        );
+        exifSubIfd.push(
+          dataOffset & 0xff,
+          (dataOffset >> 8) & 0xff,
+          (dataOffset >> 16) & 0xff,
+          (dataOffset >> 24) & 0xff,
+        );
+        dataOffset += totalLength;
+      } else if (entry.tag === 0xa433 && metadata.lensMake !== undefined) {
+        // Lens Make - ASCII
+        const bytes = new TextEncoder().encode(metadata.lensMake + "\0");
+        exifSubIfd.push(
+          bytes.length & 0xff,
+          (bytes.length >> 8) & 0xff,
+          (bytes.length >> 16) & 0xff,
+          (bytes.length >> 24) & 0xff,
+        );
+        exifSubIfd.push(
+          dataOffset & 0xff,
+          (dataOffset >> 8) & 0xff,
+          (dataOffset >> 16) & 0xff,
+          (dataOffset >> 24) & 0xff,
+        );
+        dataOffset += bytes.length;
+      } else if (entry.tag === 0xa434 && metadata.lensModel !== undefined) {
+        // Lens Model - ASCII
+        const bytes = new TextEncoder().encode(metadata.lensModel + "\0");
+        exifSubIfd.push(
+          bytes.length & 0xff,
+          (bytes.length >> 8) & 0xff,
+          (bytes.length >> 16) & 0xff,
+          (bytes.length >> 24) & 0xff,
+        );
+        exifSubIfd.push(
+          dataOffset & 0xff,
+          (dataOffset >> 8) & 0xff,
+          (dataOffset >> 16) & 0xff,
+          (dataOffset >> 24) & 0xff,
+        );
+        dataOffset += bytes.length;
+      } else {
+        // SHORT types stored inline
+        exifSubIfd.push(0x01, 0x00, 0x00, 0x00); // Count
+        exifSubIfd.push(...entry.data, 0x00, 0x00); // Value (4 bytes)
+      }
+    }
+
+    // Next IFD offset
+    exifSubIfd.push(0x00, 0x00, 0x00, 0x00);
+
+    // Write data for RATIONAL and ASCII types
+    for (const entry of entries) {
+      if (entry.tag === 0x829a && metadata.exposureTime !== undefined) {
+        // Convert exposure time to rational (numerator/denominator)
+        const [num, den] = this.toRational(metadata.exposureTime);
+        this.writeRational(exifSubIfd, num, den);
+      } else if (entry.tag === 0x829d && metadata.fNumber !== undefined) {
+        const [num, den] = this.toRational(metadata.fNumber);
+        this.writeRational(exifSubIfd, num, den);
+      } else if (entry.tag === 0x920a && metadata.focalLength !== undefined) {
+        const [num, den] = this.toRational(metadata.focalLength);
+        this.writeRational(exifSubIfd, num, den);
+      } else if (entry.tag === 0x9286 && metadata.userComment !== undefined) {
+        // Character code: ASCII (8 bytes)
+        exifSubIfd.push(0x41, 0x53, 0x43, 0x49, 0x49, 0x00, 0x00, 0x00);
+        const commentBytes = new TextEncoder().encode(metadata.userComment);
+        for (const byte of commentBytes) {
+          exifSubIfd.push(byte);
+        }
+      } else if (entry.tag === 0xa433 && metadata.lensMake !== undefined) {
+        const bytes = new TextEncoder().encode(metadata.lensMake + "\0");
+        for (const byte of bytes) {
+          exifSubIfd.push(byte);
+        }
+      } else if (entry.tag === 0xa434 && metadata.lensModel !== undefined) {
+        const bytes = new TextEncoder().encode(metadata.lensModel + "\0");
+        for (const byte of bytes) {
+          exifSubIfd.push(byte);
+        }
+      }
+    }
+
+    return exifSubIfd;
+  }
+
+  private toRational(value: number): [number, number] {
+    // Convert decimal to rational representation
+    // Try to find a reasonable denominator
+    const denominators = [1, 10, 100, 1000, 10000, 100000, 1000000];
+    for (const den of denominators) {
+      const num = Math.round(value * den);
+      if (Math.abs(num / den - value) < 0.000001) {
+        return [num, den];
+      }
+    }
+    // Fallback
+    return [Math.round(value * 1000000), 1000000];
+  }
+
   private writeRational(
     output: number[],
     numerator: number,
@@ -806,5 +1369,34 @@ export class JPEGFormat implements ImageFormat {
       (denominator >> 16) & 0xff,
       (denominator >> 24) & 0xff,
     );
+  }
+
+  /**
+   * Get the list of metadata fields supported by JPEG format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "creationDate",
+      "description",
+      "author",
+      "copyright",
+      "cameraMake",
+      "cameraModel",
+      "orientation",
+      "software",
+      "latitude",
+      "longitude",
+      "iso",
+      "exposureTime",
+      "fNumber",
+      "focalLength",
+      "flash",
+      "whiteBalance",
+      "lensMake",
+      "lensModel",
+      "userComment",
+      "dpiX",
+      "dpiY",
+    ];
   }
 }

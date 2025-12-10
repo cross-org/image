@@ -24,6 +24,35 @@ export interface ImageMetadata {
   copyright?: string;
   /** Creation date */
   creationDate?: Date;
+
+  // Camera settings
+  /** Camera make/manufacturer (e.g., "Canon", "Nikon") */
+  cameraMake?: string;
+  /** Camera model (e.g., "Canon EOS 5D Mark IV") */
+  cameraModel?: string;
+  /** Lens make/manufacturer */
+  lensMake?: string;
+  /** Lens model */
+  lensModel?: string;
+  /** ISO speed rating (e.g., 100, 400, 3200) */
+  iso?: number;
+  /** Exposure time / Shutter speed in seconds (e.g., 0.0125 = 1/80s) */
+  exposureTime?: number;
+  /** F-number / Aperture (e.g., 2.8, 5.6, 16) */
+  fNumber?: number;
+  /** Focal length in millimeters (e.g., 50, 85, 200) */
+  focalLength?: number;
+  /** Flash mode (0 = no flash, 1 = flash fired) */
+  flash?: number;
+  /** White balance mode (0 = auto, 1 = manual) */
+  whiteBalance?: number;
+  /** Orientation (1 = normal, 3 = 180°, 6 = 90° CW, 8 = 90° CCW) */
+  orientation?: number;
+  /** Software used to create/edit the image */
+  software?: string;
+  /** User comment / notes */
+  userComment?: string;
+
   /** Custom metadata fields */
   custom?: Record<string, string | number | boolean>;
 }
@@ -189,4 +218,10 @@ export interface ImageFormat {
    * Check if the format supports multiple frames
    */
   supportsMultipleFrames?(): boolean;
+
+  /**
+   * Get the list of metadata fields supported by this format
+   * @returns Array of metadata field names that can be persisted
+   */
+  getSupportedMetadata?(): Array<keyof ImageMetadata>;
 }
