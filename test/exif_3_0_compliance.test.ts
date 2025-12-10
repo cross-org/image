@@ -4,6 +4,7 @@
  */
 
 import { assertEquals, assertExists } from "@std/assert";
+import { test } from "@cross/test";
 import { Image } from "../mod.ts";
 import {
   createInteropIFD,
@@ -12,7 +13,7 @@ import {
   parseInteropIFD,
 } from "../src/utils/metadata/exif.ts";
 
-Deno.test("EXIF 3.0: InteropIFD creation (R98)", () => {
+test("EXIF 3.0: InteropIFD creation (R98)", () => {
   const ifd = createInteropIFD(INTEROP_INDEX.R98, true);
   assertExists(ifd);
   assertEquals(ifd.length > 0, true);
@@ -22,7 +23,7 @@ Deno.test("EXIF 3.0: InteropIFD creation (R98)", () => {
   assertEquals(numEntries, 2);
 });
 
-Deno.test("EXIF 3.0: InteropIFD creation (R03)", () => {
+test("EXIF 3.0: InteropIFD creation (R03)", () => {
   const ifd = createInteropIFD(INTEROP_INDEX.R03, true);
   assertExists(ifd);
 
@@ -30,7 +31,7 @@ Deno.test("EXIF 3.0: InteropIFD creation (R03)", () => {
   assertEquals(numEntries, 2);
 });
 
-Deno.test("EXIF 3.0: InteropIFD creation (THM)", () => {
+test("EXIF 3.0: InteropIFD creation (THM)", () => {
   const ifd = createInteropIFD(INTEROP_INDEX.THM, true);
   assertExists(ifd);
 
@@ -38,7 +39,7 @@ Deno.test("EXIF 3.0: InteropIFD creation (THM)", () => {
   assertEquals(numEntries, 2);
 });
 
-Deno.test("EXIF 3.0: InteropIFD parsing roundtrip", () => {
+test("EXIF 3.0: InteropIFD parsing roundtrip", () => {
   const ifd = createInteropIFD(INTEROP_INDEX.R98, true);
   const data = new Uint8Array(ifd);
 
@@ -46,14 +47,14 @@ Deno.test("EXIF 3.0: InteropIFD parsing roundtrip", () => {
   assertEquals(parsed, INTEROP_INDEX.R98);
 });
 
-Deno.test("EXIF 3.0: EXIF version constants defined", () => {
+test("EXIF 3.0: EXIF version constants defined", () => {
   assertEquals(EXIF_VERSION.V2_2, "0220");
   assertEquals(EXIF_VERSION.V2_21, "0221");
   assertEquals(EXIF_VERSION.V2_3, "0230");
   assertEquals(EXIF_VERSION.V3_0, "0300");
 });
 
-Deno.test("EXIF 3.0: TIFF format reports metadata support", () => {
+test("EXIF 3.0: TIFF format reports metadata support", () => {
   const supported = Image.getSupportedMetadata("tiff");
 
   assertExists(supported);
@@ -70,7 +71,7 @@ Deno.test("EXIF 3.0: TIFF format reports metadata support", () => {
   assertEquals(supported.includes("longitude"), true);
 });
 
-Deno.test("EXIF 3.0: JPEG format supports extended tags", () => {
+test("EXIF 3.0: JPEG format supports extended tags", () => {
   const supported = Image.getSupportedMetadata("jpeg");
 
   assertExists(supported);
@@ -83,7 +84,7 @@ Deno.test("EXIF 3.0: JPEG format supports extended tags", () => {
   assertEquals(supported.includes("whiteBalance"), true);
 });
 
-Deno.test("EXIF 3.0: getSupportedMetadata static method", () => {
+test("EXIF 3.0: getSupportedMetadata static method", () => {
   const jpegSupported = Image.getSupportedMetadata("jpeg");
   const pngSupported = Image.getSupportedMetadata("png");
   const webpSupported = Image.getSupportedMetadata("webp");
