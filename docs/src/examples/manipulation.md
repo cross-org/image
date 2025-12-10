@@ -602,8 +602,8 @@ const tr = tl.clone().flipHorizontal();
 const bl = tl.clone().flipVertical();
 const br = tl.clone().flipHorizontal().flipVertical();
 
-// Combine into kaleidoscope
-const canvas = Image.create(size, size);
+// Combine into kaleidoscope on transparent canvas
+const canvas = Image.create(size, size, 0, 0, 0, 0);
 canvas.composite(tl, 0, 0);
 canvas.composite(tr, half, 0);
 canvas.composite(bl, 0, half);

@@ -432,8 +432,8 @@ image.rotate(-90);
 image.rotate(180);
 
 // Rotations are rounded to nearest 90°
-image.rotate(45); // Rounds to 90°
-image.rotate(135); // Rounds to 90°
+image.rotate(45); // Rounds to 0° (nearest)
+image.rotate(135); // Rounds to 180°
 
 await Deno.writeFile("rotated.jpg", await image.encode("jpeg"));
 ```
@@ -513,10 +513,15 @@ const image = await Image.decode(await Deno.readFile("photo.jpg"));
 image.rotate90().flipHorizontal();
 
 // EXIF orientation correction example
+// Note: Always check metadata exists before accessing orientation
 const orientation = image.metadata?.orientation;
-if (orientation === 3) image.rotate180();
-else if (orientation === 6) image.rotate90();
-else if (orientation === 8) image.rotate270();
+if (orientation === 3) {
+  image.rotate180();
+} else if (orientation === 6) {
+  image.rotate90();
+} else if (orientation === 8) {
+  image.rotate270();
+}
 
 await Deno.writeFile("corrected.jpg", await image.encode("jpeg"));
 ```
