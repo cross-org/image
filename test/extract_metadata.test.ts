@@ -1,7 +1,8 @@
 import { assertEquals } from "@std/assert";
+import { test } from "@cross/test";
 import { Image } from "../mod.ts";
 
-Deno.test("extractMetadata - JPEG with EXIF", async () => {
+test("extractMetadata - JPEG with EXIF", async () => {
   // Create a simple JPEG with metadata
   const image = Image.create(100, 100, 255, 0, 0);
   image.setMetadata({
@@ -22,7 +23,7 @@ Deno.test("extractMetadata - JPEG with EXIF", async () => {
   assertEquals(metadata?.iso, 400);
 });
 
-Deno.test("extractMetadata - PNG with metadata", async () => {
+test("extractMetadata - PNG with metadata", async () => {
   // Create a simple PNG with metadata
   const image = Image.create(100, 100, 0, 255, 0);
   image.setMetadata({
@@ -44,7 +45,7 @@ Deno.test("extractMetadata - PNG with metadata", async () => {
   assertEquals(metadata?.dpiY, 300);
 });
 
-Deno.test("extractMetadata - WebP with metadata", async () => {
+test("extractMetadata - WebP with metadata", async () => {
   // Create a simple WebP with metadata
   const image = Image.create(100, 100, 0, 0, 255);
   image.setMetadata({
@@ -61,7 +62,7 @@ Deno.test("extractMetadata - WebP with metadata", async () => {
   assertEquals(metadata?.description, "WebP test image");
 });
 
-Deno.test("extractMetadata - TIFF with metadata", async () => {
+test("extractMetadata - TIFF with metadata", async () => {
   // Create a simple TIFF with metadata
   const image = Image.create(100, 100, 255, 255, 0);
   image.setMetadata({
@@ -78,7 +79,7 @@ Deno.test("extractMetadata - TIFF with metadata", async () => {
   assertEquals(metadata?.description, "TIFF description");
 });
 
-Deno.test("extractMetadata - auto-detect format", async () => {
+test("extractMetadata - auto-detect format", async () => {
   // Create a JPEG with metadata
   const image = Image.create(50, 50, 128, 128, 128);
   image.setMetadata({
@@ -93,7 +94,7 @@ Deno.test("extractMetadata - auto-detect format", async () => {
   assertEquals(metadata?.author, "Auto Detect Test");
 });
 
-Deno.test("extractMetadata - unsupported format returns undefined", async () => {
+test("extractMetadata - unsupported format returns undefined", async () => {
   // Create some invalid data
   const invalidData = new Uint8Array([1, 2, 3, 4, 5]);
 
@@ -102,7 +103,7 @@ Deno.test("extractMetadata - unsupported format returns undefined", async () => 
   assertEquals(metadata, undefined);
 });
 
-Deno.test("extractMetadata - image without metadata returns undefined", async () => {
+test("extractMetadata - image without metadata returns undefined", async () => {
   // Create a simple image without metadata
   const image = Image.create(50, 50, 200, 200, 200);
 
@@ -118,7 +119,7 @@ Deno.test("extractMetadata - image without metadata returns undefined", async ()
   }
 });
 
-Deno.test("extractMetadata - PNG includes format and compression info", async () => {
+test("extractMetadata - PNG includes format and compression info", async () => {
   const image = Image.create(100, 100, 255, 0, 0);
   const pngData = await image.encode("png");
   const metadata = await Image.extractMetadata(pngData, "png");
@@ -130,7 +131,7 @@ Deno.test("extractMetadata - PNG includes format and compression info", async ()
   assertEquals(metadata?.colorType, "rgba");
 });
 
-Deno.test("extractMetadata - JPEG includes format and compression info", async () => {
+test("extractMetadata - JPEG includes format and compression info", async () => {
   const image = Image.create(100, 100, 0, 255, 0);
   const jpegData = await image.encode("jpeg");
   const metadata = await Image.extractMetadata(jpegData, "jpeg");
@@ -142,7 +143,7 @@ Deno.test("extractMetadata - JPEG includes format and compression info", async (
   assertEquals(metadata?.colorType, "rgb");
 });
 
-Deno.test("extractMetadata - WebP includes format and compression info", async () => {
+test("extractMetadata - WebP includes format and compression info", async () => {
   const image = Image.create(100, 100, 0, 0, 255);
   const webpData = await image.encode("webp");
   const metadata = await Image.extractMetadata(webpData, "webp");
@@ -153,7 +154,7 @@ Deno.test("extractMetadata - WebP includes format and compression info", async (
   assertEquals(metadata?.bitDepth, 8);
 });
 
-Deno.test("extractMetadata - TIFF includes format and compression info", async () => {
+test("extractMetadata - TIFF includes format and compression info", async () => {
   const image = Image.create(100, 100, 255, 255, 0);
   const tiffData = await image.encode("tiff");
   const metadata = await Image.extractMetadata(tiffData, "tiff");
@@ -165,7 +166,7 @@ Deno.test("extractMetadata - TIFF includes format and compression info", async (
   assertEquals(metadata?.colorType, "rgba"); // Default TIFF encoding is RGBA
 });
 
-Deno.test("extractMetadata - TIFF with LZW compression", async () => {
+test("extractMetadata - TIFF with LZW compression", async () => {
   const image = Image.create(100, 100, 128, 128, 255);
   const tiffData = await image.encode("tiff", { compression: "lzw" });
   const metadata = await Image.extractMetadata(tiffData, "tiff");
@@ -175,7 +176,7 @@ Deno.test("extractMetadata - TIFF with LZW compression", async () => {
   assertEquals(metadata?.frameCount, 1);
 });
 
-Deno.test("extractMetadata - GIF includes frame count and format info", async () => {
+test("extractMetadata - GIF includes frame count and format info", async () => {
   const image = Image.create(50, 50, 255, 0, 255);
   const gifData = await image.encode("gif");
   const metadata = await Image.extractMetadata(gifData, "gif");
@@ -187,7 +188,7 @@ Deno.test("extractMetadata - GIF includes frame count and format info", async ()
   assertEquals(metadata?.colorType, "indexed");
 });
 
-Deno.test("extractMetadata - BMP includes format and compression info", async () => {
+test("extractMetadata - BMP includes format and compression info", async () => {
   const image = Image.create(50, 50, 0, 128, 255);
   const bmpData = await image.encode("bmp");
   const metadata = await Image.extractMetadata(bmpData, "bmp");
@@ -199,7 +200,7 @@ Deno.test("extractMetadata - BMP includes format and compression info", async ()
   assertEquals(metadata?.colorType, "rgba");
 });
 
-Deno.test("extractMetadata - APNG multi-frame includes frame count", async () => {
+test("extractMetadata - APNG multi-frame includes frame count", async () => {
   // Create a multi-frame APNG
   const frame1 = Image.create(50, 50, 255, 0, 0);
   const frame2 = Image.create(50, 50, 0, 255, 0);
@@ -240,7 +241,7 @@ Deno.test("extractMetadata - APNG multi-frame includes frame count", async () =>
   assertEquals(metadata?.colorType, "rgba");
 });
 
-Deno.test("extractMetadata - TIFF multi-page includes frame count", async () => {
+test("extractMetadata - TIFF multi-page includes frame count", async () => {
   // Create a multi-page TIFF
   const frame1 = Image.create(50, 50, 255, 0, 0);
   const frame2 = Image.create(50, 50, 0, 255, 0);
