@@ -1,10 +1,13 @@
 # EXIF Metadata API Test Coverage Summary
 
-This document summarizes the test coverage for EXIF metadata reading and writing in the @cross/image library.
+This document summarizes the test coverage for EXIF metadata reading and writing
+in the @cross/image library.
 
 ## Overview
 
-The library supports EXIF metadata for JPEG and WebP formats through a unified public API. This document details what is tested and how the metadata features work.
+The library supports EXIF metadata for JPEG and WebP formats through a unified
+public API. This document details what is tested and how the metadata features
+work.
 
 ## Supported EXIF Fields
 
@@ -18,6 +21,7 @@ The JPEG format implementation supports the following EXIF tags:
 - **Copyright** (0x8298): Maps to `metadata.copyright`
 
 DPI information is stored in JFIF APP0 marker:
+
 - **DPI X/Y**: Maps to `metadata.dpiX` and `metadata.dpiY`
 
 ### WebP Format
@@ -25,9 +29,11 @@ DPI information is stored in JFIF APP0 marker:
 WebP format stores metadata in two types of chunks:
 
 **EXIF chunk:**
+
 - **DateTime** (0x0132): Maps to `metadata.creationDate`
 
 **XMP chunk (XML-based):**
+
 - `dc:title`: Maps to `metadata.title`
 - `dc:description`: Maps to `metadata.description`
 - `dc:creator`: Maps to `metadata.author`
@@ -58,7 +64,9 @@ image.setPosition(latitude: number, longitude: number): Image
 image.getPosition(): { latitude: number; longitude: number } | undefined
 ```
 
-**Note:** GPS coordinates are stored in `ImageMetadata` but are NOT currently written to or read from EXIF GPS tags in JPEG/WebP formats. They are preserved in memory and through image operations but not persisted in the file format.
+**Note:** GPS coordinates are stored in `ImageMetadata` but are NOT currently
+written to or read from EXIF GPS tags in JPEG/WebP formats. They are preserved
+in memory and through image operations but not persisted in the file format.
 
 ### DPI and Physical Dimensions
 
@@ -80,6 +88,7 @@ image.getDimensions(): {
 ### EXIF Metadata Tests (test/exif_metadata.test.ts)
 
 **JPEG Format Tests:**
+
 - ✅ Roundtrip all EXIF fields via public API
 - ✅ Format direct encode/decode with all fields
 - ✅ Partial metadata (only some fields)
@@ -90,11 +99,13 @@ image.getDimensions(): {
 - ✅ Long text fields handling (500+ characters)
 
 **WebP Format Tests:**
+
 - ✅ Metadata with creation date (EXIF chunk)
 - ✅ Roundtrip via Image API (EXIF + XMP)
 - ✅ Text metadata via XMP chunk
 
 **Public API Tests:**
+
 - ✅ getMetadataField for EXIF fields
 - ✅ metadata property getter
 - ✅ Metadata merge behavior (merge vs replace)
@@ -102,6 +113,7 @@ image.getDimensions(): {
 ### GPS Metadata Tests (test/gps_metadata.test.ts)
 
 **Public API Tests:**
+
 - ✅ setPosition and getPosition
 - ✅ getPosition returns undefined when not set
 - ✅ setPosition is chainable
@@ -114,11 +126,14 @@ image.getDimensions(): {
 - ✅ Update position after initial set
 - ✅ Negative coordinates
 
-**Important:** GPS coordinates are currently NOT persisted in EXIF GPS tags when encoding JPEG or WebP files. They exist in the in-memory metadata structure only.
+**Important:** GPS coordinates are currently NOT persisted in EXIF GPS tags when
+encoding JPEG or WebP files. They exist in the in-memory metadata structure
+only.
 
 ### Existing Metadata Tests (test/metadata.test.ts)
 
 The library also has comprehensive metadata tests covering:
+
 - Set and get metadata
 - Merge metadata by default
 - Replace metadata when merge=false
@@ -133,6 +148,7 @@ The library also has comprehensive metadata tests covering:
 ### Integration Tests
 
 Metadata preservation is tested across various scenarios:
+
 - Format conversion (PNG → JPEG, PNG → BMP, etc.)
 - Image operations (resize, rotate, flip, etc.)
 - Multi-frame images (TIFF, GIF)
@@ -141,6 +157,7 @@ Metadata preservation is tested across various scenarios:
 ## Implementation Status
 
 ### ✅ Fully Implemented and Tested
+
 - JPEG EXIF metadata reading (DateTime, ImageDescription, Artist, Copyright)
 - JPEG EXIF metadata writing (DateTime, ImageDescription, Artist, Copyright)
 - JPEG JFIF DPI reading and writing
@@ -151,10 +168,12 @@ Metadata preservation is tested across various scenarios:
 - Public API for DPI
 
 ### ⚠️ Partially Implemented
+
 - GPS coordinates: API exists but NOT persisted in EXIF GPS tags (IFD)
 - WebP EXIF: Only DateTime is written to EXIF chunk (could support more fields)
 
 ### 📋 Not Implemented
+
 - EXIF GPS tags (latitude/longitude) for JPEG format
 - EXIF GPS tags for WebP format
 - Additional EXIF tags (camera model, ISO, focal length, etc.)
@@ -164,21 +183,25 @@ Metadata preservation is tested across various scenarios:
 ## Data Types and Constraints
 
 ### Date/Time Format
+
 - EXIF DateTime format: `YYYY:MM:DD HH:MM:SS`
 - Precision: Second-level (no milliseconds)
 - Stored as JavaScript `Date` object in metadata
 
 ### Text Fields
+
 - Encoding: UTF-8
 - Maximum length: Tested up to 500+ characters
 - Special characters: Fully supported (Unicode, symbols, etc.)
 
 ### GPS Coordinates
+
 - Format: Decimal degrees
 - Range: Latitude [-90, 90], Longitude [-180, 180]
 - Precision: Full JavaScript number precision (double)
 
 ### DPI
+
 - Format: Integer dots per inch
 - Default: 72 DPI when not specified
 - Separate values for X and Y axes supported
@@ -189,7 +212,8 @@ When testing EXIF metadata:
 
 1. **Always test roundtrip**: Encode and decode to verify persistence
 2. **Test edge cases**: Empty values, special characters, very long text
-3. **Test format-specific behavior**: JPEG vs WebP have different implementations
+3. **Test format-specific behavior**: JPEG vs WebP have different
+   implementations
 4. **Verify date precision**: EXIF only stores second-level precision
 5. **Test public API**: Use Image class methods, not format classes directly
 
@@ -221,16 +245,19 @@ await Deno.writeFile("photo_with_exif.jpg", encoded);
 // Load and verify
 const loaded = await Image.read(encoded);
 console.log(loaded.metadata?.author); // "John Doe"
-console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 } - NOT persisted!
+console.log(loaded.getPosition()); // undefined - GPS coordinates are not persisted in EXIF!
 ```
 
 ## Summary
 
-The @cross/image library has comprehensive test coverage for EXIF metadata reading and writing through a well-designed public API. The tests cover:
+The @cross/image library has comprehensive test coverage for EXIF metadata
+reading and writing through a well-designed public API. The tests cover:
 
 - **25 EXIF-specific tests** covering JPEG and WebP formats
 - **12 GPS metadata tests** for the public API
 - **Full roundtrip testing** for all supported metadata fields
 - **Edge cases** including special characters, long text, and date precision
 
-All public API methods for metadata management are thoroughly tested and working correctly. The implementation properly handles EXIF metadata in JPEG (APP1 marker) and WebP (EXIF/XMP chunks) formats.
+All public API methods for metadata management are thoroughly tested and working
+correctly. The implementation properly handles EXIF metadata in JPEG (APP1
+marker) and WebP (EXIF/XMP chunks) formats.
