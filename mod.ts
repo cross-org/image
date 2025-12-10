@@ -68,3 +68,5 @@ export { PAMFormat } from "./src/formats/pam.ts";
 export { PCXFormat } from "./src/formats/pcx.ts";
 export { PPMFormat } from "./src/formats/ppm.ts";
 export { ASCIIFormat } from "./src/formats/ascii.ts";
+export { HEICFormat } from "./src/formats/heic.ts";
+export { AVIFFormat } from "./src/formats/avif.ts";
