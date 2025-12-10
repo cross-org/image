@@ -172,6 +172,58 @@ Get all registered format handlers.
 
 **Returns:** Read-only array of registered format handlers
 
+#### `Image.getSupportedMetadata(format: string): Array<keyof ImageMetadata> | undefined`
+
+Get supported metadata fields for a specific format.
+
+**Parameters:**
+
+- `format` - Format name (e.g., "jpeg", "png", "webp")
+
+**Returns:** Array of supported metadata field names, or undefined if format
+doesn't support metadata
+
+**Example:**
+
+```ts
+const jpegFields = Image.getSupportedMetadata("jpeg");
+console.log(jpegFields);
+// Includes: cameraMake, cameraModel, iso, exposureTime, fNumber, etc.
+
+const pngFields = Image.getSupportedMetadata("png");
+console.log(pngFields);
+// Includes: title, description, author, dpiX, dpiY, latitude, longitude, etc.
+```
+
+#### `Image.extractMetadata(data: Uint8Array, format?: string): Promise<ImageMetadata | undefined>`
+
+Extract metadata from image data without fully decoding the pixel data. This is
+useful for quickly reading EXIF, XMP, or other metadata from images that may
+have unsupported features or compression methods.
+
+**Parameters:**
+
+- `data` - Raw image data
+- `format` - Optional format hint (e.g., "jpeg", "png", "webp")
+
+**Returns:** Promise that resolves to metadata extracted from the image, or
+undefined if extraction fails or format is unsupported
+
+**Example:**
+
+```ts
+// Extract metadata without decoding pixels (faster)
+const data = await Deno.readFile("large-photo.jpg");
+const metadata = await Image.extractMetadata(data);
+
+console.log(metadata?.cameraMake); // "Canon"
+console.log(metadata?.iso); // 800
+console.log(metadata?.exposureTime); // 0.004
+
+// Works with auto-detection or explicit format
+const metadata2 = await Image.extractMetadata(data, "jpeg");
+```
+
 ### Instance Properties
 
 #### `width: number` (read-only)
@@ -626,6 +678,87 @@ image.setPixel(50, 100, 255, 0, 0); // Set pixel to red
 image.setPixel(51, 100, 0, 255, 0, 128); // Set pixel to semi-transparent green
 ```
 
+#### `rotate(degrees: number): this`
+
+Rotate the image by the specified angle in degrees. Rotations are rounded to the
+nearest 90-degree increment.
+
+**Parameters:**
+
+- `degrees` - Rotation angle in degrees (positive = clockwise, negative =
+  counter-clockwise)
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.rotate(90); // Rotate 90° clockwise
+image.rotate(-90); // Rotate 90° counter-clockwise
+image.rotate(180); // Rotate 180°
+image.rotate(45); // Rotate 45° clockwise (rounded to nearest 90°)
+```
+
+#### `rotate90(): this`
+
+Rotate the image 90 degrees clockwise.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.rotate90(); // Rotate 90° clockwise
+```
+
+#### `rotate180(): this`
+
+Rotate the image 180 degrees.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.rotate180(); // Flip upside down
+```
+
+#### `rotate270(): this`
+
+Rotate the image 270 degrees clockwise (or 90 degrees counter-clockwise).
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.rotate270(); // Rotate 90° counter-clockwise
+```
+
+#### `flipHorizontal(): this`
+
+Flip the image horizontally (mirror effect).
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.flipHorizontal(); // Create horizontal mirror
+```
+
+#### `flipVertical(): this`
+
+Flip the image vertically.
+
+**Returns:** `this` for chaining
+
+**Example:**
+
+```ts
+image.flipVertical(); // Flip upside down
+```
+
 ## Type Definitions
 
 ### `ResizeOptions`
@@ -639,7 +772,9 @@ interface ResizeOptions {
   /** Target height in pixels */
   height: number;
   /** Resize algorithm (default: "bilinear") */
-  method?: "nearest" | "bilinear";
+  method?: "nearest" | "bilinear" | "bicubic";
+  /** Fitting mode (default: "stretch") */
+  fit?: "stretch" | "fit" | "fill" | "cover" | "contain";
 }
 ```
 
@@ -647,6 +782,14 @@ interface ResizeOptions {
 
 - `bilinear` - Smooth interpolation, better quality (default)
 - `nearest` - Fast pixel sampling, pixelated result
+- `bicubic` - High-quality cubic interpolation, best quality (slowest)
+
+**Fitting modes:**
+
+- `stretch` - Stretch image to fill dimensions (may distort) (default)
+- `fit` / `contain` - Fit image within dimensions maintaining aspect ratio (may
+  have letterboxing)
+- `fill` / `cover` - Fill dimensions maintaining aspect ratio (may crop)
 
 ### `ASCIIOptions`
 
