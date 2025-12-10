@@ -6,16 +6,6 @@ import type {
 } from "../types.ts";
 import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
 import { validateImageDimensions } from "../utils/security.ts";
-import {
-  createInteropIFD,
-  EXIF_VERSION,
-  IFD0_TAGS,
-  parseEXIFDate,
-  parseInteropIFD,
-  read16,
-  read32,
-} from "../utils/metadata/exif.ts";
-import { createGPSIFD, parseGPSIFD } from "../utils/metadata/gps.ts";
 
 // Constants for unit conversions
 const DEFAULT_DPI = 72;

@@ -1,25 +1,58 @@
 # EXIF Metadata API Test Coverage Summary
 
 This document summarizes the test coverage for EXIF metadata reading and writing
-in the @cross/image library.
+in the @cross/image library, including EXIF 3.0 specification compliance.
 
 ## Overview
 
-The library supports EXIF metadata for JPEG, PNG, and WebP formats through a
-unified public API. Metadata operations are centralized in the
+The library supports EXIF metadata for JPEG, PNG, WebP, and TIFF formats through
+a unified public API. Metadata operations are centralized in the
 `src/utils/metadata/` module for better organization and reusability.
 
 ### Metadata Utilities Module
 
 The library includes dedicated utilities for metadata handling:
 
-- **`exif.ts`** - EXIF tag definitions, read/write functions, date formatting
+- **`exif.ts`** - EXIF 3.0 tag definitions, InteropIFD support, read/write
+  functions
 - **`xmp.ts`** - XMP packet creation and parsing with full namespace support
 - **`gps.ts`** - GPS IFD operations and coordinate conversions
 - **`mod.ts`** - Module exports
 
 This modular design makes it easy to add support for additional metadata formats
 like IPTC or ICC color profiles in the future.
+
+## EXIF 3.0 Specification Compliance
+
+The library now includes comprehensive support for EXIF 3.0 specification:
+
+### Extended Tag Support
+
+**IFD0 Tags (30+ supported):**
+
+- Basic TIFF tags (ImageWidth, ImageHeight, Resolution, etc.)
+- Processing software, Color space information
+- All standard metadata fields (Make, Model, DateTime, Artist, Copyright, etc.)
+
+**Exif Sub-IFD Tags (50+ supported):**
+
+- EXIF version tracking (V2.2, V2.21, V2.3, V3.0)
+- Complete camera settings (ISO, Exposure, Aperture, Focal Length, etc.)
+- Scene information (Scene Type, Subject Distance, etc.)
+- Lens specifications (Lens Make, Model, Serial Number)
+- Advanced settings (Gain Control, Contrast, Saturation, Sharpness, etc.)
+
+**InteropIFD Support:**
+
+- InteropIndex (R98 for sRGB, R03 for Adobe RGB, THM for thumbnails)
+- InteropVersion
+- Related image information
+
+**Data Types:** All EXIF/TIFF data types are supported:
+
+- BYTE, ASCII, SHORT, LONG, RATIONAL
+- SBYTE, SSHORT, SLONG, SRATIONAL
+- FLOAT, DOUBLE, UNDEFINED
 
 ## Supported EXIF Fields
 
@@ -92,6 +125,44 @@ WebP now has full XMP support with multiple namespaces:
   `tiff:Software`
 
 This makes WebP capable of storing comprehensive camera metadata alongside JPEG!
+
+### TIFF Format (NEW!)
+
+TIFF format has comprehensive EXIF support built into its IFD structure:
+
+**IFD0 (Main directory):**
+
+- All standard fields (Make, Model, DateTime, Description, Artist, Copyright)
+- Orientation, Software
+- Resolution information (X/Y Resolution, Resolution Unit)
+- Color space information
+
+**EXIF IFD Support:**
+
+TIFF can store complete Exif Sub-IFD data including:
+
+- Camera settings (ISO, Exposure Time, F-Number, Focal Length)
+- Flash, White Balance
+- Lens information (Make, Model)
+- User Comment
+
+**GPS IFD Support:**
+
+TIFF now supports GPS coordinates via EXIF GPS IFD:
+
+- GPSLatitude/GPSLongitude with proper DMS conversion
+- Full coordinate precision
+
+**InteropIFD Support:**
+
+TIFF can include InteropIFD for format compatibility markers:
+
+- InteropIndex (R98, R03, THM)
+- InteropVersion
+
+**Total Supported Fields: 23+**
+
+TIFF is now one of the most comprehensive formats for metadata storage!
 
 ## Public API Methods
 

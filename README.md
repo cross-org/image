@@ -126,8 +126,9 @@ detailed compatibility information.
 
 ## Metadata Support
 
-@cross/image provides comprehensive metadata support for image files, including
-EXIF metadata for camera information and GPS coordinates.
+@cross/image provides comprehensive EXIF 3.0 compliant metadata support for
+image files, including camera information, GPS coordinates, and InteropIFD
+compatibility markers.
 
 ### Supported Metadata Fields
 
@@ -136,7 +137,7 @@ EXIF metadata for camera information and GPS coordinates.
 - `title`, `description`, `author`, `copyright`
 - `creationDate` - Date/time image was created
 
-**Camera Settings (JPEG only):**
+**Camera Settings (JPEG, TIFF, WebP via XMP):**
 
 - `cameraMake`, `cameraModel` - Camera manufacturer and model
 - `lensMake`, `lensModel` - Lens information
@@ -149,13 +150,25 @@ EXIF metadata for camera information and GPS coordinates.
 - `software` - Software used
 - `userComment` - User notes
 
-**GPS Coordinates (JPEG, PNG, WebP):**
+**GPS Coordinates (All EXIF formats: JPEG, PNG, WebP, TIFF):**
 
 - `latitude`, `longitude` - GPS coordinates in decimal degrees
+- Full microsecond precision with DMS (degrees-minutes-seconds) conversion
 
-**DPI (JPEG, PNG):**
+**DPI (JPEG, PNG, TIFF):**
 
 - `dpiX`, `dpiY` - Dots per inch for printing
+
+### EXIF 3.0 Specification Compliance
+
+The library implements the EXIF 3.0 specification with:
+
+- **50+ Exif Sub-IFD tags** for comprehensive camera metadata
+- **30+ IFD0 tags** for image information
+- **InteropIFD support** for format compatibility (R98/sRGB, R03/Adobe RGB,
+  THM/thumbnail)
+- **GPS IFD** with proper coordinate conversion
+- All EXIF data types (BYTE, ASCII, SHORT, LONG, RATIONAL, etc.)
 
 ### Example Usage
 
@@ -201,13 +214,19 @@ Use `Image.getSupportedMetadata(format)` to check which fields are supported:
 
 ```typescript
 Image.getSupportedMetadata("jpeg"); // Full camera metadata + GPS (21 fields)
+Image.getSupportedMetadata("tiff"); // Comprehensive EXIF + GPS + InteropIFD (23+ fields)
 Image.getSupportedMetadata("png"); // DateTime, GPS, DPI, basic text (9 fields)
 Image.getSupportedMetadata("webp"); // Enhanced XMP + GPS (15 fields - includes camera metadata!)
 ```
 
-**WebP Enhanced XMP Support:** WebP now supports camera metadata (ISO, exposure,
-aperture, focal length, etc.) through enhanced XMP implementation with full
-Dublin Core, EXIF, and TIFF namespace support.
+**Format Highlights:**
+
+- **JPEG**: Most comprehensive EXIF support, including all camera settings and
+  GPS
+- **TIFF**: Full EXIF 3.0 support with IFD structure, InteropIFD compatibility
+- **WebP**: Enhanced XMP implementation with Dublin Core, EXIF, and TIFF
+  namespaces
+- **PNG**: Basic EXIF support via eXIf chunk plus GPS coordinates
 
 ## Documentation
 
