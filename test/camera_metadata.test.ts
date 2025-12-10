@@ -235,11 +235,14 @@ test("Camera Metadata: getSupportedMetadata - PNG", () => {
 test("Camera Metadata: getSupportedMetadata - WebP", () => {
   const supported = Image.getSupportedMetadata("webp");
 
-  // WebP doesn't support camera metadata
-  assertEquals(supported?.includes("cameraMake"), false);
-  assertEquals(supported?.includes("iso"), false);
+  // WebP now supports camera metadata via XMP (enhanced support)
+  assertEquals(supported?.includes("cameraMake"), true);
+  assertEquals(supported?.includes("iso"), true);
+  assertEquals(supported?.includes("exposureTime"), true);
+  assertEquals(supported?.includes("fNumber"), true);
+  assertEquals(supported?.includes("focalLength"), true);
 
-  // But it supports basic metadata via XMP and EXIF
+  // And basic metadata via XMP and EXIF
   assertEquals(supported?.includes("creationDate"), true);
   assertEquals(supported?.includes("title"), true);
   assertEquals(supported?.includes("author"), true);

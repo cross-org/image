@@ -6,6 +6,7 @@ import type {
 } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { readUint32LE } from "../utils/byte_utils.ts";
+import { createXMP, parseXMP } from "../utils/metadata/xmp.ts";
 
 // Default quality for WebP encoding when not specified
 const DEFAULT_WEBP_QUALITY = 90;
@@ -430,29 +431,13 @@ export class WebPFormat implements ImageFormat {
   }
 
   private parseXMP(data: Uint8Array, metadata: ImageMetadata): void {
-    // XMP is XML-based metadata - simple parsing for common fields
+    // Parse XMP using the centralized utility
     try {
       const xmpStr = new TextDecoder().decode(data);
+      const parsedMetadata = parseXMP(xmpStr);
 
-      // Extract title
-      const titleMatch = xmpStr.match(/<dc:title[^>]*>([^<]+)<\/dc:title>/);
-      if (titleMatch) metadata.title = titleMatch[1].trim();
-
-      // Extract description
-      const descMatch = xmpStr.match(
-        /<dc:description[^>]*>([^<]+)<\/dc:description>/,
-      );
-      if (descMatch) metadata.description = descMatch[1].trim();
-
-      // Extract creator/author
-      const creatorMatch = xmpStr.match(
-        /<dc:creator[^>]*>([^<]+)<\/dc:creator>/,
-      );
-      if (creatorMatch) metadata.author = creatorMatch[1].trim();
-
-      // Extract rights/copyright
-      const rightsMatch = xmpStr.match(/<dc:rights[^>]*>([^<]+)<\/dc:rights>/);
-      if (rightsMatch) metadata.copyright = rightsMatch[1].trim();
+      // Merge parsed metadata into the existing metadata object
+      Object.assign(metadata, parsedMetadata);
     } catch (_e) {
       // Ignore XMP parsing errors
     }
@@ -745,43 +730,8 @@ export class WebPFormat implements ImageFormat {
   }
 
   private createXMPChunk(metadata: ImageMetadata): Uint8Array | null {
-    const xmpParts: string[] = [];
-    xmpParts.push('<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>');
-    xmpParts.push('<x:xmpmeta xmlns:x="adobe:ns:meta/">');
-    xmpParts.push(
-      '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">',
-    );
-    xmpParts.push(
-      '<rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/">',
-    );
-
-    if (metadata.title) {
-      xmpParts.push(`<dc:title>${this.escapeXML(metadata.title)}</dc:title>`);
-    }
-    if (metadata.description) {
-      xmpParts.push(
-        `<dc:description>${
-          this.escapeXML(metadata.description)
-        }</dc:description>`,
-      );
-    }
-    if (metadata.author) {
-      xmpParts.push(
-        `<dc:creator>${this.escapeXML(metadata.author)}</dc:creator>`,
-      );
-    }
-    if (metadata.copyright) {
-      xmpParts.push(
-        `<dc:rights>${this.escapeXML(metadata.copyright)}</dc:rights>`,
-      );
-    }
-
-    xmpParts.push("</rdf:Description>");
-    xmpParts.push("</rdf:RDF>");
-    xmpParts.push("</x:xmpmeta>");
-    xmpParts.push('<?xpacket end="w"?>');
-
-    const xmpStr = xmpParts.join("\n");
+    // Use the centralized XMP utility to create the XMP packet
+    const xmpStr = createXMP(metadata);
     const xmpData = new TextEncoder().encode(xmpStr);
 
     // Create chunk
@@ -796,27 +746,28 @@ export class WebPFormat implements ImageFormat {
     return chunk;
   }
 
-  private escapeXML(str: string): string {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
-  }
-
   /**
    * Get the list of metadata fields supported by WebP format
    */
   getSupportedMetadata(): Array<keyof ImageMetadata> {
     return [
-      "creationDate", // EXIF chunk
-      "latitude", // EXIF chunk (GPS IFD)
-      "longitude", // EXIF chunk (GPS IFD)
-      "title", // XMP chunk
-      "description", // XMP chunk
-      "author", // XMP chunk
-      "copyright", // XMP chunk
+      // EXIF chunk
+      "creationDate",
+      "latitude",
+      "longitude",
+      // XMP chunk (enhanced support)
+      "title",
+      "description",
+      "author",
+      "copyright",
+      "cameraMake",
+      "cameraModel",
+      "orientation",
+      "software",
+      "iso",
+      "exposureTime",
+      "fNumber",
+      "focalLength",
     ];
   }
 }
