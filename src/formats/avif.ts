@@ -73,6 +73,10 @@ export class AVIFFormat implements ImageFormat {
   /**
    * Encode RGBA image data to AVIF format
    * Uses runtime APIs (OffscreenCanvas) for encoding
+   *
+   * Note: Metadata injection is not currently implemented. Metadata may be lost during encoding
+   * as it would require parsing and modifying the ISOBMFF container structure.
+   *
    * @param imageData Image data to encode
    * @returns Encoded AVIF image bytes
    */
@@ -164,16 +168,17 @@ export class AVIFFormat implements ImageFormat {
 
   /**
    * Parse EXIF metadata from AVIF data
-   * AVIF files can contain EXIF data in the meta box
+   *
+   * Note: This is a simplified implementation that searches for EXIF headers linearly.
+   * A full implementation would require navigating the ISOBMFF box structure to find
+   * the 'meta' box and then the 'Exif' item. This simplified approach may not work
+   * in all cases but is suitable for basic metadata extraction when runtime APIs are
+   * not available or as a fallback.
+   *
    * @param data Raw AVIF data
    * @param metadata Metadata object to populate
    */
   private parseEXIF(data: Uint8Array, metadata: ImageMetadata): void {
-    // AVIF EXIF parsing would require navigating the ISOBMFF box structure
-    // to find the 'meta' box and then the 'Exif' item
-    // This is complex and not implemented in pure JS here
-    // The runtime decoder typically handles this
-
     // For now, we'll attempt a simple search for EXIF header
     // This is a simplified approach and may not work in all cases
     try {
