@@ -43,6 +43,8 @@ Keep in mind:
 Docs:
 
 - Lives in docs/ (Lumocs). Keep README concise; link to docs pages.
+- **Always update both README.md and docs/ when making changes to formats,
+  features, or APIs.**
 - If CI flips lint_docs=true, also run: deno doc --lint mod.ts
 
 Network access (Copilot workspace):
