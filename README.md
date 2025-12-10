@@ -13,7 +13,7 @@ dependencies.
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
 - 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
-  PAM, PPM, PCX and ASCII support
+  PAM, PPM, PCX, ASCII, HEIC, and AVIF support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
 - 🎛️ **Image processing** - Chainable filters including `brightness`,
   `contrast`, `saturation`, `hue`, `exposure`, `blur`, `sharpen`, `sepia`, and
@@ -104,21 +104,23 @@ await writeFile("output.jpg", jpeg);
 
 ## Supported Formats
 
-| Format | Pure-JS     | Notes                                  |
-| ------ | ----------- | -------------------------------------- |
-| PNG    | ✅ Full     | Complete pure-JS implementation        |
-| APNG   | ✅ Full     | Animated PNG with multi-frame          |
-| BMP    | ✅ Full     | Complete pure-JS implementation        |
-| ICO    | ✅ Full     | Windows Icon format                    |
-| GIF    | ✅ Full     | Animated GIF with multi-frame          |
-| DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)         |
-| PAM    | ✅ Full     | Netpbm PAM format                      |
-| PPM    | ✅ Full     | Netpbm PPM format (P3/P6)              |
-| PCX    | ✅ Full     | ZSoft PCX (RLE compressed)             |
-| ASCII  | ✅ Full     | Text-based ASCII art                   |
-| JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only              |
-| WebP   | ⚠️ Lossless | Pure-JS lossless VP8L                  |
-| TIFF   | ⚠️ Basic    | Pure-JS uncompressed, LZW, & grayscale |
+| Format | Pure-JS     | Notes                                             |
+| ------ | ----------- | ------------------------------------------------- |
+| PNG    | ✅ Full     | Complete pure-JS implementation                   |
+| APNG   | ✅ Full     | Animated PNG with multi-frame                     |
+| BMP    | ✅ Full     | Complete pure-JS implementation                   |
+| ICO    | ✅ Full     | Windows Icon format                               |
+| GIF    | ✅ Full     | Animated GIF with multi-frame                     |
+| DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)                    |
+| PAM    | ✅ Full     | Netpbm PAM format                                 |
+| PPM    | ✅ Full     | Netpbm PPM format (P3/P6)                         |
+| PCX    | ✅ Full     | ZSoft PCX (RLE compressed)                        |
+| ASCII  | ✅ Full     | Text-based ASCII art                              |
+| JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only                         |
+| WebP   | ⚠️ Lossless | Pure-JS lossless VP8L                             |
+| TIFF   | ⚠️ Basic    | Pure-JS uncompressed, LZW, & grayscale            |
+| HEIC   | 🔌 Runtime  | Requires ImageDecoder/OffscreenCanvas API support |
+| AVIF   | 🔌 Runtime  | Requires ImageDecoder/OffscreenCanvas API support |
 
 See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for
@@ -242,7 +244,7 @@ metadata, as it:
 - Skips pixel data decompression
 - Only parses metadata chunks/markers
 - Returns `undefined` for unsupported formats
-- Works with JPEG, PNG, WebP, and TIFF formats
+- Works with JPEG, PNG, WebP, TIFF, HEIC, and AVIF formats
 
 ### Format-Specific Support
 
@@ -253,6 +255,8 @@ Image.getSupportedMetadata("jpeg"); // Full camera metadata + GPS (21 fields)
 Image.getSupportedMetadata("tiff"); // Comprehensive EXIF + GPS + InteropIFD (23+ fields)
 Image.getSupportedMetadata("png"); // DateTime, GPS, DPI, basic text (9 fields)
 Image.getSupportedMetadata("webp"); // Enhanced XMP + GPS (15 fields - includes camera metadata!)
+Image.getSupportedMetadata("heic"); // Camera metadata + GPS (11 fields)
+Image.getSupportedMetadata("avif"); // Camera metadata + GPS (11 fields)
 ```
 
 **Format Highlights:**
@@ -263,6 +267,8 @@ Image.getSupportedMetadata("webp"); // Enhanced XMP + GPS (15 fields - includes 
 - **WebP**: Enhanced XMP implementation with Dublin Core, EXIF, and TIFF
   namespaces
 - **PNG**: Basic EXIF support via eXIf chunk plus GPS coordinates
+- **HEIC**: Camera metadata and GPS extraction (runtime-dependent encoding)
+- **AVIF**: Camera metadata and GPS extraction (runtime-dependent encoding)
 
 ## Documentation
 
