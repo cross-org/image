@@ -850,6 +850,10 @@ Configuration for TIFF encoding.
 interface TIFFEncodeOptions {
   /** Compression method: "none" (default) or "lzw" */
   compression?: "none" | "lzw";
+  /** Encode as grayscale instead of RGB/RGBA (default: false) */
+  grayscale?: boolean;
+  /** Encode as RGB without alpha channel (default: false, ignored if grayscale is true) */
+  rgb?: boolean;
 }
 ```
 
@@ -857,6 +861,13 @@ interface TIFFEncodeOptions {
 
 - `none` - Uncompressed TIFF (larger file size, fastest encoding)
 - `lzw` - LZW compression (smaller file size, lossless)
+
+**Color modes:**
+
+- Default: RGBA with alpha channel
+- `grayscale: true` - Convert to grayscale
+- `rgb: true` - RGB without alpha channel (smaller file size if transparency not
+  needed)
 
 ### `ImageData`
 
