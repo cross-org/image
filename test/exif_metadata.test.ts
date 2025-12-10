@@ -334,7 +334,7 @@ test("EXIF: Date precision - JPEG format", async () => {
   }
 });
 
-test("EXIF: Metadata merge behavior with EXIF fields", async () => {
+test("EXIF: Metadata merge behavior with EXIF fields", () => {
   const data = new Uint8Array(50 * 50 * 4).fill(150);
   const image = Image.fromRGBA(50, 50, data);
 
