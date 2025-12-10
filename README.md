@@ -200,10 +200,14 @@ console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 }
 Use `Image.getSupportedMetadata(format)` to check which fields are supported:
 
 ```typescript
-Image.getSupportedMetadata("jpeg"); // Full camera metadata + GPS
-Image.getSupportedMetadata("png"); // DateTime, GPS, DPI, basic text
-Image.getSupportedMetadata("webp"); // DateTime, GPS, basic text (XMP)
+Image.getSupportedMetadata("jpeg"); // Full camera metadata + GPS (21 fields)
+Image.getSupportedMetadata("png"); // DateTime, GPS, DPI, basic text (9 fields)
+Image.getSupportedMetadata("webp"); // Enhanced XMP + GPS (15 fields - includes camera metadata!)
 ```
+
+**WebP Enhanced XMP Support:** WebP now supports camera metadata (ISO, exposure,
+aperture, focal length, etc.) through enhanced XMP implementation with full
+Dublin Core, EXIF, and TIFF namespace support.
 
 ## Documentation
 

@@ -6,8 +6,20 @@ in the @cross/image library.
 ## Overview
 
 The library supports EXIF metadata for JPEG, PNG, and WebP formats through a
-unified public API. This document details what is tested and how the metadata
-features work.
+unified public API. Metadata operations are centralized in the
+`src/utils/metadata/` module for better organization and reusability.
+
+### Metadata Utilities Module
+
+The library includes dedicated utilities for metadata handling:
+
+- **`exif.ts`** - EXIF tag definitions, read/write functions, date formatting
+- **`xmp.ts`** - XMP packet creation and parsing with full namespace support
+- **`gps.ts`** - GPS IFD operations and coordinate conversions
+- **`mod.ts`** - Module exports
+
+This modular design makes it easy to add support for additional metadata formats
+like IPTC or ICC color profiles in the future.
 
 ## Supported EXIF Fields
 
@@ -69,12 +81,17 @@ WebP format stores metadata in two types of chunks:
 - **DateTime** (0x0132): Maps to `metadata.creationDate`
 - **GPS IFD** (0x8825): GPS coordinates (same structure as JPEG)
 
-**XMP chunk (XML-based):**
+**XMP chunk (Enhanced XML-based metadata):**
 
-- `dc:title`: Maps to `metadata.title`
-- `dc:description`: Maps to `metadata.description`
-- `dc:creator`: Maps to `metadata.author`
-- `dc:rights`: Maps to `metadata.copyright`
+WebP now has full XMP support with multiple namespaces:
+
+- **Dublin Core:** `dc:title`, `dc:description`, `dc:creator`, `dc:rights`
+- **EXIF namespace:** `exif:DateTimeOriginal`, `exif:ISOSpeedRatings`,
+  `exif:ExposureTime`, `exif:FNumber`, `exif:FocalLength`
+- **TIFF namespace:** `tiff:Make`, `tiff:Model`, `tiff:Orientation`,
+  `tiff:Software`
+
+This makes WebP capable of storing comprehensive camera metadata alongside JPEG!
 
 ## Public API Methods
 
