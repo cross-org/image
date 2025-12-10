@@ -208,6 +208,42 @@ console.log(loaded.metadata?.cameraMake); // "Canon"
 console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 }
 ```
 
+### Extracting Metadata Without Decoding
+
+For quickly reading metadata from images without the overhead of decoding pixel
+data, use `Image.extractMetadata()`. This is particularly useful for:
+
+- Reading EXIF data from large images or photos
+- Extracting metadata from images with unsupported compression
+- Building image catalogs or galleries
+- Processing metadata in batch operations
+
+```typescript
+import { Image } from "@cross/image";
+
+// Extract metadata without decoding pixels
+const data = await Deno.readFile("large-photo.jpg");
+const metadata = await Image.extractMetadata(data);
+
+console.log(metadata?.cameraMake); // "Canon"
+console.log(metadata?.iso); // 800
+console.log(metadata?.exposureTime); // 0.004
+
+// Works with auto-detection
+const metadata2 = await Image.extractMetadata(data); // Detects JPEG
+
+// Or specify format explicitly
+const metadata3 = await Image.extractMetadata(data, "jpeg");
+```
+
+This method is significantly faster than full decode when you only need
+metadata, as it:
+
+- Skips pixel data decompression
+- Only parses metadata chunks/markers
+- Returns `undefined` for unsupported formats
+- Works with JPEG, PNG, WebP, and TIFF formats
+
 ### Format-Specific Support
 
 Use `Image.getSupportedMetadata(format)` to check which fields are supported:

@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { Image } from "../mod.ts";
 
 Deno.test("extractMetadata - JPEG with EXIF", async () => {
