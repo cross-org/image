@@ -434,7 +434,7 @@ export class AVIFFormat implements ImageFormat {
         ? data[exifIfdOffset] | (data[exifIfdOffset + 1] << 8)
         : (data[exifIfdOffset] << 8) | data[exifIfdOffset + 1];
 
-      for (let i = 0; i < numEntries; i++) {
+      for (let i = 0; i < numEntries && i < 100; i++) {
         const entryOffset = exifIfdOffset + 2 + i * 12;
         if (entryOffset + 12 > data.length) break;
 
@@ -609,7 +609,7 @@ export class AVIFFormat implements ImageFormat {
       let latitude: number | undefined;
       let longitude: number | undefined;
 
-      for (let i = 0; i < numEntries; i++) {
+      for (let i = 0; i < numEntries && i < 100; i++) {
         const entryOffset = gpsIfdOffset + 2 + i * 12;
         if (entryOffset + 12 > data.length) break;
 

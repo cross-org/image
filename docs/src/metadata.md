@@ -165,14 +165,14 @@ const avifFields = Image.getSupportedMetadata("avif");
 
 ### Format Comparison
 
-| Format   | Fields | Implementation                                               |
-| -------- | ------ | ------------------------------------------------------------ |
-| **JPEG** | 21     | Full EXIF (IFD0 + Exif Sub-IFD + GPS IFD)                    |
-| **TIFF** | 23+    | Complete EXIF 3.0 support with InteropIFD                    |
-| **HEIC** | 19     | Full EXIF metadata extraction (IFD0 + Exif Sub-IFD + GPS)    |
-| **AVIF** | 19     | Full EXIF metadata extraction (IFD0 + Exif Sub-IFD + GPS)    |
-| **WebP** | 15     | EXIF DateTime/GPS + Enhanced XMP                             |
-| **PNG**  | 9      | eXIf chunk + pHYs + tEXt chunks                              |
+| Format   | Fields | Implementation                                            |
+| -------- | ------ | --------------------------------------------------------- |
+| **JPEG** | 21     | Full EXIF (IFD0 + Exif Sub-IFD + GPS IFD)                 |
+| **TIFF** | 23+    | Complete EXIF 3.0 support with InteropIFD                 |
+| **HEIC** | 19     | Full EXIF metadata extraction (IFD0 + Exif Sub-IFD + GPS) |
+| **AVIF** | 19     | Full EXIF metadata extraction (IFD0 + Exif Sub-IFD + GPS) |
+| **WebP** | 15     | EXIF DateTime/GPS + Enhanced XMP                          |
+| **PNG**  | 9      | eXIf chunk + pHYs + tEXt chunks                           |
 
 ## EXIF 3.0 Specification Compliance
 
