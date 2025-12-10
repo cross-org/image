@@ -255,8 +255,8 @@ Image.getSupportedMetadata("jpeg"); // Full camera metadata + GPS (21 fields)
 Image.getSupportedMetadata("tiff"); // Comprehensive EXIF + GPS + InteropIFD (23+ fields)
 Image.getSupportedMetadata("png"); // DateTime, GPS, DPI, basic text (9 fields)
 Image.getSupportedMetadata("webp"); // Enhanced XMP + GPS (15 fields - includes camera metadata!)
-Image.getSupportedMetadata("heic"); // Camera metadata + GPS (11 fields)
-Image.getSupportedMetadata("avif"); // Camera metadata + GPS (11 fields)
+Image.getSupportedMetadata("heic"); // Full camera metadata + GPS (19 fields)
+Image.getSupportedMetadata("avif"); // Full camera metadata + GPS (19 fields)
 ```
 
 **Format Highlights:**
@@ -267,8 +267,10 @@ Image.getSupportedMetadata("avif"); // Camera metadata + GPS (11 fields)
 - **WebP**: Enhanced XMP implementation with Dublin Core, EXIF, and TIFF
   namespaces
 - **PNG**: Basic EXIF support via eXIf chunk plus GPS coordinates
-- **HEIC**: Camera metadata and GPS extraction (runtime-dependent encoding)
-- **AVIF**: Camera metadata and GPS extraction (runtime-dependent encoding)
+- **HEIC**: Full EXIF metadata extraction including camera settings, GPS, and
+  image info (runtime-dependent encoding)
+- **AVIF**: Full EXIF metadata extraction including camera settings, GPS, and
+  image info (runtime-dependent encoding)
 
 ## Documentation
 

@@ -223,7 +223,9 @@ export class HEICFormat implements ImageFormat {
         ? data[ifd0Offset] | (data[ifd0Offset + 1] << 8)
         : (data[ifd0Offset] << 8) | data[ifd0Offset + 1];
 
-      // Parse IFD entries
+      let gpsIfdOffset = 0;
+
+      // Parse IFD0 entries
       for (let i = 0; i < numEntries && i < 100; i++) {
         const entryOffset = ifd0Offset + 2 + i * 12;
         if (entryOffset + 12 > data.length) break;
@@ -232,7 +234,10 @@ export class HEICFormat implements ImageFormat {
           ? data[entryOffset] | (data[entryOffset + 1] << 8)
           : (data[entryOffset] << 8) | data[entryOffset + 1];
 
-        // Parse common EXIF tags (simplified)
+        const type = littleEndian
+          ? data[entryOffset + 2] | (data[entryOffset + 3] << 8)
+          : (data[entryOffset + 2] << 8) | data[entryOffset + 3];
+
         // DateTime (0x0132)
         if (tag === 0x0132) {
           const valueOffset = littleEndian
@@ -263,10 +268,464 @@ export class HEICFormat implements ImageFormat {
             }
           }
         }
+
+        // ImageDescription (0x010E)
+        if (tag === 0x010e) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.description = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // Artist (0x013B)
+        if (tag === 0x013b) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.author = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // Copyright (0x8298)
+        if (tag === 0x8298) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.copyright = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // Make (0x010F)
+        if (tag === 0x010f) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.cameraMake = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // Model (0x0110)
+        if (tag === 0x0110) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.cameraModel = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // Orientation (0x0112)
+        if (tag === 0x0112) {
+          const value = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8)
+            : (data[entryOffset + 8] << 8) | data[entryOffset + 9];
+          metadata.orientation = value;
+        }
+
+        // Software (0x0131)
+        if (tag === 0x0131) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.software = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // GPS IFD Pointer (0x8825)
+        if (tag === 0x8825) {
+          gpsIfdOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+        }
+
+        // ExifIFD Pointer (0x8769)
+        if (tag === 0x8769 && type === 4) {
+          const exifIfdOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (exifIfdOffset > 0 && exifIfdOffset + 2 <= data.length) {
+            this.parseExifSubIFD(data, exifIfdOffset, littleEndian, metadata);
+          }
+        }
+      }
+
+      // Parse GPS IFD if present
+      if (gpsIfdOffset > 0 && gpsIfdOffset + 2 <= data.length) {
+        this.parseGPSIFD(data, gpsIfdOffset, littleEndian, metadata);
       }
     } catch (_e) {
       // Ignore parsing errors
     }
+  }
+
+  /**
+   * Parse Exif Sub-IFD for camera settings
+   * @param data EXIF data
+   * @param exifIfdOffset Offset to Exif Sub-IFD
+   * @param littleEndian Byte order
+   * @param metadata Metadata object to populate
+   */
+  private parseExifSubIFD(
+    data: Uint8Array,
+    exifIfdOffset: number,
+    littleEndian: boolean,
+    metadata: ImageMetadata,
+  ): void {
+    try {
+      const numEntries = littleEndian
+        ? data[exifIfdOffset] | (data[exifIfdOffset + 1] << 8)
+        : (data[exifIfdOffset] << 8) | data[exifIfdOffset + 1];
+
+      for (let i = 0; i < numEntries; i++) {
+        const entryOffset = exifIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > data.length) break;
+
+        const tag = littleEndian
+          ? data[entryOffset] | (data[entryOffset + 1] << 8)
+          : (data[entryOffset] << 8) | data[entryOffset + 1];
+
+        const type = littleEndian
+          ? data[entryOffset + 2] | (data[entryOffset + 3] << 8)
+          : (data[entryOffset + 2] << 8) | data[entryOffset + 3];
+
+        // ExposureTime (0x829A)
+        if (tag === 0x829a && type === 5) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset + 8 <= data.length) {
+            metadata.exposureTime = this.readRational(
+              data,
+              valueOffset,
+              littleEndian,
+            );
+          }
+        }
+
+        // FNumber (0x829D)
+        if (tag === 0x829d && type === 5) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset + 8 <= data.length) {
+            metadata.fNumber = this.readRational(
+              data,
+              valueOffset,
+              littleEndian,
+            );
+          }
+        }
+
+        // ISOSpeedRatings (0x8827)
+        if (tag === 0x8827 && type === 3) {
+          metadata.iso = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8)
+            : (data[entryOffset + 8] << 8) | data[entryOffset + 9];
+        }
+
+        // FocalLength (0x920A)
+        if (tag === 0x920a && type === 5) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset + 8 <= data.length) {
+            metadata.focalLength = this.readRational(
+              data,
+              valueOffset,
+              littleEndian,
+            );
+          }
+        }
+
+        // UserComment (0x9286)
+        if (tag === 0x9286) {
+          const count = littleEndian
+            ? data[entryOffset + 4] | (data[entryOffset + 5] << 8) |
+              (data[entryOffset + 6] << 16) | (data[entryOffset + 7] << 24)
+            : (data[entryOffset + 4] << 24) | (data[entryOffset + 5] << 16) |
+              (data[entryOffset + 6] << 8) | data[entryOffset + 7];
+
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset + count <= data.length && count > 8) {
+            const commentData = data.slice(
+              valueOffset + 8,
+              valueOffset + count,
+            );
+            metadata.userComment = new TextDecoder().decode(commentData)
+              .replace(
+                /\0+$/,
+                "",
+              );
+          }
+        }
+
+        // Flash (0x9209)
+        if (tag === 0x9209 && type === 3) {
+          metadata.flash = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8)
+            : (data[entryOffset + 8] << 8) | data[entryOffset + 9];
+        }
+
+        // WhiteBalance (0xA403)
+        if (tag === 0xa403 && type === 3) {
+          metadata.whiteBalance = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8)
+            : (data[entryOffset + 8] << 8) | data[entryOffset + 9];
+        }
+
+        // LensMake (0xA433)
+        if (tag === 0xa433 && type === 2) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.lensMake = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+
+        // LensModel (0xA434)
+        if (tag === 0xa434 && type === 2) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset < data.length) {
+            const endIndex = data.indexOf(0, valueOffset);
+            if (endIndex > valueOffset) {
+              metadata.lensModel = new TextDecoder().decode(
+                data.slice(valueOffset, endIndex),
+              );
+            }
+          }
+        }
+      }
+    } catch (_e) {
+      // Ignore parsing errors
+    }
+  }
+
+  /**
+   * Parse GPS IFD for location data
+   * @param data EXIF data
+   * @param gpsIfdOffset Offset to GPS IFD
+   * @param littleEndian Byte order
+   * @param metadata Metadata object to populate
+   */
+  private parseGPSIFD(
+    data: Uint8Array,
+    gpsIfdOffset: number,
+    littleEndian: boolean,
+    metadata: ImageMetadata,
+  ): void {
+    try {
+      const numEntries = littleEndian
+        ? data[gpsIfdOffset] | (data[gpsIfdOffset + 1] << 8)
+        : (data[gpsIfdOffset] << 8) | data[gpsIfdOffset + 1];
+
+      let latRef = "";
+      let lonRef = "";
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+
+      for (let i = 0; i < numEntries; i++) {
+        const entryOffset = gpsIfdOffset + 2 + i * 12;
+        if (entryOffset + 12 > data.length) break;
+
+        const tag = littleEndian
+          ? data[entryOffset] | (data[entryOffset + 1] << 8)
+          : (data[entryOffset] << 8) | data[entryOffset + 1];
+
+        const type = littleEndian
+          ? data[entryOffset + 2] | (data[entryOffset + 3] << 8)
+          : (data[entryOffset + 2] << 8) | data[entryOffset + 3];
+
+        // GPSLatitudeRef (0x0001)
+        if (tag === 0x0001 && type === 2) {
+          latRef = String.fromCharCode(data[entryOffset + 8]);
+        }
+
+        // GPSLatitude (0x0002)
+        if (tag === 0x0002 && type === 5) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset + 24 <= data.length) {
+            const degrees = this.readRational(
+              data,
+              valueOffset,
+              littleEndian,
+            );
+            const minutes = this.readRational(
+              data,
+              valueOffset + 8,
+              littleEndian,
+            );
+            const seconds = this.readRational(
+              data,
+              valueOffset + 16,
+              littleEndian,
+            );
+            latitude = degrees + minutes / 60 + seconds / 3600;
+          }
+        }
+
+        // GPSLongitudeRef (0x0003)
+        if (tag === 0x0003 && type === 2) {
+          lonRef = String.fromCharCode(data[entryOffset + 8]);
+        }
+
+        // GPSLongitude (0x0004)
+        if (tag === 0x0004 && type === 5) {
+          const valueOffset = littleEndian
+            ? data[entryOffset + 8] | (data[entryOffset + 9] << 8) |
+              (data[entryOffset + 10] << 16) | (data[entryOffset + 11] << 24)
+            : (data[entryOffset + 8] << 24) | (data[entryOffset + 9] << 16) |
+              (data[entryOffset + 10] << 8) | data[entryOffset + 11];
+
+          if (valueOffset + 24 <= data.length) {
+            const degrees = this.readRational(
+              data,
+              valueOffset,
+              littleEndian,
+            );
+            const minutes = this.readRational(
+              data,
+              valueOffset + 8,
+              littleEndian,
+            );
+            const seconds = this.readRational(
+              data,
+              valueOffset + 16,
+              littleEndian,
+            );
+            longitude = degrees + minutes / 60 + seconds / 3600;
+          }
+        }
+      }
+
+      // Apply reference direction
+      if (latitude !== undefined) {
+        metadata.latitude = latRef === "S" ? -latitude : latitude;
+      }
+      if (longitude !== undefined) {
+        metadata.longitude = lonRef === "W" ? -longitude : longitude;
+      }
+    } catch (_e) {
+      // Ignore parsing errors
+    }
+  }
+
+  /**
+   * Read a rational value (numerator/denominator)
+   * @param data Data buffer
+   * @param offset Offset to rational
+   * @param littleEndian Byte order
+   * @returns Decimal value
+   */
+  private readRational(
+    data: Uint8Array,
+    offset: number,
+    littleEndian: boolean,
+  ): number {
+    const numerator = littleEndian
+      ? data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) |
+        (data[offset + 3] << 24)
+      : (data[offset] << 24) | (data[offset + 1] << 16) |
+        (data[offset + 2] << 8) | data[offset + 3];
+
+    const denominator = littleEndian
+      ? data[offset + 4] | (data[offset + 5] << 8) |
+        (data[offset + 6] << 16) | (data[offset + 7] << 24)
+      : (data[offset + 4] << 24) | (data[offset + 5] << 16) |
+        (data[offset + 6] << 8) | data[offset + 7];
+
+    return denominator !== 0 ? numerator / denominator : 0;
   }
 
   /**
@@ -275,6 +734,9 @@ export class HEICFormat implements ImageFormat {
   getSupportedMetadata(): Array<keyof ImageMetadata> {
     return [
       "creationDate",
+      "description",
+      "author",
+      "copyright",
       "latitude",
       "longitude",
       "cameraMake",
@@ -283,8 +745,13 @@ export class HEICFormat implements ImageFormat {
       "exposureTime",
       "fNumber",
       "focalLength",
+      "flash",
+      "whiteBalance",
+      "lensMake",
+      "lensModel",
       "orientation",
       "software",
+      "userComment",
     ];
   }
 

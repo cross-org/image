@@ -119,6 +119,9 @@ test("HEIC: properties", () => {
 test("HEIC: getSupportedMetadata - returns expected fields", () => {
   const supported = heicFormat.getSupportedMetadata();
   assertEquals(supported.includes("creationDate"), true);
+  assertEquals(supported.includes("description"), true);
+  assertEquals(supported.includes("author"), true);
+  assertEquals(supported.includes("copyright"), true);
   assertEquals(supported.includes("latitude"), true);
   assertEquals(supported.includes("longitude"), true);
   assertEquals(supported.includes("cameraMake"), true);
@@ -127,8 +130,13 @@ test("HEIC: getSupportedMetadata - returns expected fields", () => {
   assertEquals(supported.includes("exposureTime"), true);
   assertEquals(supported.includes("fNumber"), true);
   assertEquals(supported.includes("focalLength"), true);
+  assertEquals(supported.includes("flash"), true);
+  assertEquals(supported.includes("whiteBalance"), true);
+  assertEquals(supported.includes("lensMake"), true);
+  assertEquals(supported.includes("lensModel"), true);
   assertEquals(supported.includes("orientation"), true);
   assertEquals(supported.includes("software"), true);
+  assertEquals(supported.includes("userComment"), true);
 });
 
 test("HEIC: extractMetadata - invalid data returns undefined", async () => {
