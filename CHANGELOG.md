@@ -10,13 +10,56 @@ and this project adheres to
 
 ### Added
 
+- HEIC format support with runtime-based encode/decode (requires
+  ImageDecoder/OffscreenCanvas API)
+- AVIF format support with runtime-based encode/decode (requires
+  ImageDecoder/OffscreenCanvas API)
+- `Image.extractMetadata()` static method to extract metadata without decoding
+  pixel data
+- Metadata extraction support for all formats (PNG, APNG, JPEG, WebP, GIF, TIFF,
+  BMP, ICO, DNG, PAM, PCX, PPM, ASCII, HEIC, AVIF)
+- New metadata fields: `format`, `compression`, `frameCount`, `bitDepth`,
+  `colorType`
+- Enhanced HEIC/AVIF metadata extraction with comprehensive EXIF parsing (19
+  fields including GPS and camera settings)
+- Enhanced WebP metadata with XMP support including camera metadata
+- Rotation and flip methods: `rotate()`, `rotate90()`, `rotate180()`,
+  `rotate270()`, `flipHorizontal()`, `flipVertical()`
+- `Image.getSupportedMetadata()` method to check which metadata fields are
+  supported per format
+- EXIF orientation correction examples in documentation
 - CONTRIBUTING.md with development guidelines
 - CHANGELOG.md to track version history
 - Enhanced npm package metadata with comprehensive keywords
 - Node.js engines field in package.json (>=18.0.0)
 - Improved .npmignore to exclude test and documentation files
+- `.editorconfig` for consistent coding styles across editors
 
-## [0.2.2] - 2024-12-10
+### Changed
+
+- Updated all tests to use `test()` from `@cross/test` instead of `Deno.test`
+  for cross-runtime compatibility
+- Enhanced documentation with missing API methods (rotation/flip, metadata
+  extraction, resize modes)
+- Updated `ResizeOptions` documentation to include `bicubic` method and
+  `fit`/`cover`/`contain` modes
+- Completed `TIFFEncodeOptions` documentation with `grayscale` and `rgb` options
+- Updated README and documentation to reflect HEIC/AVIF format support
+- Improved EXIF parsing in HEIC and AVIF with safety bounds checks (max 100
+  entries)
+
+### Fixed
+
+- WebP frame count state management to avoid undefined states
+- Cross-runtime test compatibility by replacing `Deno.test` with `@cross/test`
+
+## [0.2.3] - 2025-12-10
+
+### Added
+
+- Initial release baseline (no changes from 0.2.2, tag creation only)
+
+## [0.2.2] - 2025-12-10
 
 ### Changed
 
@@ -29,5 +72,6 @@ history of previous releases.
 
 ---
 
-[Unreleased]: https://github.com/cross-org/image/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/cross-org/image/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/cross-org/image/releases/tag/v0.2.3
 [0.2.2]: https://github.com/cross-org/image/releases/tag/v0.2.2
