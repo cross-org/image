@@ -31,30 +31,55 @@ await build({
     keywords: [
       "image",
       "image-processing",
+      "image-manipulation",
+      "image-resize",
+      "image-decode",
+      "image-encode",
       "png",
+      "apng",
       "jpeg",
       "webp",
       "gif",
       "tiff",
       "bmp",
+      "ico",
       "dng",
+      "heic",
+      "avif",
       "pam",
+      "ppm",
       "pcx",
+      "ascii-art",
+      "metadata",
+      "exif",
       "cross-runtime",
+      "pure-javascript",
+      "no-dependencies",
       "deno",
       "node",
       "bun",
     ],
+    engines: {
+      node: ">=18.0.0",
+    },
   },
   async postBuild() {
     Deno.copyFileSync("LICENSE", "npm/LICENSE");
     Deno.copyFileSync("README.md", "npm/README.md");
     const npmIgnore = "npm/.npmignore";
+    const npmIgnoreContent = [
+      "*.map",
+      "examples/",
+      "test/",
+      "test_output/",
+      "docs/",
+      ".github/",
+    ].join("\n");
     try {
       const content = await Deno.readTextFile(npmIgnore);
-      await Deno.writeTextFile(npmIgnore, content + "\n*.map");
+      await Deno.writeTextFile(npmIgnore, content + "\n" + npmIgnoreContent);
     } catch {
-      await Deno.writeTextFile(npmIgnore, "*.map");
+      await Deno.writeTextFile(npmIgnore, npmIgnoreContent);
     }
   },
   typeCheck: "both",
