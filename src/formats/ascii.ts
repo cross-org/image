@@ -221,6 +221,13 @@ export class ASCIIFormat implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by ASCII format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return []; // ASCII art doesn't support metadata preservation
+  }
+
+  /**
    * Extract metadata from ASCII art data without fully decoding
    * @param data Raw ASCII art data
    * @returns Extracted metadata or undefined

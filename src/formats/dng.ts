@@ -219,6 +219,14 @@ export class DNGFormat extends TIFFFormat {
   // The read/write helpers were not exported in the previous read_file output.
 
   /**
+   * Get the list of metadata fields supported by DNG format
+   * DNG is based on TIFF, so it supports all TIFF metadata fields
+   */
+  override getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return super.getSupportedMetadata();
+  }
+
+  /**
    * Extract metadata from DNG data without fully decoding the pixel data
    * DNG is TIFF-based, so we can use the parent extractMetadata and override format
    * @param data Raw DNG data
