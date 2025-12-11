@@ -1084,7 +1084,12 @@ export class JPEGEncoder {
     huffTable: HuffmanTable,
     bitWriter: BitWriter,
   ): void {
-    const absValue = Math.abs(value);
+    // Clamp DC coefficient to the range supported by standard Huffman tables
+    // Standard DC tables support sizes 0-11, which means values in range [-2047, 2047]
+    const maxDC = 2047;
+    const clampedValue = Math.max(-maxDC, Math.min(maxDC, value));
+
+    const absValue = Math.abs(clampedValue);
     let size = 0;
 
     if (absValue > 0) {
@@ -1096,7 +1101,9 @@ export class JPEGEncoder {
 
     // Write magnitude
     if (size > 0) {
-      const magnitude = value < 0 ? value + (1 << size) - 1 : value;
+      const magnitude = clampedValue < 0
+        ? clampedValue + (1 << size) - 1
+        : clampedValue;
       bitWriter.writeBits(magnitude, size);
     }
   }
@@ -1120,13 +1127,20 @@ export class JPEGEncoder {
           zeroCount -= 16;
         }
 
-        const absCoef = Math.abs(coef);
+        // Clamp AC coefficient to the range supported by standard Huffman tables
+        // Standard AC tables support sizes 1-10, which means values in range [-1023, 1023]
+        const maxAC = 1023;
+        const clampedCoef = Math.max(-maxAC, Math.min(maxAC, coef));
+
+        const absCoef = Math.abs(clampedCoef);
         const size = Math.floor(Math.log2(absCoef)) + 1;
         const symbol = (zeroCount << 4) | size;
 
         bitWriter.writeBits(huffTable.codes[symbol], huffTable.sizes[symbol]);
 
-        const magnitude = coef < 0 ? coef + (1 << size) - 1 : coef;
+        const magnitude = clampedCoef < 0
+          ? clampedCoef + (1 << size) - 1
+          : clampedCoef;
         bitWriter.writeBits(magnitude, size);
 
         zeroCount = 0;
