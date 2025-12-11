@@ -26,7 +26,7 @@ and this project adheres to
 - Rotation and flip methods: `rotate()`, `rotate90()`, `rotate180()`,
   `rotate270()`, `flipHorizontal()`, `flipVertical()`
 - `Image.getSupportedMetadata()` method to check which metadata fields are
-  supported per format
+  supported per format (now implemented for all 15 formats)
 - EXIF orientation correction examples in documentation
 - CONTRIBUTING.md with development guidelines
 - CHANGELOG.md to track version history
