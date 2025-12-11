@@ -53,13 +53,13 @@ and this project adheres to
 - WebP frame count state management to avoid undefined states
 - Cross-runtime test compatibility by replacing `Deno.test` with `@cross/test`
 
-## [0.2.3] - 2024-12-10
+## [0.2.3] - 2025-12-10
 
 ### Added
 
 - Initial release baseline (no changes from 0.2.2, tag creation only)
 
-## [0.2.2] - 2024-12-10
+## [0.2.2] - 2025-12-10
 
 ### Changed
 
