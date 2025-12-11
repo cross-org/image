@@ -10,6 +10,12 @@ and this project adheres to
 
 ### Added
 
+-
+
+## 0.2.4 - 2025-12-11
+
+### Added
+
 - HEIC format support with runtime-based encode/decode (requires
   ImageDecoder/OffscreenCanvas API)
 - AVIF format support with runtime-based encode/decode (requires
