@@ -10,15 +10,23 @@ and this project adheres to
 
 ### Added
 
-- HEIC format support with runtime-based encode/decode (requires ImageDecoder/OffscreenCanvas API)
-- AVIF format support with runtime-based encode/decode (requires ImageDecoder/OffscreenCanvas API)
-- `Image.extractMetadata()` static method to extract metadata without decoding pixel data
-- Metadata extraction support for all formats (PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM, PCX, PPM, ASCII, HEIC, AVIF)
-- New metadata fields: `format`, `compression`, `frameCount`, `bitDepth`, `colorType`
-- Enhanced HEIC/AVIF metadata extraction with comprehensive EXIF parsing (19 fields including GPS and camera settings)
+- HEIC format support with runtime-based encode/decode (requires
+  ImageDecoder/OffscreenCanvas API)
+- AVIF format support with runtime-based encode/decode (requires
+  ImageDecoder/OffscreenCanvas API)
+- `Image.extractMetadata()` static method to extract metadata without decoding
+  pixel data
+- Metadata extraction support for all formats (PNG, APNG, JPEG, WebP, GIF, TIFF,
+  BMP, ICO, DNG, PAM, PCX, PPM, ASCII, HEIC, AVIF)
+- New metadata fields: `format`, `compression`, `frameCount`, `bitDepth`,
+  `colorType`
+- Enhanced HEIC/AVIF metadata extraction with comprehensive EXIF parsing (19
+  fields including GPS and camera settings)
 - Enhanced WebP metadata with XMP support including camera metadata
-- Rotation and flip methods: `rotate()`, `rotate90()`, `rotate180()`, `rotate270()`, `flipHorizontal()`, `flipVertical()`
-- `Image.getSupportedMetadata()` method to check which metadata fields are supported per format
+- Rotation and flip methods: `rotate()`, `rotate90()`, `rotate180()`,
+  `rotate270()`, `flipHorizontal()`, `flipVertical()`
+- `Image.getSupportedMetadata()` method to check which metadata fields are
+  supported per format
 - EXIF orientation correction examples in documentation
 - CONTRIBUTING.md with development guidelines
 - CHANGELOG.md to track version history
@@ -29,12 +37,16 @@ and this project adheres to
 
 ### Changed
 
-- Updated all tests to use `test()` from `@cross/test` instead of `Deno.test` for cross-runtime compatibility
-- Enhanced documentation with missing API methods (rotation/flip, metadata extraction, resize modes)
-- Updated `ResizeOptions` documentation to include `bicubic` method and `fit`/`cover`/`contain` modes
+- Updated all tests to use `test()` from `@cross/test` instead of `Deno.test`
+  for cross-runtime compatibility
+- Enhanced documentation with missing API methods (rotation/flip, metadata
+  extraction, resize modes)
+- Updated `ResizeOptions` documentation to include `bicubic` method and
+  `fit`/`cover`/`contain` modes
 - Completed `TIFFEncodeOptions` documentation with `grayscale` and `rgb` options
 - Updated README and documentation to reflect HEIC/AVIF format support
-- Improved EXIF parsing in HEIC and AVIF with safety bounds checks (max 100 entries)
+- Improved EXIF parsing in HEIC and AVIF with safety bounds checks (max 100
+  entries)
 
 ### Fixed
 
