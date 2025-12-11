@@ -151,6 +151,14 @@ export class PNGFormat extends PNGBase implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by PNG format
+   * Delegates to PNGBase implementation
+   */
+  override getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return super.getSupportedMetadata();
+  }
+
+  /**
    * Extract metadata from PNG data without fully decoding the pixel data
    * This quickly parses PNG chunks to extract metadata
    * @param data Raw PNG data

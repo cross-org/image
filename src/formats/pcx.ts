@@ -209,6 +209,16 @@ export class PCXFormat implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by PCX format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "dpiX", // DPI in header
+      "dpiY", // DPI in header
+    ];
+  }
+
+  /**
    * Extract metadata from PCX data without fully decoding the pixel data
    * @param data Raw PCX data
    * @returns Extracted metadata or undefined

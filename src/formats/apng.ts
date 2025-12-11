@@ -449,6 +449,17 @@ export class APNGFormat extends PNGBase implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by APNG format
+   * Includes all PNG fields plus frame count
+   */
+  override getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      ...super.getSupportedMetadata(),
+      "frameCount", // acTL chunk
+    ];
+  }
+
+  /**
    * Extract metadata from APNG data without fully decoding the pixel data
    * This quickly parses PNG chunks to extract metadata including frame count
    * @param data Raw APNG data

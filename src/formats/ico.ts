@@ -255,6 +255,15 @@ export class ICOFormat implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by ICO format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "frameCount", // Number of images in ICO file
+    ];
+  }
+
+  /**
    * Extract metadata from ICO data without fully decoding the pixel data
    * @param data Raw ICO data
    * @returns Extracted metadata or undefined

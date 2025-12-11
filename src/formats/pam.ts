@@ -202,6 +202,13 @@ export class PAMFormat implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by PAM format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return []; // PAM format doesn't support metadata preservation
+  }
+
+  /**
    * Extract metadata from PAM data without fully decoding the pixel data
    * @param data Raw PAM data
    * @returns Extracted metadata or undefined

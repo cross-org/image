@@ -476,6 +476,19 @@ export class GIFFormat implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by GIF format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "title", // Comment extension
+      "description", // Comment extension
+      "author", // Comment extension
+      "copyright", // Comment extension
+      "frameCount", // Animation frames
+    ];
+  }
+
+  /**
    * Extract metadata from GIF data without fully decoding the pixel data
    * This quickly parses GIF structure to extract metadata including frame count
    * @param data Raw GIF data

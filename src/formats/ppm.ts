@@ -277,6 +277,13 @@ export class PPMFormat implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by PPM format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return []; // PPM format doesn't support metadata preservation
+  }
+
+  /**
    * Extract metadata from PPM data without fully decoding the pixel data
    * @param data Raw PPM data
    * @returns Extracted metadata or undefined

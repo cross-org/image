@@ -197,6 +197,16 @@ export class BMPFormat implements ImageFormat {
   }
 
   /**
+   * Get the list of metadata fields supported by BMP format
+   */
+  getSupportedMetadata(): Array<keyof ImageMetadata> {
+    return [
+      "dpiX", // Pixels per meter in header
+      "dpiY", // Pixels per meter in header
+    ];
+  }
+
+  /**
    * Extract metadata from BMP data without fully decoding the pixel data
    * @param data Raw BMP data
    * @returns Extracted metadata or undefined
