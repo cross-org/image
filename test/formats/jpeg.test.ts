@@ -515,3 +515,55 @@ test("JPEG: Pure-JS decoder - chroma subsampling compatibility", async () => {
     assertEquals(decoded.data[ci + 3], 255, `Alpha channel should be 255`);
   }
 });
+
+test("JPEG: Huffman code roundtrip with extreme values", async () => {
+  await withoutOffscreenCanvas(async () => {
+    const format = new JPEGFormat();
+
+    // Create an image with extreme contrast that might produce
+    // DCT coefficients at the edge of the Huffman table range
+    const width = 64;
+    const height = 64;
+    const data = new Uint8Array(width * height * 4);
+
+    // Create a checkerboard pattern with maximum contrast
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const val = ((x + y) % 2) * 255;
+        data[i] = val; // R
+        data[i + 1] = val; // G
+        data[i + 2] = val; // B
+        data[i + 3] = 255; // A
+      }
+    }
+
+    const original = { width, height, data };
+
+    // First encode
+    const encoded1 = await format.encode(original);
+
+    // Decode
+    const decoded1 = await format.decode(encoded1);
+    assertEquals(decoded1.width, width);
+    assertEquals(decoded1.height, height);
+
+    // Re-encode - this is where invalid Huffman codes could be generated
+    // if coefficients are not clamped
+    const encoded2 = await format.encode(decoded1);
+
+    // Re-decode - this should not fail with "Invalid Huffman code"
+    const decoded2 = await format.decode(encoded2);
+    assertEquals(decoded2.width, width);
+    assertEquals(decoded2.height, height);
+
+    // Do multiple roundtrips to stress-test the clamping
+    let current = decoded2;
+    for (let i = 0; i < 3; i++) {
+      const encoded = await format.encode(current);
+      current = await format.decode(encoded);
+      assertEquals(current.width, width);
+      assertEquals(current.height, height);
+    }
+  });
+});
