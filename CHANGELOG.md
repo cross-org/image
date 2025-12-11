@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- JPEG roundtrip encoding now clamps DCT coefficients to valid Huffman table
+  ranges, preventing "Invalid Huffman code" errors when re-encoding decoded
+  JPEGs
+
 ### Added
 
 -
