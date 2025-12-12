@@ -395,8 +395,14 @@ export class WebPDecoder {
             i++;
           }
         }
-      } catch (_e) {
+      } catch (e) {
         // Tolerant decoding: fill remaining pixels with gray (128, 128, 128, 255)
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn(
+            `WebP VP8L: Partial decode at pixel ${pixelIndex / 4}/${numPixels}:`,
+            e,
+          );
+        }
         while (pixelIndex < pixelData.length) {
           pixelData[pixelIndex++] = 128; // R
           pixelData[pixelIndex++] = 128; // G

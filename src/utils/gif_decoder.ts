@@ -288,9 +288,12 @@ export class GIFDecoder {
               delayTime,
               disposalMethod,
             );
-          } catch (_e) {
+          } catch (e) {
             // Tolerant decoding: skip corrupted frames and continue
             // This allows partial decoding of multi-frame GIFs with some bad frames
+            if (typeof console !== "undefined" && console.warn) {
+              console.warn("GIF: Skipping corrupted frame:", e);
+            }
           }
         } else {
           // Non-tolerant mode: throw on first error
