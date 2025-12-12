@@ -370,30 +370,25 @@ export class JPEGDecoder {
     }
 
     // Decode MCUs
-    try {
-      for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
-        for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
-          // Decode all components in this MCU
-          for (const component of this.components) {
-            for (let v = 0; v < component.v; v++) {
-              for (let h = 0; h < component.h; h++) {
-                const blockY = mcuY * component.v + v;
-                const blockX = mcuX * component.h + h;
+    for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
+      for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
+        // Decode all components in this MCU
+        for (const component of this.components) {
+          for (let v = 0; v < component.v; v++) {
+            for (let h = 0; h < component.h; h++) {
+              const blockY = mcuY * component.v + v;
+              const blockX = mcuX * component.h + h;
 
-                if (
-                  blockY < component.blocks.length &&
-                  blockX < component.blocks[0].length
-                ) {
-                  this.decodeBlock(component, blockY, blockX);
-                }
+              if (
+                blockY < component.blocks.length &&
+                blockX < component.blocks[0].length
+              ) {
+                this.decodeBlock(component, blockY, blockX);
               }
             }
           }
         }
       }
-    } catch (e) {
-      // If we run into issues during decoding, we may still have partial data
-      console.warn("JPEG decode warning:", e);
     }
   }
 
@@ -467,15 +462,15 @@ export class JPEGDecoder {
       if (this.pos >= this.data.length) {
         throw new Error("Unexpected end of JPEG data");
       }
-      
-      let byte = this.data[this.pos++];
+
+      const byte = this.data[this.pos++];
 
       // Handle byte stuffing (0xFF 0x00) and restart markers
       if (byte === 0xFF) {
         if (this.pos >= this.data.length) {
           throw new Error("Unexpected end of JPEG data after 0xFF");
         }
-        
+
         const nextByte = this.data[this.pos];
         if (nextByte === 0x00) {
           // Byte stuffing - skip the 0x00
