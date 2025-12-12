@@ -43,6 +43,9 @@ Keep in mind:
 - Prefer minimal diffs and stable public APIs.
 - New deps must resolve via JSR/NPM across Deno/Bun/Node.
 - Keep this file (AGENTS.md) lean if requested to add stuff.
+- **Always consider performance when implementing pure JS implementations** -
+  This library uses pure JavaScript codecs; avoid unnecessary allocations,
+  prefer typed arrays, minimize loops, and benchmark critical paths.
 
 Docs:
 
