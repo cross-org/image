@@ -105,15 +105,15 @@ interface JPEGComponent {
   dcTable: number; // DC Huffman table selector
   acTable: number; // AC Huffman table selector
   pred: number; // DC predictor
-  blocks: number[][][]; // Decoded blocks
+  blocks: (number[] | Int32Array)[][]; // Decoded blocks
 }
 
 interface HuffmanTable {
   codes: Map<number, number>;
-  maxCode: number[];
-  minCode: number[];
-  valPtr: number[];
-  huffVal: number[];
+  maxCode: Int32Array;
+  minCode: Int32Array;
+  valPtr: Int32Array;
+  huffVal: Uint8Array;
 }
 
 export class JPEGDecoder {
@@ -122,7 +122,7 @@ export class JPEGDecoder {
   private width: number = 0;
   private height: number = 0;
   private components: JPEGComponent[] = [];
-  private qTables: number[][] = [];
+  private qTables: (number[] | Uint8Array)[] = [];
   private dcTables: HuffmanTable[] = [];
   private acTables: HuffmanTable[] = [];
   private restartInterval: number = 0;
@@ -236,7 +236,7 @@ export class JPEGDecoder {
         throw new Error("16-bit quantization tables not supported");
       }
 
-      const table = new Array(64);
+      const table = new Uint8Array(64);
       for (let i = 0; i < 64; i++) {
         table[ZIGZAG[i]] = this.data[this.pos++];
       }
@@ -254,14 +254,14 @@ export class JPEGDecoder {
       const tableId = info & 0x0F;
       const tableClass = (info >> 4) & 0x0F;
 
-      const bits = new Array(16);
+      const bits = new Uint8Array(16);
       let numSymbols = 0;
       for (let i = 0; i < 16; i++) {
         bits[i] = this.data[this.pos++];
         numSymbols += bits[i];
       }
 
-      const huffVal = new Array(numSymbols);
+      const huffVal = new Uint8Array(numSymbols);
       for (let i = 0; i < numSymbols; i++) {
         huffVal[i] = this.data[this.pos++];
       }
@@ -278,10 +278,13 @@ export class JPEGDecoder {
     }
   }
 
-  private buildHuffmanTable(bits: number[], huffVal: number[]): HuffmanTable {
-    const maxCode = new Array(16).fill(-1);
-    const minCode = new Array(16).fill(-1);
-    const valPtr = new Array(16).fill(-1);
+  private buildHuffmanTable(
+    bits: Uint8Array,
+    huffVal: Uint8Array,
+  ): HuffmanTable {
+    const maxCode = new Int32Array(16).fill(-1);
+    const minCode = new Int32Array(16).fill(-1);
+    const valPtr = new Int32Array(16).fill(-1);
     const codes = new Map<number, number>();
 
     let code = 0;
@@ -383,7 +386,7 @@ export class JPEGDecoder {
       const blocksAcross = Math.ceil(this.width * component.h / (8 * maxH));
       const blocksDown = Math.ceil(this.height * component.v / (8 * maxV));
       component.blocks = Array(blocksDown).fill(null).map(() =>
-        Array(blocksAcross).fill(null).map(() => new Array(64).fill(0))
+        Array(blocksAcross).fill(null).map(() => new Int32Array(64))
       );
     }
 
@@ -559,10 +562,10 @@ export class JPEGDecoder {
     return value;
   }
 
-  private idct(block: number[]): void {
+  private idct(block: number[] | Int32Array): void {
     // Simplified 2D IDCT
     // This is a basic implementation - not optimized
-    const temp = new Array(64);
+    const temp = new Float32Array(64);
 
     // 1D IDCT on rows
     for (let i = 0; i < 8; i++) {

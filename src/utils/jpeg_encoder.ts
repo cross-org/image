@@ -650,8 +650,8 @@ const STD_AC_CHROMINANCE_VALUES = [
 ];
 
 interface HuffmanTable {
-  codes: number[];
-  sizes: number[];
+  codes: Uint32Array;
+  sizes: Uint8Array;
 }
 
 class BitWriter {
@@ -748,8 +748,8 @@ export class JPEGEncoder {
   }
 
   private buildHuffmanTable(nrcodes: number[], values: number[]): HuffmanTable {
-    const codes: number[] = new Array(256).fill(0);
-    const sizes: number[] = new Array(256).fill(0);
+    const codes: Uint32Array = new Uint32Array(256);
+    const sizes: Uint8Array = new Uint8Array(256);
 
     let code = 0;
     let valueIndex = 0;
@@ -961,9 +961,9 @@ export class JPEGEncoder {
 
     for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
       for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
-        const yBlock = new Array(64).fill(0);
-        const cbBlock = new Array(64).fill(0);
-        const crBlock = new Array(64).fill(0);
+        const yBlock = new Float32Array(64);
+        const cbBlock = new Float32Array(64);
+        const crBlock = new Float32Array(64);
 
         // Extract 8x8 block and convert RGB to YCbCr
         for (let y = 0; y < 8; y++) {
@@ -1022,7 +1022,7 @@ export class JPEGEncoder {
   }
 
   private encodeBlock(
-    block: number[],
+    block: number[] | Float32Array,
     quantTable: number[],
     prevDC: number,
     dcTable: HuffmanTable,
@@ -1033,7 +1033,7 @@ export class JPEGEncoder {
     this.forwardDCT(block);
 
     // Quantize and reorder to zigzag
-    const quantized = new Array(64);
+    const quantized = new Int32Array(64);
     for (let i = 0; i < 64; i++) {
       const zigzagIndex = ZIGZAG[i];
       quantized[i] = Math.round(block[zigzagIndex] / quantTable[zigzagIndex]);
@@ -1049,9 +1049,9 @@ export class JPEGEncoder {
     return quantized[0];
   }
 
-  private forwardDCT(block: number[]): void {
+  private forwardDCT(block: number[] | Float32Array): void {
     // Simplified 2D DCT
-    const temp = new Array(64);
+    const temp = new Float32Array(64);
 
     // 1D DCT on rows
     for (let i = 0; i < 8; i++) {
@@ -1109,7 +1109,7 @@ export class JPEGEncoder {
   }
 
   private encodeAC(
-    block: number[],
+    block: number[] | Int32Array,
     huffTable: HuffmanTable,
     bitWriter: BitWriter,
   ): void {

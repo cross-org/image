@@ -388,8 +388,8 @@ export class WebPEncoder {
     frequencies: Map<number, number>,
     maxSymbol: number,
     maxCodeLength = 15,
-  ): number[] {
-    const codeLengths = new Array(maxSymbol).fill(0);
+  ): Uint8Array {
+    const codeLengths = new Uint8Array(maxSymbol);
 
     // Get symbols with non-zero frequencies
     const symbols = Array.from(frequencies.keys()).sort((a, b) => a - b);
@@ -516,7 +516,7 @@ export class WebPEncoder {
    * Returns a map from symbol to {code, length}
    */
   private buildCanonicalCodes(
-    codeLengths: number[],
+    codeLengths: number[] | Uint8Array,
   ): Map<number, { code: number; length: number }> {
     const codes = new Map<number, { code: number; length: number }>();
 
@@ -529,7 +529,7 @@ export class WebPEncoder {
     }
 
     // Count symbols at each length
-    const lengthCounts = new Array(maxLength + 1).fill(0);
+    const lengthCounts = new Uint32Array(maxLength + 1);
     for (let i = 0; i < codeLengths.length; i++) {
       if (codeLengths[i] > 0) {
         lengthCounts[codeLengths[i]]++;
@@ -538,7 +538,7 @@ export class WebPEncoder {
 
     // Generate first code for each length
     let code = 0;
-    const nextCode = new Array(maxLength + 1).fill(0);
+    const nextCode = new Uint32Array(maxLength + 1);
     for (let len = 1; len <= maxLength; len++) {
       code = (code + lengthCounts[len - 1]) << 1;
       nextCode[len] = code;
@@ -559,7 +559,9 @@ export class WebPEncoder {
   /**
    * RLE encode code lengths using special codes 16, 17, 18
    */
-  private rleEncodeCodeLengths(codeLengths: number[]): number[] {
+  private rleEncodeCodeLengths(
+    codeLengths: number[] | Uint8Array,
+  ): number[] {
     const encoded: number[] = [];
     let i = 0;
 
