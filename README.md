@@ -173,6 +173,80 @@ const rgba2 = strictDecoder.decode(); // Throws on any decoding error
 runtime-optimized decoders (ImageDecoder API) first, falling back to the pure JS
 decoder with tolerant mode for maximum compatibility.
 
+## Fault-Tolerant Decoding for Other Formats
+
+In addition to JPEG, @cross/image provides fault-tolerant decoding for several
+other formats that commonly encounter corruption or complex encoding patterns:
+
+### GIF Fault-Tolerant Decoding
+
+The GIF decoder supports frame-level tolerance for animated GIFs. When enabled
+(default), corrupted frames are skipped instead of causing complete decode
+failure.
+
+**Features:**
+
+- **Enabled by default** - Handles multi-frame GIFs with some corrupted frames
+- **Frame-level recovery** - Skips bad frames, preserves good ones
+- **LZW decompression errors** - Continues past compression errors
+
+**Example:**
+
+```typescript
+import { GIFDecoder } from "@cross/image/utils/gif_decoder";
+
+// Tolerant mode (default) - skips corrupted frames
+const tolerantDecoder = new GIFDecoder(data, { tolerantDecoding: true });
+const result = tolerantDecoder.decodeAllFrames();
+
+// Strict mode - throws on first corrupted frame
+const strictDecoder = new GIFDecoder(data, { tolerantDecoding: false });
+const strictResult = strictDecoder.decodeAllFrames();
+```
+
+### WebP Fault-Tolerant Decoding (VP8L Lossless)
+
+The WebP VP8L (lossless) decoder supports pixel-level tolerance. When enabled
+(default), decoding errors result in gray pixels for remaining data instead of
+complete failure.
+
+**Features:**
+
+- **Enabled by default** - Handles VP8L images with Huffman/LZ77 errors
+- **Pixel-level recovery** - Fills remaining pixels with neutral gray
+- **Huffman decode errors** - Continues past invalid codes
+
+**Example:**
+
+```typescript
+import { WebPDecoder } from "@cross/image/utils/webp_decoder";
+
+// Tolerant mode (default) - fills bad pixels with gray
+const tolerantDecoder = new WebPDecoder(data, { tolerantDecoding: true });
+const result = tolerantDecoder.decode();
+
+// Strict mode - throws on first decode error
+const strictDecoder = new WebPDecoder(data, { tolerantDecoding: false });
+const strictResult = strictDecoder.decode();
+```
+
+### When to Use Fault-Tolerant Modes
+
+**Use tolerant decoding (default) when:**
+
+- Processing user-uploaded images from various sources
+- Building production applications requiring maximum compatibility
+- Handling images from mobile devices or cameras
+- Recovering data from partially corrupted files
+- Batch processing where some failures are acceptable
+
+**Use strict decoding when:**
+
+- Validating image file integrity
+- Quality control in professional workflows
+- Detecting file corruption explicitly
+- Testing image encoder implementations
+
 ## Metadata Support
 
 @cross/image provides comprehensive EXIF 3.0 compliant metadata support for

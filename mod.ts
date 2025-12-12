@@ -70,3 +70,8 @@ export { PPMFormat } from "./src/formats/ppm.ts";
 export { ASCIIFormat } from "./src/formats/ascii.ts";
 export { HEICFormat } from "./src/formats/heic.ts";
 export { AVIFFormat } from "./src/formats/avif.ts";
+
+// Export decoder options for advanced users
+export type { JPEGDecoderOptions } from "./src/utils/jpeg_decoder.ts";
+export type { GIFDecoderOptions } from "./src/utils/gif_decoder.ts";
+export type { WebPDecoderOptions } from "./src/utils/webp_decoder.ts";

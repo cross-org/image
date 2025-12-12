@@ -5,6 +5,19 @@
 
 import { LZWDecoder } from "./lzw.ts";
 
+/**
+ * Options for GIF decoder
+ */
+export interface GIFDecoderOptions {
+  /**
+   * Enable tolerant decoding mode. When enabled, the decoder will skip
+   * corrupted frames in multi-frame GIFs instead of failing completely.
+   * For single-frame GIFs, this allows partial frame decoding with LZW errors.
+   * @default true
+   */
+  tolerantDecoding?: boolean;
+}
+
 interface GIFImage {
   width: number;
   height: number;
@@ -24,10 +37,14 @@ interface GIFFrame {
 export class GIFDecoder {
   private data: Uint8Array;
   private pos: number;
+  private options: GIFDecoderOptions;
 
-  constructor(data: Uint8Array) {
+  constructor(data: Uint8Array, options: GIFDecoderOptions = {}) {
     this.data = data;
     this.pos = 0;
+    this.options = {
+      tolerantDecoding: options.tolerantDecoding ?? true,
+    };
   }
 
   private readByte(): number {
@@ -262,83 +279,32 @@ export class GIFDecoder {
         }
       } else if (separator === 0x2c) {
         // Image Descriptor
-        const imageLeft = this.readUint16LE();
-        const imageTop = this.readUint16LE();
-        const imageWidth = this.readUint16LE();
-        const imageHeight = this.readUint16LE();
-        const packed = this.readByte();
-
-        const hasLocalColorTable = (packed & 0x80) !== 0;
-        const interlaced = (packed & 0x40) !== 0;
-        // Color table size: 2^(n+1) where n is the 3 least significant bits
-        const localColorTableSize = 2 << (packed & 0x07);
-
-        let localColorTable: Uint8Array | null = null;
-        if (hasLocalColorTable) {
-          localColorTable = this.readColorTable(localColorTableSize);
-        }
-
-        // Read image data
-        const minCodeSize = this.readByte();
-        const compressedData = this.readDataSubBlocks();
-
-        // Decompress using LZW
-        const decoder = new LZWDecoder(minCodeSize, compressedData);
-        const indexedData = decoder.decompress();
-
-        // Convert indexed to RGBA
-        const colorTable = localColorTable || globalColorTable;
-        if (!colorTable) {
-          throw new Error("No color table available");
-        }
-
-        // Deinterlace if necessary
-        const deinterlaced = interlaced
-          ? this.deinterlace(indexedData, imageWidth, imageHeight)
-          : indexedData;
-
-        // Create frame with just the image data (not full canvas)
-        const frameData = new Uint8Array(imageWidth * imageHeight * 4);
-
-        for (let y = 0; y < imageHeight; y++) {
-          for (let x = 0; x < imageWidth; x++) {
-            const srcIdx = y * imageWidth + x;
-            if (srcIdx >= deinterlaced.length) continue;
-
-            const colorIndex = deinterlaced[srcIdx];
-            const dstIdx = (y * imageWidth + x) * 4;
-
-            if (
-              transparentColorIndex !== null &&
-              colorIndex === transparentColorIndex
-            ) {
-              // Transparent pixel
-              frameData[dstIdx] = 0;
-              frameData[dstIdx + 1] = 0;
-              frameData[dstIdx + 2] = 0;
-              frameData[dstIdx + 3] = 0;
-            } else {
-              // Copy color from color table
-              const colorOffset = colorIndex * 3;
-              if (colorOffset + 2 < colorTable.length) {
-                frameData[dstIdx] = colorTable[colorOffset];
-                frameData[dstIdx + 1] = colorTable[colorOffset + 1];
-                frameData[dstIdx + 2] = colorTable[colorOffset + 2];
-                frameData[dstIdx + 3] = 255;
-              }
+        if (this.options.tolerantDecoding) {
+          try {
+            this.decodeFrame(
+              frames,
+              globalColorTable,
+              transparentColorIndex,
+              delayTime,
+              disposalMethod,
+            );
+          } catch (e) {
+            // Tolerant decoding: skip corrupted frames and continue
+            // This allows partial decoding of multi-frame GIFs with some bad frames
+            if (typeof console !== "undefined" && console.warn) {
+              console.warn("GIF: Skipping corrupted frame:", e);
             }
           }
+        } else {
+          // Non-tolerant mode: throw on first error
+          this.decodeFrame(
+            frames,
+            globalColorTable,
+            transparentColorIndex,
+            delayTime,
+            disposalMethod,
+          );
         }
-
-        frames.push({
-          width: imageWidth,
-          height: imageHeight,
-          left: imageLeft,
-          top: imageTop,
-          data: frameData,
-          delay: delayTime,
-          disposal: disposalMethod,
-        });
 
         // Reset graphic control extension state
         transparentColorIndex = null;
@@ -436,6 +402,92 @@ export class GIFDecoder {
       height: canvasHeight,
       data: rgba,
     };
+  }
+
+  private decodeFrame(
+    frames: GIFFrame[],
+    globalColorTable: Uint8Array | null,
+    transparentColorIndex: number | null,
+    delayTime: number,
+    disposalMethod: number,
+  ): void {
+    const imageLeft = this.readUint16LE();
+    const imageTop = this.readUint16LE();
+    const imageWidth = this.readUint16LE();
+    const imageHeight = this.readUint16LE();
+    const packed = this.readByte();
+
+    const hasLocalColorTable = (packed & 0x80) !== 0;
+    const interlaced = (packed & 0x40) !== 0;
+    // Color table size: 2^(n+1) where n is the 3 least significant bits
+    const localColorTableSize = 2 << (packed & 0x07);
+
+    let localColorTable: Uint8Array | null = null;
+    if (hasLocalColorTable) {
+      localColorTable = this.readColorTable(localColorTableSize);
+    }
+
+    // Read image data
+    const minCodeSize = this.readByte();
+    const compressedData = this.readDataSubBlocks();
+
+    // Decompress using LZW
+    const decoder = new LZWDecoder(minCodeSize, compressedData);
+    const indexedData = decoder.decompress();
+
+    // Convert indexed to RGBA
+    const colorTable = localColorTable || globalColorTable;
+    if (!colorTable) {
+      throw new Error("No color table available");
+    }
+
+    // Deinterlace if necessary
+    const deinterlaced = interlaced
+      ? this.deinterlace(indexedData, imageWidth, imageHeight)
+      : indexedData;
+
+    // Create frame with just the image data (not full canvas)
+    const frameData = new Uint8Array(imageWidth * imageHeight * 4);
+
+    for (let y = 0; y < imageHeight; y++) {
+      for (let x = 0; x < imageWidth; x++) {
+        const srcIdx = y * imageWidth + x;
+        if (srcIdx >= deinterlaced.length) continue;
+
+        const colorIndex = deinterlaced[srcIdx];
+        const dstIdx = (y * imageWidth + x) * 4;
+
+        if (
+          transparentColorIndex !== null &&
+          colorIndex === transparentColorIndex
+        ) {
+          // Transparent pixel
+          frameData[dstIdx] = 0;
+          frameData[dstIdx + 1] = 0;
+          frameData[dstIdx + 2] = 0;
+          frameData[dstIdx + 3] = 0;
+        } else {
+          // Copy color from color table
+          const colorOffset = colorIndex * 3;
+          if (colorOffset + 2 < colorTable.length) {
+            frameData[dstIdx] = colorTable[colorOffset];
+            frameData[dstIdx + 1] = colorTable[colorOffset + 1];
+            frameData[dstIdx + 2] = colorTable[colorOffset + 2];
+            frameData[dstIdx + 3] = 255;
+          }
+        }
+      }
+    }
+
+    frames.push({
+      width: imageWidth,
+      height: imageHeight,
+      left: imageLeft,
+      top: imageTop,
+      data: frameData,
+      delay: delayTime,
+      disposal: disposalMethod,
+    });
   }
 
   private deinterlace(
