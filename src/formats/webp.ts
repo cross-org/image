@@ -227,10 +227,10 @@ export class WebPFormat implements ImageFormat {
       }
     }
 
-    // Fallback to pure JavaScript decoder (VP8L lossless only)
+    // Fallback to pure JavaScript decoder (VP8L lossless only) with tolerant mode
     try {
       const { WebPDecoder } = await import("../utils/webp_decoder.ts");
-      const decoder = new WebPDecoder(data);
+      const decoder = new WebPDecoder(data, { tolerantDecoding: true });
       const result = decoder.decode();
       return result.data;
     } catch (error) {

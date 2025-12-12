@@ -22,6 +22,19 @@
 
 import { validateImageDimensions } from "./security.ts";
 
+/**
+ * Options for WebP decoder
+ */
+export interface WebPDecoderOptions {
+  /**
+   * Enable tolerant decoding mode. When enabled, the decoder will continue
+   * decoding even if pixel decoding fails, filling remaining pixels with a
+   * neutral color. This is useful for partially corrupted VP8L images.
+   * @default true
+   */
+  tolerantDecoding?: boolean;
+}
+
 // Helper to read little-endian values
 function readUint24LE(data: Uint8Array, offset: number): number {
   return data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16);
@@ -159,9 +172,13 @@ class BitReader {
 
 export class WebPDecoder {
   private data: Uint8Array;
+  private options: WebPDecoderOptions;
 
-  constructor(data: Uint8Array) {
+  constructor(data: Uint8Array, options: WebPDecoderOptions = {}) {
     this.data = data;
+    this.options = {
+      tolerantDecoding: options.tolerantDecoding ?? true,
+    };
   }
 
   decode(): { width: number; height: number; data: Uint8Array } {
@@ -304,75 +321,161 @@ export class WebPDecoder {
     // Color cache for repeated colors
     const colorCache = new Uint32Array(colorCacheSize);
 
-    for (let i = 0; i < numPixels;) {
-      // Read green channel (which determines the code type)
-      const green = huffmanTables.green.readSymbol(reader);
+    if (this.options.tolerantDecoding) {
+      // Tolerant mode: continue decoding even if errors occur
+      try {
+        for (let i = 0; i < numPixels;) {
+          // Read green channel (which determines the code type)
+          const green = huffmanTables.green.readSymbol(reader);
 
-      if (green < 256) {
-        // Literal pixel
-        const red = huffmanTables.red.readSymbol(reader);
-        const blue = huffmanTables.blue.readSymbol(reader);
-        const alpha = alphaUsed !== 0
-          ? huffmanTables.alpha.readSymbol(reader)
-          : 255;
+          if (green < 256) {
+            // Literal pixel
+            const red = huffmanTables.red.readSymbol(reader);
+            const blue = huffmanTables.blue.readSymbol(reader);
+            const alpha = alphaUsed !== 0
+              ? huffmanTables.alpha.readSymbol(reader)
+              : 255;
 
-        pixelData[pixelIndex++] = red;
-        pixelData[pixelIndex++] = green;
-        pixelData[pixelIndex++] = blue;
-        pixelData[pixelIndex++] = alpha;
+            pixelData[pixelIndex++] = red;
+            pixelData[pixelIndex++] = green;
+            pixelData[pixelIndex++] = blue;
+            pixelData[pixelIndex++] = alpha;
 
-        // Add to color cache if enabled
-        if (useColorCache) {
-          const color = (alpha << 24) | (blue << 16) | (green << 8) | red;
-          colorCache[i % colorCacheSize] = color;
-        }
+            // Add to color cache if enabled
+            if (useColorCache) {
+              const color = (alpha << 24) | (blue << 16) | (green << 8) | red;
+              colorCache[i % colorCacheSize] = color;
+            }
 
-        i++;
-      } else if (green < 256 + 24) {
-        // Backward reference (LZ77)
-        const lengthSymbol = green - 256;
-        const length = this.getLength(lengthSymbol, reader);
+            i++;
+          } else if (green < 256 + 24) {
+            // Backward reference (LZ77)
+            const lengthSymbol = green - 256;
+            const length = this.getLength(lengthSymbol, reader);
 
-        const distancePrefix = huffmanTables.distance.readSymbol(reader);
-        const distance = this.getDistance(distancePrefix, reader);
+            const distancePrefix = huffmanTables.distance.readSymbol(reader);
+            const distance = this.getDistance(distancePrefix, reader);
 
-        // Copy pixels from earlier in the stream
-        const srcIndex = pixelIndex - distance * 4;
-        if (srcIndex < 0) {
-          throw new Error("Invalid backward reference");
-        }
+            // Copy pixels from earlier in the stream
+            const srcIndex = pixelIndex - distance * 4;
+            if (srcIndex < 0) {
+              throw new Error("Invalid backward reference");
+            }
 
-        for (let j = 0; j < length; j++) {
-          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4];
-          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 1];
-          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 2];
-          pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 3];
+            for (let j = 0; j < length; j++) {
+              pixelData[pixelIndex++] = pixelData[srcIndex + j * 4];
+              pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 1];
+              pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 2];
+              pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 3];
 
-          // Add to color cache
-          if (useColorCache) {
-            const color = (pixelData[pixelIndex - 1] << 24) |
-              (pixelData[pixelIndex - 2] << 16) |
-              (pixelData[pixelIndex - 3] << 8) |
-              pixelData[pixelIndex - 4];
-            colorCache[(i + j) % colorCacheSize] = color;
+              // Add to color cache
+              if (useColorCache) {
+                const color = (pixelData[pixelIndex - 1] << 24) |
+                  (pixelData[pixelIndex - 2] << 16) |
+                  (pixelData[pixelIndex - 3] << 8) |
+                  pixelData[pixelIndex - 4];
+                colorCache[(i + j) % colorCacheSize] = color;
+              }
+            }
+
+            i += length;
+          } else {
+            // Color cache reference
+            const cacheIndex = green - 256 - 24;
+            if (cacheIndex >= colorCacheSize) {
+              throw new Error("Invalid color cache index");
+            }
+
+            const color = colorCache[cacheIndex];
+            pixelData[pixelIndex++] = color & 0xff; // R
+            pixelData[pixelIndex++] = (color >> 8) & 0xff; // G
+            pixelData[pixelIndex++] = (color >> 16) & 0xff; // B
+            pixelData[pixelIndex++] = (color >> 24) & 0xff; // A
+
+            i++;
           }
         }
-
-        i += length;
-      } else {
-        // Color cache reference
-        const cacheIndex = green - 256 - 24;
-        if (cacheIndex >= colorCacheSize) {
-          throw new Error("Invalid color cache index");
+      } catch (_e) {
+        // Tolerant decoding: fill remaining pixels with gray (128, 128, 128, 255)
+        while (pixelIndex < pixelData.length) {
+          pixelData[pixelIndex++] = 128; // R
+          pixelData[pixelIndex++] = 128; // G
+          pixelData[pixelIndex++] = 128; // B
+          pixelData[pixelIndex++] = 255; // A
         }
+      }
+    } else {
+      // Non-tolerant mode: throw on first error
+      for (let i = 0; i < numPixels;) {
+        // Read green channel (which determines the code type)
+        const green = huffmanTables.green.readSymbol(reader);
 
-        const color = colorCache[cacheIndex];
-        pixelData[pixelIndex++] = color & 0xff; // R
-        pixelData[pixelIndex++] = (color >> 8) & 0xff; // G
-        pixelData[pixelIndex++] = (color >> 16) & 0xff; // B
-        pixelData[pixelIndex++] = (color >> 24) & 0xff; // A
+        if (green < 256) {
+          // Literal pixel
+          const red = huffmanTables.red.readSymbol(reader);
+          const blue = huffmanTables.blue.readSymbol(reader);
+          const alpha = alphaUsed !== 0
+            ? huffmanTables.alpha.readSymbol(reader)
+            : 255;
 
-        i++;
+          pixelData[pixelIndex++] = red;
+          pixelData[pixelIndex++] = green;
+          pixelData[pixelIndex++] = blue;
+          pixelData[pixelIndex++] = alpha;
+
+          // Add to color cache if enabled
+          if (useColorCache) {
+            const color = (alpha << 24) | (blue << 16) | (green << 8) | red;
+            colorCache[i % colorCacheSize] = color;
+          }
+
+          i++;
+        } else if (green < 256 + 24) {
+          // Backward reference (LZ77)
+          const lengthSymbol = green - 256;
+          const length = this.getLength(lengthSymbol, reader);
+
+          const distancePrefix = huffmanTables.distance.readSymbol(reader);
+          const distance = this.getDistance(distancePrefix, reader);
+
+          // Copy pixels from earlier in the stream
+          const srcIndex = pixelIndex - distance * 4;
+          if (srcIndex < 0) {
+            throw new Error("Invalid backward reference");
+          }
+
+          for (let j = 0; j < length; j++) {
+            pixelData[pixelIndex++] = pixelData[srcIndex + j * 4];
+            pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 1];
+            pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 2];
+            pixelData[pixelIndex++] = pixelData[srcIndex + j * 4 + 3];
+
+            // Add to color cache
+            if (useColorCache) {
+              const color = (pixelData[pixelIndex - 1] << 24) |
+                (pixelData[pixelIndex - 2] << 16) |
+                (pixelData[pixelIndex - 3] << 8) |
+                pixelData[pixelIndex - 4];
+              colorCache[(i + j) % colorCacheSize] = color;
+            }
+          }
+
+          i += length;
+        } else {
+          // Color cache reference
+          const cacheIndex = green - 256 - 24;
+          if (cacheIndex >= colorCacheSize) {
+            throw new Error("Invalid color cache index");
+          }
+
+          const color = colorCache[cacheIndex];
+          pixelData[pixelIndex++] = color & 0xff; // R
+          pixelData[pixelIndex++] = (color >> 8) & 0xff; // G
+          pixelData[pixelIndex++] = (color >> 16) & 0xff; // B
+          pixelData[pixelIndex++] = (color >> 24) & 0xff; // A
+
+          i++;
+        }
       }
     }
 

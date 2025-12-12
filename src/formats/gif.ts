@@ -59,9 +59,9 @@ export class GIFFormat implements ImageFormat {
       throw new Error("Invalid GIF signature");
     }
 
-    // Try pure-JS decoder first
+    // Try pure-JS decoder first with tolerant decoding enabled by default
     try {
-      const decoder = new GIFDecoder(data);
+      const decoder = new GIFDecoder(data, { tolerantDecoding: true });
       const result = decoder.decode();
 
       // Validate dimensions for security (prevent integer overflow and heap exhaustion)
@@ -230,7 +230,7 @@ export class GIFFormat implements ImageFormat {
     }
 
     try {
-      const decoder = new GIFDecoder(data);
+      const decoder = new GIFDecoder(data, { tolerantDecoding: true });
       const result = decoder.decodeAllFrames();
 
       // Extract metadata from comment extensions

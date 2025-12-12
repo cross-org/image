@@ -8,15 +8,22 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Fault-tolerant decoding modes for GIF, WebP, and JPEG formats
+- `GIFDecoderOptions` interface with `tolerantDecoding` option for frame-level
+  error recovery
+- `WebPDecoderOptions` interface with `tolerantDecoding` option for pixel-level
+  error recovery
+- `JPEGDecoderOptions` now exported from main module for advanced usage
+- Comprehensive documentation for fault-tolerant decoding in README.md
+- Tests for fault-tolerant modes in GIF and WebP decoders
+
 ### Fixed
 
 - JPEG roundtrip encoding now clamps DCT coefficients to valid Huffman table
   ranges, preventing "Invalid Huffman code" errors when re-encoding decoded
   JPEGs
-
-### Added
-
--
 
 ## 0.2.4 - 2025-12-11
 
