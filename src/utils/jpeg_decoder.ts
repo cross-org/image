@@ -6,6 +6,19 @@
  * For complex or non-standard JPEGs, the ImageDecoder API fallback is preferred.
  */
 
+/**
+ * Options for JPEG decoder
+ */
+export interface JPEGDecoderOptions {
+  /**
+   * Enable tolerant decoding mode. When enabled, the decoder will continue
+   * decoding even if some blocks fail, filling failed blocks with zeros.
+   * This is useful for partially corrupted images or complex encoding patterns.
+   * @default true
+   */
+  tolerantDecoding?: boolean;
+}
+
 // JPEG markers
 const EOI = 0xFFD9; // End of Image
 const SOS = 0xFFDA; // Start of Scan
@@ -115,9 +128,13 @@ export class JPEGDecoder {
   private restartInterval: number = 0;
   private bitBuffer: number = 0;
   private bitCount: number = 0;
+  private options: JPEGDecoderOptions;
 
-  constructor(data: Uint8Array) {
+  constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
     this.data = data;
+    this.options = {
+      tolerantDecoding: options.tolerantDecoding ?? true,
+    };
   }
 
   decode(): Uint8Array {
@@ -387,31 +404,26 @@ export class JPEGDecoder {
                 blockY < component.blocks.length &&
                 blockX < component.blocks[0].length
               ) {
-                try {
+                if (this.options.tolerantDecoding) {
+                  try {
+                    this.decodeBlock(component, blockY, blockX);
+                    decodedBlocks++;
+                  } catch (_e) {
+                    // Tolerant decoding: if we fail, leave block as zeros and continue
+                    // This allows partial decoding of corrupted or complex JPEGs
+                    failedBlocks++;
+                    // Block is already initialized to zeros, so just continue
+                  }
+                } else {
+                  // Non-tolerant mode: throw on first error
                   this.decodeBlock(component, blockY, blockX);
                   decodedBlocks++;
-                } catch (_e) {
-                  // Tolerant decoding: if we fail, leave block as zeros and continue
-                  // This allows partial decoding of corrupted or complex JPEGs
-                  failedBlocks++;
-                  if (failedBlocks === 1) {
-                    console.warn(
-                      `JPEG decoder: Huffman decoding failed at block ${decodedBlocks}, continuing with tolerant mode`,
-                    );
-                  }
-                  // Block is already initialized to zeros, so just continue
                 }
               }
             }
           }
         }
       }
-    }
-
-    if (failedBlocks > 0) {
-      console.warn(
-        `JPEG decoder: Decoded ${decodedBlocks} blocks successfully, ${failedBlocks} blocks failed (filled with zeros)`,
-      );
     }
   }
 
