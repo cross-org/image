@@ -110,10 +110,10 @@ interface JPEGComponent {
 
 interface HuffmanTable {
   codes: Map<number, number>;
-  maxCode: number[] | Int32Array;
-  minCode: number[] | Int32Array;
-  valPtr: number[] | Int32Array;
-  huffVal: number[] | Uint8Array;
+  maxCode: Int32Array;
+  minCode: Int32Array;
+  valPtr: Int32Array;
+  huffVal: Uint8Array;
 }
 
 export class JPEGDecoder {
@@ -279,8 +279,8 @@ export class JPEGDecoder {
   }
 
   private buildHuffmanTable(
-    bits: number[] | Uint8Array,
-    huffVal: number[] | Uint8Array,
+    bits: Uint8Array,
+    huffVal: Uint8Array,
   ): HuffmanTable {
     const maxCode = new Int32Array(16).fill(-1);
     const minCode = new Int32Array(16).fill(-1);

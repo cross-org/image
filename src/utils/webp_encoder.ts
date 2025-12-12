@@ -388,7 +388,7 @@ export class WebPEncoder {
     frequencies: Map<number, number>,
     maxSymbol: number,
     maxCodeLength = 15,
-  ): number[] | Uint8Array {
+  ): Uint8Array {
     const codeLengths = new Uint8Array(maxSymbol);
 
     // Get symbols with non-zero frequencies

@@ -586,7 +586,7 @@ export class WebPDecoder {
   private readCodeLengths(
     reader: BitReader,
     maxSymbol: number,
-  ): number[] | Uint8Array {
+  ): Uint8Array {
     // Read code length codes (used to encode the actual code lengths)
     const numCodeLengthCodes = reader.readBits(4) + 4;
     const codeLengthCodeLengths = new Uint8Array(19);

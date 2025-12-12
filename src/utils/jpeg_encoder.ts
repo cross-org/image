@@ -650,8 +650,8 @@ const STD_AC_CHROMINANCE_VALUES = [
 ];
 
 interface HuffmanTable {
-  codes: number[] | Uint32Array;
-  sizes: number[] | Uint8Array;
+  codes: Uint32Array;
+  sizes: Uint8Array;
 }
 
 class BitWriter {
