@@ -480,8 +480,8 @@ export class JPEGDecoder {
         const nextByte = this.data[this.pos];
         if (nextByte === 0x00) {
           // Byte stuffing - skip the 0x00
+          // The 0xFF byte value is used as-is (already assigned above)
           this.pos++;
-          // byte stays as 0xFF (the actual data byte)
         } else if (nextByte >= 0xD0 && nextByte <= 0xD7) {
           // Restart marker - reset DC predictors and bit stream
           this.pos++; // Skip marker type byte

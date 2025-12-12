@@ -94,7 +94,8 @@ test("JPEG decoder should correctly identify main image dimensions from complex 
         const width = (data[pos + 5] << 8) | data[pos + 6];
 
         // The first SOF we encounter outside of APP markers is the main image
-        if (sofCount === 1 && pos > 0x7000) { // After APP markers
+        // For this specific test image (1000015567.jpg), APP markers end around 0x7000
+        if (sofCount === 1 && pos > 0x7000) {
           mainImageHeight = height;
           mainImageWidth = width;
           break;
