@@ -23,6 +23,7 @@ encoder and decoder** that works correctly for the most common JPEG images:
 - ✅ EXIF (APP1) metadata parsing - **author, description, copyright, creation
   date**
 - ✅ Restart markers (DRI) - **fully implemented**
+- ✅ Fault-tolerant decoding - **block-level error recovery**
 - ❌ Progressive JPEG (SOF2) - **not yet implemented**
 - ❌ Interlaced/progressive scan support - **not yet implemented**
 - ❌ Arithmetic coding - **not yet implemented**
@@ -42,19 +43,23 @@ nav_order: 1
 
 - **Decoder:** baseline DCT (SOF0) implemented. Supports Huffman (DC/AC), DQT,
   IDCT, YCbCr→RGB, grayscale, and chroma subsampling (4:4:4, 4:2:2, 4:2:0).
-  Progressive, arithmetic, and lossless JPEGs are not supported.
+  Includes fault-tolerant decoding mode (enabled by default) for block-level
+  error recovery. Progressive, arithmetic, and lossless JPEGs are not supported.
 - **Encoder:** baseline DCT implemented with adjustable quality, standard
   Huffman tables, and JFIF/EXIF marker support. Defaults to 4:4:4 (no
   subsampling). Progressive encoding and optimized Huffman tables are not
   implemented.
 - **Metadata:** APP0 (JFIF) and APP1 (EXIF) are parsed and written; orientation
   is preserved in metadata but not auto-applied during decode.
+- **Fault-Tolerant Mode:** enabled by default. Continues decoding even if some
+  DCT blocks fail, filling failed blocks with zeros. Can be disabled via
+  `JPEGDecoderOptions` for strict validation.
 - **Limitations:** no progressive decode/encode, no arithmetic coding, limited
   CMYK/16-bit support.
 - **Key files:** `src/formats/jpeg.ts`, `src/utils/jpeg_decoder.ts`,
   `src/utils/jpeg_encoder.ts`.
-- **Tests:** `test/formats/jpeg.test.ts`, `test/purejs_roundtrip.test.ts`,
-  `test/formats/jpeg_subsampling.test.ts`.
+- **Tests:** `test/formats/jpeg.test.ts`, `test/formats/jpeg_complex.test.ts`,
+  `test/purejs_roundtrip.test.ts`, `test/formats/jpeg_subsampling.test.ts`.
 - **Notes:** prioritize correctness and compatibility across runtimes. Future
   work: progressive support, chroma-subsampled encoding, and optimized Huffman
   tables.
