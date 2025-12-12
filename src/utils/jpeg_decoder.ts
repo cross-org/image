@@ -463,20 +463,40 @@ export class JPEGDecoder {
 
   private readBit(): number {
     if (this.bitCount === 0) {
+      // Check bounds
+      if (this.pos >= this.data.length) {
+        throw new Error("Unexpected end of JPEG data");
+      }
+      
       let byte = this.data[this.pos++];
 
-      // Handle byte stuffing (0xFF 0x00)
+      // Handle byte stuffing (0xFF 0x00) and restart markers
       if (byte === 0xFF) {
+        if (this.pos >= this.data.length) {
+          throw new Error("Unexpected end of JPEG data after 0xFF");
+        }
+        
         const nextByte = this.data[this.pos];
         if (nextByte === 0x00) {
+          // Byte stuffing - skip the 0x00
           this.pos++;
+          // byte stays as 0xFF (the actual data byte)
         } else if (nextByte >= 0xD0 && nextByte <= 0xD7) {
-          // Restart marker - reset DC predictors
-          this.pos++;
+          // Restart marker - reset DC predictors and bit stream
+          this.pos++; // Skip marker type byte
           for (const component of this.components) {
             component.pred = 0;
           }
-          byte = this.data[this.pos++];
+          // Reset bit stream (restart markers are byte-aligned)
+          this.bitBuffer = 0;
+          this.bitCount = 0;
+          // Recursively call readBit to get the next bit after restart
+          return this.readBit();
+        } else {
+          // Other marker found in scan data - this indicates end of scan
+          // Back up to before the marker
+          this.pos--;
+          throw new Error("Marker found in scan data");
         }
       }
 
