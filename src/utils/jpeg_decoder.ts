@@ -100,6 +100,7 @@ interface HuffmanTable {
   minCode: number[];
   valPtr: number[];
   huffVal: number[];
+  tree: any; // Tree structure for tree-based decoding
 }
 
 export class JPEGDecoder {
@@ -287,7 +288,55 @@ export class JPEGDecoder {
       }
     }
 
-    return { codes, maxCode, minCode, valPtr, huffVal };
+    // Build tree structure for tree-based decoding (from jpeg-js)
+    let k = 0;
+    const codeTree: any[] = [];
+    let length = 16;
+    
+    // Find actual max length
+    while (length > 0 && !bits[length - 1]) {
+      length--;
+    }
+    
+    codeTree.push({ children: [], index: 0 });
+    let p = codeTree[0];
+    let q: any;
+    
+    for (let i = 0; i < length; i++) {
+      for (let j = 0; j < bits[i]; j++) {
+        p = codeTree.pop();
+        p.children[p.index] = huffVal[k];
+        
+        while (p.index > 0) {
+          if (codeTree.length === 0) {
+            throw new Error("Could not recreate Huffman Table");
+          }
+          p = codeTree.pop();
+        }
+        
+        p.index++;
+        codeTree.push(p);
+        
+        while (codeTree.length <= i) {
+          q = { children: [], index: 0 };
+          codeTree.push(q);
+          p.children[p.index] = q.children;
+          p = q;
+        }
+        k++;
+      }
+      
+      if (i + 1 < length) {
+        q = { children: [], index: 0 };
+        codeTree.push(q);
+        p.children[p.index] = q.children;
+        p = q;
+      }
+    }
+    
+    const tree = codeTree[0].children;
+
+    return { codes, maxCode, minCode, valPtr, huffVal, tree };
   }
 
   private parseSOF(): void {
@@ -442,6 +491,23 @@ export class JPEGDecoder {
   }
 
   private decodeHuffman(table: HuffmanTable): number {
+    // Try tree-based decoding first (more robust, like jpeg-js)
+    if (table.tree) {
+      let node = table.tree;
+      while (true) {
+        const bit = this.readBit();
+        node = node[bit];
+        
+        if (typeof node === "number") {
+          return node;
+        }
+        if (typeof node !== "object" || node == null) {
+          throw new Error("Invalid huffman sequence");
+        }
+      }
+    }
+    
+    // Fallback to table-based decoding
     let code = 0;
 
     for (let len = 0; len < 16; len++) {
