@@ -25,6 +25,14 @@ and this project adheres to
   ranges, preventing "Invalid Huffman code" errors when re-encoding decoded
   JPEGs
 
+### Performance
+
+- Optimized JPEG encoder/decoder with typed arrays (Float32Array, Int32Array,
+  Uint8Array) for better memory efficiency and performance
+- Optimized WebP encoder/decoder with typed arrays (Uint8Array, Uint32Array) for
+  improved performance
+- Reduced memory allocations in hot paths for DCT/IDCT operations
+
 ## 0.2.4 - 2025-12-11
 
 ### Added

@@ -399,7 +399,9 @@ export class WebPDecoder {
         // Tolerant decoding: fill remaining pixels with gray (128, 128, 128, 255)
         if (typeof console !== "undefined" && console.warn) {
           console.warn(
-            `WebP VP8L: Partial decode at pixel ${pixelIndex / 4}/${numPixels}:`,
+            `WebP VP8L: Partial decode at pixel ${
+              pixelIndex / 4
+            }/${numPixels}:`,
             e,
           );
         }
@@ -581,10 +583,13 @@ export class WebPDecoder {
     }
   }
 
-  private readCodeLengths(reader: BitReader, maxSymbol: number): number[] {
+  private readCodeLengths(
+    reader: BitReader,
+    maxSymbol: number,
+  ): number[] | Uint8Array {
     // Read code length codes (used to encode the actual code lengths)
     const numCodeLengthCodes = reader.readBits(4) + 4;
-    const codeLengthCodeLengths = new Array(19).fill(0);
+    const codeLengthCodeLengths = new Uint8Array(19);
 
     // Code length code order
     const codeLengthCodeOrder = [
@@ -625,7 +630,7 @@ export class WebPDecoder {
     this.buildHuffmanTable(codeLengthTable, codeLengthCodeLengths);
 
     // Read actual code lengths
-    const codeLengths = new Array(maxSymbol).fill(0);
+    const codeLengths = new Uint8Array(maxSymbol);
     let i = 0;
     while (i < maxSymbol) {
       const code = codeLengthTable.readSymbol(reader);
@@ -654,7 +659,10 @@ export class WebPDecoder {
     return codeLengths;
   }
 
-  private buildHuffmanTable(table: HuffmanTable, codeLengths: number[]): void {
+  private buildHuffmanTable(
+    table: HuffmanTable,
+    codeLengths: number[] | Uint8Array,
+  ): void {
     // Check for single symbol optimization (VP8L specific)
     let nonZeroCount = 0;
     let singleSymbol = -1;
