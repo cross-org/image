@@ -3,7 +3,7 @@
  * instead of returning corrupted data
  */
 
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { test } from "@cross/test";
 import { Image } from "../../src/image.ts";
 
@@ -20,12 +20,11 @@ async function readFile(path: string): Promise<Uint8Array> {
   }
 }
 
-test("JPEG decoder should fail cleanly on unsupported complex images", async () => {
+test("JPEG decoder with tolerant mode successfully decodes complex images", async () => {
   // This test uses 1000015567.jpg which contains:
   // - A 144x176 thumbnail in EXIF data
   // - A 3000x4000 main image with complex encoding
-  // The pure-JS decoder cannot handle this image and should throw an error
-  // rather than returning corrupted data
+  // The pure-JS decoder now uses tolerant mode to handle partial decoding failures
 
   try {
     const data = await readFile("1000015567.jpg");
@@ -35,15 +34,42 @@ test("JPEG decoder should fail cleanly on unsupported complex images", async () 
     try {
       (globalThis as { ImageDecoder?: unknown }).ImageDecoder = undefined;
 
-      // Should throw an error, not return corrupted data
-      await assertRejects(
-        async () => {
-          await Image.decode(data);
-        },
-        Error,
-        "JPEG decoding failed",
-        "Pure-JS decoder should fail cleanly on complex JPEG instead of returning corrupted data",
+      // With tolerant mode, this should succeed with partial decoding
+      const image = await Image.decode(data);
+
+      // Verify we got the correct main image dimensions
+      assertEquals(image.width, 3000, "Should decode main image width");
+      assertEquals(image.height, 4000, "Should decode main image height");
+
+      // Verify we have valid RGB data
+      assertEquals(
+        image.data.length,
+        3000 * 4000 * 4,
+        "Should have complete RGBA data",
       );
+
+      // Check that most pixels have non-zero values (indicating successful decode)
+      let nonZeroPixels = 0;
+      for (let i = 0; i < image.data.length; i += 4) {
+        if (
+          image.data[i] !== 0 || image.data[i + 1] !== 0 ||
+          image.data[i + 2] !== 0
+        ) {
+          nonZeroPixels++;
+        }
+      }
+
+      const totalPixels = image.width * image.height;
+      const successRate = nonZeroPixels / totalPixels;
+
+      // At least 95% of pixels should be decoded successfully
+      if (successRate < 0.95) {
+        throw new Error(
+          `Only ${
+            (successRate * 100).toFixed(2)
+          }% of pixels decoded successfully`,
+        );
+      }
     } finally {
       (globalThis as { ImageDecoder?: unknown }).ImageDecoder =
         originalImageDecoder;

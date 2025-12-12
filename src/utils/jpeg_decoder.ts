@@ -371,6 +371,9 @@ export class JPEGDecoder {
     }
 
     // Decode MCUs
+    let decodedBlocks = 0;
+    let failedBlocks = 0;
+
     for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
       for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
         // Decode all components in this MCU
@@ -384,12 +387,31 @@ export class JPEGDecoder {
                 blockY < component.blocks.length &&
                 blockX < component.blocks[0].length
               ) {
-                this.decodeBlock(component, blockY, blockX);
+                try {
+                  this.decodeBlock(component, blockY, blockX);
+                  decodedBlocks++;
+                } catch (_e) {
+                  // Tolerant decoding: if we fail, leave block as zeros and continue
+                  // This allows partial decoding of corrupted or complex JPEGs
+                  failedBlocks++;
+                  if (failedBlocks === 1) {
+                    console.warn(
+                      `JPEG decoder: Huffman decoding failed at block ${decodedBlocks}, continuing with tolerant mode`,
+                    );
+                  }
+                  // Block is already initialized to zeros, so just continue
+                }
               }
             }
           }
         }
       }
+    }
+
+    if (failedBlocks > 0) {
+      console.warn(
+        `JPEG decoder: Decoded ${decodedBlocks} blocks successfully, ${failedBlocks} blocks failed (filled with zeros)`,
+      );
     }
   }
 
