@@ -6,6 +6,19 @@
  * For complex or non-standard JPEGs, the ImageDecoder API fallback is preferred.
  */
 
+/**
+ * Options for JPEG decoder
+ */
+export interface JPEGDecoderOptions {
+  /**
+   * Enable tolerant decoding mode. When enabled, the decoder will continue
+   * decoding even if some blocks fail, filling failed blocks with zeros.
+   * This is useful for partially corrupted images or complex encoding patterns.
+   * @default true
+   */
+  tolerantDecoding?: boolean;
+}
+
 // JPEG markers
 const EOI = 0xFFD9; // End of Image
 const SOS = 0xFFDA; // Start of Scan
@@ -15,7 +28,8 @@ const SOF0 = 0xFFC0; // Start of Frame (Baseline DCT)
 const SOF2 = 0xFFC2; // Start of Frame (Progressive DCT)
 const DRI = 0xFFDD; // Define Restart Interval
 
-// Zigzag order for DCT coefficients
+// Zigzag order for DCT coefficients (JPEG standard)
+// Maps coefficient index in zigzag order to position in 8x8 block
 const ZIGZAG = [
   0,
   1,
@@ -114,9 +128,13 @@ export class JPEGDecoder {
   private restartInterval: number = 0;
   private bitBuffer: number = 0;
   private bitCount: number = 0;
+  private options: JPEGDecoderOptions;
 
-  constructor(data: Uint8Array) {
+  constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
     this.data = data;
+    this.options = {
+      tolerantDecoding: options.tolerantDecoding ?? true,
+    };
   }
 
   decode(): Uint8Array {
@@ -370,30 +388,42 @@ export class JPEGDecoder {
     }
 
     // Decode MCUs
-    try {
-      for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
-        for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
-          // Decode all components in this MCU
-          for (const component of this.components) {
-            for (let v = 0; v < component.v; v++) {
-              for (let h = 0; h < component.h; h++) {
-                const blockY = mcuY * component.v + v;
-                const blockX = mcuX * component.h + h;
+    let decodedBlocks = 0;
+    let failedBlocks = 0;
 
-                if (
-                  blockY < component.blocks.length &&
-                  blockX < component.blocks[0].length
-                ) {
+    for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
+      for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
+        // Decode all components in this MCU
+        for (const component of this.components) {
+          for (let v = 0; v < component.v; v++) {
+            for (let h = 0; h < component.h; h++) {
+              const blockY = mcuY * component.v + v;
+              const blockX = mcuX * component.h + h;
+
+              if (
+                blockY < component.blocks.length &&
+                blockX < component.blocks[0].length
+              ) {
+                if (this.options.tolerantDecoding) {
+                  try {
+                    this.decodeBlock(component, blockY, blockX);
+                    decodedBlocks++;
+                  } catch (_e) {
+                    // Tolerant decoding: if we fail, leave block as zeros and continue
+                    // This allows partial decoding of corrupted or complex JPEGs
+                    failedBlocks++;
+                    // Block is already initialized to zeros, so just continue
+                  }
+                } else {
+                  // Non-tolerant mode: throw on first error
                   this.decodeBlock(component, blockY, blockX);
+                  decodedBlocks++;
                 }
               }
             }
           }
         }
       }
-    } catch (e) {
-      // If we run into issues during decoding, we may still have partial data
-      console.warn("JPEG decode warning:", e);
     }
   }
 
@@ -447,6 +477,7 @@ export class JPEGDecoder {
   }
 
   private decodeHuffman(table: HuffmanTable): number {
+    // Use table-based decoding (more reliable)
     let code = 0;
 
     for (let len = 0; len < 16; len++) {
@@ -454,7 +485,13 @@ export class JPEGDecoder {
 
       if (table.minCode[len] !== -1 && code <= table.maxCode[len]) {
         const index = table.valPtr[len] + (code - table.minCode[len]);
-        return table.huffVal[index];
+        if (index >= 0 && index < table.huffVal.length) {
+          return table.huffVal[index];
+        } else {
+          throw new Error(
+            `Huffman table index out of bounds: ${index} (table size: ${table.huffVal.length})`,
+          );
+        }
       }
     }
 
@@ -463,20 +500,40 @@ export class JPEGDecoder {
 
   private readBit(): number {
     if (this.bitCount === 0) {
-      let byte = this.data[this.pos++];
+      // Check bounds
+      if (this.pos >= this.data.length) {
+        throw new Error("Unexpected end of JPEG data");
+      }
 
-      // Handle byte stuffing (0xFF 0x00)
+      const byte = this.data[this.pos++];
+
+      // Handle byte stuffing (0xFF 0x00) and restart markers
       if (byte === 0xFF) {
+        if (this.pos >= this.data.length) {
+          throw new Error("Unexpected end of JPEG data after 0xFF");
+        }
+
         const nextByte = this.data[this.pos];
         if (nextByte === 0x00) {
+          // Byte stuffing - skip the 0x00
+          // The 0xFF byte value is used as-is (already assigned above)
           this.pos++;
         } else if (nextByte >= 0xD0 && nextByte <= 0xD7) {
-          // Restart marker - reset DC predictors
-          this.pos++;
+          // Restart marker - reset DC predictors and bit stream
+          this.pos++; // Skip marker type byte
           for (const component of this.components) {
             component.pred = 0;
           }
-          byte = this.data[this.pos++];
+          // Reset bit stream (restart markers are byte-aligned)
+          this.bitBuffer = 0;
+          this.bitCount = 0;
+          // Recursively call readBit to get the next bit after restart
+          return this.readBit();
+        } else {
+          // Other marker found in scan data - this indicates end of scan
+          // Back up to before the marker
+          this.pos--;
+          throw new Error("Marker found in scan data");
         }
       }
 

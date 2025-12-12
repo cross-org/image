@@ -126,6 +126,53 @@ See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for
 detailed compatibility information.
 
+## JPEG Tolerant Decoding
+
+The JPEG decoder includes a tolerant decoding mode (enabled by default) that
+gracefully handles partially corrupted images or complex encoding patterns from
+mobile phone cameras. When enabled, the decoder will continue processing even if
+some blocks fail to decode, filling failed blocks with neutral values.
+
+**Features:**
+
+- **Enabled by default** - Handles real-world JPEGs from various devices
+- **Configurable** - Can be disabled for strict validation
+- **Fault-tolerant** - Recovers partial image data instead of failing completely
+- **Zero configuration** - Works automatically with the standard
+  `Image.decode()` API
+
+**When to use:**
+
+- Mobile phone JPEGs with complex encoding patterns
+- Images from various camera manufacturers
+- Partially corrupted JPEG files
+- Production applications requiring maximum compatibility
+
+**Example:**
+
+```typescript
+import { Image } from "@cross/image";
+
+// Default behavior - tolerant mode enabled
+const data = await Deno.readFile("mobile-photo.jpg");
+const image = await Image.decode(data); // Automatically handles complex JPEGs
+
+// For advanced users: explicitly control tolerant mode via pure JS decoder
+import { JPEGDecoder } from "@cross/image/utils/jpeg_decoder";
+
+// Enable tolerant decoding (default)
+const tolerantDecoder = new JPEGDecoder(data, { tolerantDecoding: true });
+const rgba1 = tolerantDecoder.decode();
+
+// Disable for strict validation
+const strictDecoder = new JPEGDecoder(data, { tolerantDecoding: false });
+const rgba2 = strictDecoder.decode(); // Throws on any decoding error
+```
+
+**Note:** When using `Image.decode()`, the library automatically tries
+runtime-optimized decoders (ImageDecoder API) first, falling back to the pure JS
+decoder with tolerant mode for maximum compatibility.
+
 ## Metadata Support
 
 @cross/image provides comprehensive EXIF 3.0 compliant metadata support for
