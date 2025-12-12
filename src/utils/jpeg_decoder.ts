@@ -449,7 +449,13 @@ export class JPEGDecoder {
 
       if (table.minCode[len] !== -1 && code <= table.maxCode[len]) {
         const index = table.valPtr[len] + (code - table.minCode[len]);
-        return table.huffVal[index];
+        if (index >= 0 && index < table.huffVal.length) {
+          return table.huffVal[index];
+        } else {
+          throw new Error(
+            `Huffman table index out of bounds: ${index} (table size: ${table.huffVal.length})`,
+          );
+        }
       }
     }
 
