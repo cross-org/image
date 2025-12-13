@@ -418,6 +418,7 @@ export class JPEGDecoder {
       const blocksDown = Math.ceil(this.height * component.v / (8 * maxV));
 
       // Only initialize blocks if they don't exist yet (first scan)
+      // Check both for undefined/null and empty array
       if (!component.blocks || component.blocks.length === 0) {
         component.blocks = Array(blocksDown).fill(null).map(() =>
           Array(blocksAcross).fill(null).map(() => new Int32Array(64))
@@ -500,6 +501,8 @@ export class JPEGDecoder {
     }
 
     // Decode AC coefficients (if spectralEnd > 0)
+    // Note: For DC-only scans (Ss=0, Se=0), this block is skipped entirely
+    // For AC-only scans (Ss>0), this decodes the specified AC coefficient range
     if (this.spectralEnd > 0) {
       const acTable = this.acTables[component.acTable];
       if (!acTable) {
