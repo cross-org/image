@@ -620,7 +620,8 @@ export class JPEGDecoder {
                 k++;
               }
             } else {
-              // EOB: Skip r coefficients then done
+              // EOB: Skip r zero coefficients, then refine all remaining non-zeros
+              // First, skip r zeros (refining non-zeros along the way)
               for (let i = 0; i < r && k <= this.spectralEnd && k < 64;) {
                 if (block[ZIGZAG[k]] !== 0) {
                   // Refine non-zero coefficient
@@ -633,6 +634,19 @@ export class JPEGDecoder {
                   }
                 } else {
                   i++; // Count actual zeros
+                }
+                k++;
+              }
+              // Then refine all remaining non-zero coefficients to spectralEnd
+              while (k <= this.spectralEnd && k < 64) {
+                if (block[ZIGZAG[k]] !== 0) {
+                  const bit = this.readBit();
+                  if (bit) {
+                    const refinement = 1 << this.successiveLow;
+                    const sign = block[ZIGZAG[k]] < 0 ? -1 : 1;
+                    block[ZIGZAG[k]] += sign * refinement *
+                      this.qTables[component.qTable][ZIGZAG[k]];
+                  }
                 }
                 k++;
               }
