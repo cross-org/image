@@ -52,7 +52,7 @@ export function composite(
       const overlayR = overlay[overlayIdx];
       const overlayG = overlay[overlayIdx + 1];
       const overlayB = overlay[overlayIdx + 2];
-      const overlayA = (overlay[overlayIdx + 3] * finalOpacity) / 255;
+      const overlayA = (overlay[overlayIdx + 3] / 255) * finalOpacity;
 
       // Skip if overlay is fully transparent
       if (overlayA === 0) continue;
