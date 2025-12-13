@@ -776,3 +776,121 @@ test(
   },
   { timeout: 10000 },
 );
+
+test(
+  "JPEG: Progressive encoding - basic functionality",
+  async () => {
+    const { JPEGEncoder } = await import("../../src/utils/jpeg_encoder.ts");
+
+    // Create a simple test image
+    const width = 16;
+    const height = 16;
+    const data = new Uint8Array(width * height * 4);
+
+    // Create a gradient pattern
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        data[i] = Math.floor((x / width) * 255); // R gradient
+        data[i + 1] = Math.floor((y / height) * 255); // G gradient
+        data[i + 2] = 128; // B constant
+        data[i + 3] = 255; // A opaque
+      }
+    }
+
+    // Encode with progressive mode
+    const progressiveEncoder = new JPEGEncoder({ quality: 85, progressive: true });
+    const progressiveEncoded = progressiveEncoder.encode(width, height, data);
+
+    // Should be a valid JPEG
+    assertEquals(progressiveEncoded[0], 0xff);
+    assertEquals(progressiveEncoded[1], 0xd8);
+
+    // Should contain SOF2 marker (0xFFC2) for progressive JPEG
+    let foundSOF2 = false;
+    for (let i = 0; i < progressiveEncoded.length - 1; i++) {
+      if (progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2) {
+        foundSOF2 = true;
+        break;
+      }
+    }
+    assertEquals(foundSOF2, true, "Progressive JPEG should have SOF2 marker");
+
+    // Should be decodable
+    const format = new JPEGFormat();
+    const decoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(progressiveEncoded);
+    });
+
+    assertEquals(decoded.width, width);
+    assertEquals(decoded.height, height);
+    assertEquals(decoded.data.length, width * height * 4);
+
+    // Verify alpha channel
+    for (let i = 3; i < decoded.data.length; i += 4) {
+      assertEquals(decoded.data[i], 255, "Alpha channel should be 255");
+    }
+  },
+  { timeout: 10000 },
+);
+
+test(
+  "JPEG: Progressive vs baseline encoding comparison",
+  async () => {
+    const { JPEGEncoder } = await import("../../src/utils/jpeg_encoder.ts");
+
+    // Create test image
+    const width = 32;
+    const height = 32;
+    const data = new Uint8Array(width * height * 4).fill(128);
+
+    // Encode with baseline
+    const baselineEncoder = new JPEGEncoder({ quality: 85, progressive: false });
+    const baselineEncoded = baselineEncoder.encode(width, height, data);
+
+    // Encode with progressive
+    const progressiveEncoder = new JPEGEncoder({ quality: 85, progressive: true });
+    const progressiveEncoded = progressiveEncoder.encode(width, height, data);
+
+    // Both should be valid JPEGs
+    assertEquals(baselineEncoded[0], 0xff);
+    assertEquals(baselineEncoded[1], 0xd8);
+    assertEquals(progressiveEncoded[0], 0xff);
+    assertEquals(progressiveEncoded[1], 0xd8);
+
+    // Check for SOF0 in baseline
+    let foundSOF0 = false;
+    for (let i = 0; i < baselineEncoded.length - 1; i++) {
+      if (baselineEncoded[i] === 0xff && baselineEncoded[i + 1] === 0xc0) {
+        foundSOF0 = true;
+        break;
+      }
+    }
+    assertEquals(foundSOF0, true, "Baseline JPEG should have SOF0 marker");
+
+    // Check for SOF2 in progressive
+    let foundSOF2 = false;
+    for (let i = 0; i < progressiveEncoded.length - 1; i++) {
+      if (progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2) {
+        foundSOF2 = true;
+        break;
+      }
+    }
+    assertEquals(foundSOF2, true, "Progressive JPEG should have SOF2 marker");
+
+    // Both should decode to the same dimensions
+    const format = new JPEGFormat();
+    const baselineDecoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(baselineEncoded);
+    });
+    const progressiveDecoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(progressiveEncoded);
+    });
+
+    assertEquals(baselineDecoded.width, width);
+    assertEquals(baselineDecoded.height, height);
+    assertEquals(progressiveDecoded.width, width);
+    assertEquals(progressiveDecoded.height, height);
+  },
+  { timeout: 10000 },
+);

@@ -150,7 +150,7 @@ export class JPEGFormat implements ImageFormat {
     const { JPEGEncoder } = await import("../utils/jpeg_encoder.ts");
     const dpiX = metadata?.dpiX ?? 72;
     const dpiY = metadata?.dpiY ?? 72;
-    const encoder = new JPEGEncoder(85); // Quality 85
+    const encoder = new JPEGEncoder({ quality: 85 }); // Quality 85, baseline mode
     const encoded = encoder.encode(width, height, data, dpiX, dpiY);
 
     // Add EXIF metadata if present

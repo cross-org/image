@@ -692,8 +692,14 @@ class BitWriter {
   }
 }
 
+export interface JPEGEncoderOptions {
+  quality?: number;
+  progressive?: boolean;
+}
+
 export class JPEGEncoder {
   private quality: number;
+  private progressive: boolean;
   private luminanceQuantTable: number[] = [];
   private chrominanceQuantTable: number[] = [];
   private dcLuminanceHuffman!: HuffmanTable;
@@ -701,8 +707,9 @@ export class JPEGEncoder {
   private dcChrominanceHuffman!: HuffmanTable;
   private acChrominanceHuffman!: HuffmanTable;
 
-  constructor(quality: number = 85) {
-    this.quality = Math.max(1, Math.min(100, quality));
+  constructor(options: JPEGEncoderOptions = {}) {
+    this.quality = Math.max(1, Math.min(100, options.quality ?? 85));
+    this.progressive = options.progressive ?? false;
     this.initQuantizationTables();
     this.initHuffmanTables();
   }
@@ -786,19 +793,29 @@ export class JPEGEncoder {
     // DQT (Define Quantization Tables)
     this.writeDQT(output);
 
-    // SOF0 (Start of Frame - Baseline DCT)
-    this.writeSOF0(output, width, height);
+    // SOF (Start of Frame - either baseline or progressive)
+    if (this.progressive) {
+      this.writeSOF2(output, width, height);
+    } else {
+      this.writeSOF0(output, width, height);
+    }
 
     // DHT (Define Huffman Tables)
     this.writeDHT(output);
 
-    // SOS (Start of Scan)
-    this.writeSOS(output);
+    if (this.progressive) {
+      // Progressive encoding: multiple scans
+      this.encodeProgressive(output, width, height, rgba);
+    } else {
+      // Baseline encoding: single scan
+      // SOS (Start of Scan)
+      this.writeSOS(output);
 
-    // Encode scan data
-    const scanData = this.encodeScan(width, height, rgba);
-    for (let i = 0; i < scanData.length; i++) {
-      output.push(scanData[i]);
+      // Encode scan data
+      const scanData = this.encodeScan(width, height, rgba);
+      for (let i = 0; i < scanData.length; i++) {
+        output.push(scanData[i]);
+      }
     }
 
     // EOI (End of Image)
@@ -838,6 +855,30 @@ export class JPEGEncoder {
 
   private writeSOF0(output: number[], width: number, height: number): void {
     output.push(0xff, 0xc0); // SOF0 marker
+    output.push(0x00, 0x11); // Length (17 bytes)
+    output.push(0x08); // Precision (8 bits)
+    output.push((height >> 8) & 0xff, height & 0xff); // Height
+    output.push((width >> 8) & 0xff, width & 0xff); // Width
+    output.push(0x03); // Number of components (3 = YCbCr)
+
+    // Y component
+    output.push(0x01); // Component ID
+    output.push(0x11); // Sampling factors (1x1)
+    output.push(0x00); // Quantization table 0
+
+    // Cb component
+    output.push(0x02); // Component ID
+    output.push(0x11); // Sampling factors (1x1)
+    output.push(0x01); // Quantization table 1
+
+    // Cr component
+    output.push(0x03); // Component ID
+    output.push(0x11); // Sampling factors (1x1)
+    output.push(0x01); // Quantization table 1
+  }
+
+  private writeSOF2(output: number[], width: number, height: number): void {
+    output.push(0xff, 0xc2); // SOF2 marker (Progressive DCT)
     output.push(0x00, 0x11); // Length (17 bytes)
     output.push(0x08); // Precision (8 bits)
     output.push((height >> 8) & 0xff, height & 0xff); // Height
@@ -944,6 +985,256 @@ export class JPEGEncoder {
     output.push(0x00); // Start of spectral selection
     output.push(0x3f); // End of spectral selection
     output.push(0x00); // Successive approximation
+  }
+
+  private writeProgressiveSOS(
+    output: number[],
+    componentIds: number[],
+    spectralStart: number,
+    spectralEnd: number,
+    successiveHigh: number,
+    successiveLow: number,
+  ): void {
+    output.push(0xff, 0xda); // SOS marker
+    
+    // Length depends on number of components
+    const length = 6 + componentIds.length * 2;
+    output.push((length >> 8) & 0xff, length & 0xff);
+    output.push(componentIds.length); // Number of components
+
+    for (const id of componentIds) {
+      output.push(id); // Component ID
+      if (id === 1) {
+        // Y component uses table 0
+        output.push(0x00); // DC table 0, AC table 0
+      } else {
+        // Cb/Cr components use table 1
+        output.push(0x11); // DC table 1, AC table 1
+      }
+    }
+
+    output.push(spectralStart); // Start of spectral selection (Ss)
+    output.push(spectralEnd); // End of spectral selection (Se)
+    output.push((successiveHigh << 4) | successiveLow); // Successive approximation (Ah, Al)
+  }
+
+  private encodeProgressive(
+    output: number[],
+    width: number,
+    height: number,
+    rgba: Uint8Array,
+  ): void {
+    // Simplified progressive encoding with 2 scans:
+    // Scan 1: DC coefficients for all components (Ss=0, Se=0)
+    // Scan 2: AC coefficients for all components (Ss=1, Se=63)
+    
+    // For a more sophisticated progressive JPEG, we would use multiple scans
+    // with different spectral selections and successive approximation values.
+    // This basic implementation provides progressive structure while keeping
+    // complexity manageable.
+
+    // Pre-process all blocks (DCT + quantization)
+    const mcuWidth = Math.ceil(width / 8);
+    const mcuHeight = Math.ceil(height / 8);
+    const yBlocks: Int32Array[] = [];
+    const cbBlocks: Int32Array[] = [];
+    const crBlocks: Int32Array[] = [];
+
+    for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
+      for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
+        const yBlock = new Float32Array(64);
+        const cbBlock = new Float32Array(64);
+        const crBlock = new Float32Array(64);
+
+        // Extract 8x8 block and convert RGB to YCbCr
+        for (let y = 0; y < 8; y++) {
+          for (let x = 0; x < 8; x++) {
+            const px = mcuX * 8 + x;
+            const py = mcuY * 8 + y;
+
+            if (px < width && py < height) {
+              const offset = (py * width + px) * 4;
+              const r = rgba[offset];
+              const g = rgba[offset + 1];
+              const b = rgba[offset + 2];
+
+              // RGB to YCbCr conversion
+              const yVal = 0.299 * r + 0.587 * g + 0.114 * b;
+              const cbVal = -0.168736 * r - 0.331264 * g + 0.5 * b + 128;
+              const crVal = 0.5 * r - 0.418688 * g - 0.081312 * b + 128;
+
+              yBlock[y * 8 + x] = yVal - 128; // Level shift
+              cbBlock[y * 8 + x] = cbVal - 128;
+              crBlock[y * 8 + x] = crVal - 128;
+            }
+          }
+        }
+
+        // DCT and quantize
+        yBlocks.push(this.dctAndQuantize(yBlock, this.luminanceQuantTable));
+        cbBlocks.push(this.dctAndQuantize(cbBlock, this.chrominanceQuantTable));
+        crBlocks.push(this.dctAndQuantize(crBlock, this.chrominanceQuantTable));
+      }
+    }
+
+    // Scan 1: DC-only (all components)
+    this.writeProgressiveSOS(output, [1, 2, 3], 0, 0, 0, 0);
+    const dcScanData = this.encodeProgressiveDCScan(yBlocks, cbBlocks, crBlocks);
+    for (let i = 0; i < dcScanData.length; i++) {
+      output.push(dcScanData[i]);
+    }
+
+    // Scan 2: AC coefficients (all components)
+    this.writeProgressiveSOS(output, [1, 2, 3], 1, 63, 0, 0);
+    const acScanData = this.encodeProgressiveACScan(yBlocks, cbBlocks, crBlocks);
+    for (let i = 0; i < acScanData.length; i++) {
+      output.push(acScanData[i]);
+    }
+  }
+
+  private dctAndQuantize(block: Float32Array, quantTable: number[]): Int32Array {
+    // Perform DCT
+    const dct = this.performDCT2D(block);
+    
+    // Quantize
+    const quantized = new Int32Array(64);
+    for (let i = 0; i < 64; i++) {
+      quantized[i] = Math.round(dct[i] / quantTable[i]);
+    }
+    
+    return quantized;
+  }
+
+  private performDCT2D(block: Float32Array): Float32Array {
+    const output = new Float32Array(64);
+    
+    for (let v = 0; v < 8; v++) {
+      for (let u = 0; u < 8; u++) {
+        let sum = 0;
+        for (let y = 0; y < 8; y++) {
+          for (let x = 0; x < 8; x++) {
+            const cu = u === 0 ? 1 / Math.sqrt(2) : 1;
+            const cv = v === 0 ? 1 / Math.sqrt(2) : 1;
+            sum += block[y * 8 + x] *
+              Math.cos((2 * x + 1) * u * Math.PI / 16) *
+              Math.cos((2 * y + 1) * v * Math.PI / 16) *
+              cu * cv;
+          }
+        }
+        output[v * 8 + u] = sum / 4;
+      }
+    }
+    
+    return output;
+  }
+
+  private encodeProgressiveDCScan(
+    yBlocks: Int32Array[],
+    cbBlocks: Int32Array[],
+    crBlocks: Int32Array[],
+  ): number[] {
+    // Encode only DC coefficients for progressive JPEG
+    const bitWriter = new BitWriter();
+    let dcY = 0, dcCb = 0, dcCr = 0;
+
+    for (let i = 0; i < yBlocks.length; i++) {
+      // Encode only DC coefficients
+      dcY = this.encodeOnlyDC(yBlocks[i][0], dcY, this.dcLuminanceHuffman, bitWriter);
+      dcCb = this.encodeOnlyDC(cbBlocks[i][0], dcCb, this.dcChrominanceHuffman, bitWriter);
+      dcCr = this.encodeOnlyDC(crBlocks[i][0], dcCr, this.dcChrominanceHuffman, bitWriter);
+    }
+
+    bitWriter.flush();
+    return Array.from(bitWriter.getBytes());
+  }
+
+  private encodeProgressiveACScan(
+    yBlocks: Int32Array[],
+    cbBlocks: Int32Array[],
+    crBlocks: Int32Array[],
+  ): number[] {
+    // Encode only AC coefficients for progressive JPEG
+    const bitWriter = new BitWriter();
+
+    for (let i = 0; i < yBlocks.length; i++) {
+      // Encode only AC coefficients (skip DC at index 0)
+      this.encodeOnlyAC(yBlocks[i], this.acLuminanceHuffman, bitWriter);
+      this.encodeOnlyAC(cbBlocks[i], this.acChrominanceHuffman, bitWriter);
+      this.encodeOnlyAC(crBlocks[i], this.acChrominanceHuffman, bitWriter);
+    }
+
+    bitWriter.flush();
+    return Array.from(bitWriter.getBytes());
+  }
+
+  private encodeOnlyDC(
+    dc: number,
+    prevDC: number,
+    dcTable: HuffmanTable,
+    bitWriter: BitWriter,
+  ): number {
+    const dcDiff = dc - prevDC;
+    const clampedDiff = Math.max(-2047, Math.min(2047, dcDiff));
+    const absDiff = Math.abs(clampedDiff);
+
+    let size = 0;
+    if (absDiff > 0) {
+      size = Math.floor(Math.log2(absDiff)) + 1;
+    }
+
+    bitWriter.writeBits(dcTable.codes[size], dcTable.sizes[size]);
+
+    if (size > 0) {
+      const magnitude = clampedDiff < 0 ? clampedDiff + (1 << size) - 1 : clampedDiff;
+      bitWriter.writeBits(magnitude, size);
+    }
+
+    return dc;
+  }
+
+  private encodeOnlyAC(
+    quantized: number[] | Int32Array,
+    acTable: HuffmanTable,
+    bitWriter: BitWriter,
+  ): void {
+    let zeroCount = 0;
+
+    // Start from index 1 (skip DC coefficient)
+    for (let i = 1; i < 64; i++) {
+      const coef = quantized[ZIGZAG[i]];
+      const clampedCoef = Math.max(-1023, Math.min(1023, coef));
+
+      if (clampedCoef === 0) {
+        zeroCount++;
+        if (zeroCount === 16) {
+          bitWriter.writeBits(acTable.codes[0xf0], acTable.sizes[0xf0]);
+          zeroCount = 0;
+        }
+      } else {
+        while (zeroCount >= 16) {
+          bitWriter.writeBits(acTable.codes[0xf0], acTable.sizes[0xf0]);
+          zeroCount -= 16;
+        }
+
+        const absCoef = Math.abs(clampedCoef);
+        const size = Math.floor(Math.log2(absCoef)) + 1;
+        const symbol = (zeroCount << 4) | size;
+
+        bitWriter.writeBits(acTable.codes[symbol], acTable.sizes[symbol]);
+
+        const magnitude = clampedCoef < 0
+          ? clampedCoef + (1 << size) - 1
+          : clampedCoef;
+        bitWriter.writeBits(magnitude, size);
+
+        zeroCount = 0;
+      }
+    }
+
+    // Write EOB if there are trailing zeros
+    if (zeroCount > 0) {
+      bitWriter.writeBits(acTable.codes[0x00], acTable.sizes[0x00]);
+    }
   }
 
   private encodeScan(
