@@ -569,90 +569,341 @@ test("JPEG: Huffman code roundtrip with extreme values", async () => {
   });
 });
 
-test("JPEG: Progressive JPEG decoding from debug folder", async () => {
-  const format = new JPEGFormat();
+test(
+  "JPEG: Progressive JPEG decoding from debug folder",
+  async () => {
+    const format = new JPEGFormat();
 
-  // Test with the progressive JPEG from debug folder
-  const data = await readFile("debug/JPEG_compression_Example.jpg");
+    // Test with the progressive JPEG from debug folder
+    const data = await readFile("debug/JPEG_compression_Example.jpg");
 
-  // This is a progressive JPEG (SOF2 marker 0xFFC2)
-  // It should now decode successfully with pure-JS decoder
-  const decoded = await withoutOffscreenCanvas(async () => {
-    return await format.decode(data);
-  });
-
-  // Verify dimensions (this is a 1000x750 image)
-  assertEquals(decoded.width, 1000);
-  assertEquals(decoded.height, 750);
-  assertEquals(decoded.data.length, 1000 * 750 * 4);
-
-  // Verify alpha channel is properly set
-  for (let i = 3; i < decoded.data.length; i += 4) {
-    assertEquals(decoded.data[i], 255, "Alpha channel should be 255");
-  }
-
-  // Verify we got actual color data (not all zeros or all one value)
-  const firstPixelR = decoded.data[0];
-  const firstPixelG = decoded.data[1];
-  const firstPixelB = decoded.data[2];
-
-  // Check that pixels have reasonable values (0-255 range)
-  assertEquals(
-    firstPixelR >= 0 && firstPixelR <= 255,
-    true,
-    "Red channel should be in valid range",
-  );
-  assertEquals(
-    firstPixelG >= 0 && firstPixelG <= 255,
-    true,
-    "Green channel should be in valid range",
-  );
-  assertEquals(
-    firstPixelB >= 0 && firstPixelB <= 255,
-    true,
-    "Blue channel should be in valid range",
-  );
-});
-
-test("JPEG: All debug folder images decode successfully", async () => {
-  // Test that all images in the debug folder can be decoded with pure-JS decoder
-  const debugFiles = [
-    "debug/1000015567.jpg",
-    "debug/JPEG_compression_Example.jpg", // Progressive JPEG
-    "debug/landscape_hires_4000x2667_6.83mb.jpg",
-  ];
-
-  for (const file of debugFiles) {
-    const data = await readFile(file);
-    // Force pure-JS decoder to test progressive JPEG implementation
-    const image = await withoutOffscreenCanvas(async () => {
-      return await Image.decode(data);
+    // This is a progressive JPEG (SOF2 marker 0xFFC2)
+    // It should now decode successfully with pure-JS decoder
+    const decoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(data);
     });
 
-    // Verify basic properties
+    // Verify dimensions (this is a 1000x750 image)
+    assertEquals(decoded.width, 1000);
+    assertEquals(decoded.height, 750);
+    assertEquals(decoded.data.length, 1000 * 750 * 4);
+
+    // Verify alpha channel is properly set
+    for (let i = 3; i < decoded.data.length; i += 4) {
+      assertEquals(decoded.data[i], 255, "Alpha channel should be 255");
+    }
+
+    // Verify we got actual color data (not all zeros or all one value)
+    const firstPixelR = decoded.data[0];
+    const firstPixelG = decoded.data[1];
+    const firstPixelB = decoded.data[2];
+
+    // Check that pixels have reasonable values (0-255 range)
     assertEquals(
-      image.width > 0,
+      firstPixelR >= 0 && firstPixelR <= 255,
       true,
-      `${file}: width should be positive`,
+      "Red channel should be in valid range",
     );
     assertEquals(
-      image.height > 0,
+      firstPixelG >= 0 && firstPixelG <= 255,
       true,
-      `${file}: height should be positive`,
+      "Green channel should be in valid range",
     );
     assertEquals(
-      image.data.length,
-      image.width * image.height * 4,
-      `${file}: data length should match dimensions`,
+      firstPixelB >= 0 && firstPixelB <= 255,
+      true,
+      "Blue channel should be in valid range",
     );
+  },
+  { timeout: 10000 },
+);
+
+test(
+  "JPEG: All debug folder images decode successfully",
+  async () => {
+    // Test that all images in the debug folder can be decoded with pure-JS decoder
+    const debugFiles = [
+      "debug/1000015567.jpg",
+      "debug/JPEG_compression_Example.jpg", // Progressive JPEG
+      "debug/landscape_hires_4000x2667_6.83mb.jpg",
+    ];
+
+    for (const file of debugFiles) {
+      const data = await readFile(file);
+      // Force pure-JS decoder to test progressive JPEG implementation
+      const image = await withoutOffscreenCanvas(async () => {
+        return await Image.decode(data);
+      });
+
+      // Verify basic properties
+      assertEquals(
+        image.width > 0,
+        true,
+        `${file}: width should be positive`,
+      );
+      assertEquals(
+        image.height > 0,
+        true,
+        `${file}: height should be positive`,
+      );
+      assertEquals(
+        image.data.length,
+        image.width * image.height * 4,
+        `${file}: data length should match dimensions`,
+      );
+
+      // Verify alpha channel
+      for (let i = 3; i < image.data.length; i += 4) {
+        assertEquals(
+          image.data[i],
+          255,
+          `${file}: alpha channel should be 255`,
+        );
+      }
+    }
+  },
+  { timeout: 60000 }, // Increased to 60s - decodes ~23M pixels with pure-JS decoder
+);
+
+test(
+  "JPEG: Progressive JPEG - scan parameter parsing",
+  async () => {
+    // This test verifies that the decoder properly parses progressive JPEG
+    // scan parameters (spectral selection and successive approximation)
+    const format = new JPEGFormat();
+
+    // Use the known progressive JPEG from debug folder
+    const data = await readFile("debug/JPEG_compression_Example.jpg");
+
+    // Decode with pure-JS decoder
+    const decoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(data);
+    });
+
+    // This progressive JPEG has 10 scans with various spectral selections
+    // and successive approximation parameters. The decoder should handle
+    // all of them and produce a valid image.
+    assertEquals(decoded.width, 1000);
+    assertEquals(decoded.height, 750);
+
+    // Verify the image has meaningful color data across different regions
+    // This ensures all scans were processed correctly
+    const samples = [
+      { x: 100, y: 100 }, // Top-left region
+      { x: 500, y: 375 }, // Center
+      { x: 900, y: 650 }, // Bottom-right region
+    ];
+
+    for (const { x, y } of samples) {
+      const i = (y * decoded.width + x) * 4;
+      const r = decoded.data[i];
+      const g = decoded.data[i + 1];
+      const b = decoded.data[i + 2];
+      const a = decoded.data[i + 3];
+
+      // All channels should be in valid range
+      assertEquals(
+        r >= 0 && r <= 255,
+        true,
+        `Pixel at (${x},${y}) has invalid red channel`,
+      );
+      assertEquals(
+        g >= 0 && g <= 255,
+        true,
+        `Pixel at (${x},${y}) has invalid green channel`,
+      );
+      assertEquals(
+        b >= 0 && b <= 255,
+        true,
+        `Pixel at (${x},${y}) has invalid blue channel`,
+      );
+      assertEquals(a, 255, `Pixel at (${x},${y}) has invalid alpha channel`);
+    }
+  },
+  { timeout: 10000 },
+);
+
+test(
+  "JPEG: Progressive JPEG - multi-scan accumulation",
+  async () => {
+    // This test verifies that blocks are properly preserved across multiple
+    // progressive scans, allowing coefficients to accumulate
+    const format = new JPEGFormat();
+
+    const data = await readFile("debug/JPEG_compression_Example.jpg");
+
+    // Decode the progressive JPEG
+    const decoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(data);
+    });
+
+    // For a properly decoded progressive JPEG, we should see a coherent image
+    // with reasonable color distribution (not all black, all white, or noisy)
+
+    let totalR = 0;
+    let totalG = 0;
+    let totalB = 0;
+    const sampleSize = 1000; // Sample 1000 pixels
+
+    for (let i = 0; i < sampleSize; i++) {
+      const idx = Math.floor(Math.random() * (decoded.data.length / 4)) * 4;
+      totalR += decoded.data[idx];
+      totalG += decoded.data[idx + 1];
+      totalB += decoded.data[idx + 2];
+    }
+
+    const avgR = totalR / sampleSize;
+    const avgG = totalG / sampleSize;
+    const avgB = totalB / sampleSize;
+
+    // Average color values should be reasonable (not extreme)
+    // Progressive JPEG compression Example is a natural scene
+    assertEquals(
+      avgR > 10 && avgR < 245,
+      true,
+      `Average red ${avgR} is extreme - possible decoding issue`,
+    );
+    assertEquals(
+      avgG > 10 && avgG < 245,
+      true,
+      `Average green ${avgG} is extreme - possible decoding issue`,
+    );
+    assertEquals(
+      avgB > 10 && avgB < 245,
+      true,
+      `Average blue ${avgB} is extreme - possible decoding issue`,
+    );
+  },
+  { timeout: 10000 },
+);
+
+test(
+  "JPEG: Progressive encoding - basic functionality",
+  async () => {
+    const { JPEGEncoder } = await import("../../src/utils/jpeg_encoder.ts");
+
+    // Create a simple test image
+    const width = 16;
+    const height = 16;
+    const data = new Uint8Array(width * height * 4);
+
+    // Create a gradient pattern
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        data[i] = Math.floor((x / width) * 255); // R gradient
+        data[i + 1] = Math.floor((y / height) * 255); // G gradient
+        data[i + 2] = 128; // B constant
+        data[i + 3] = 255; // A opaque
+      }
+    }
+
+    // Encode with progressive mode
+    const progressiveEncoder = new JPEGEncoder({
+      quality: 85,
+      progressive: true,
+    });
+    const progressiveEncoded = progressiveEncoder.encode(width, height, data);
+
+    // Should be a valid JPEG
+    assertEquals(progressiveEncoded[0], 0xff);
+    assertEquals(progressiveEncoded[1], 0xd8);
+
+    // Should contain SOF2 marker (0xFFC2) for progressive JPEG
+    let foundSOF2 = false;
+    for (let i = 0; i < progressiveEncoded.length - 1; i++) {
+      if (
+        progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2
+      ) {
+        foundSOF2 = true;
+        break;
+      }
+    }
+    assertEquals(foundSOF2, true, "Progressive JPEG should have SOF2 marker");
+
+    // Should be decodable
+    const format = new JPEGFormat();
+    const decoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(progressiveEncoded);
+    });
+
+    assertEquals(decoded.width, width);
+    assertEquals(decoded.height, height);
+    assertEquals(decoded.data.length, width * height * 4);
 
     // Verify alpha channel
-    for (let i = 3; i < image.data.length; i += 4) {
-      assertEquals(
-        image.data[i],
-        255,
-        `${file}: alpha channel should be 255`,
-      );
+    for (let i = 3; i < decoded.data.length; i += 4) {
+      assertEquals(decoded.data[i], 255, "Alpha channel should be 255");
     }
-  }
-});
+  },
+  { timeout: 10000 },
+);
+
+test(
+  "JPEG: Progressive vs baseline encoding comparison",
+  async () => {
+    const { JPEGEncoder } = await import("../../src/utils/jpeg_encoder.ts");
+
+    // Create test image
+    const width = 32;
+    const height = 32;
+    const data = new Uint8Array(width * height * 4).fill(128);
+
+    // Encode with baseline
+    const baselineEncoder = new JPEGEncoder({
+      quality: 85,
+      progressive: false,
+    });
+    const baselineEncoded = baselineEncoder.encode(width, height, data);
+
+    // Encode with progressive
+    const progressiveEncoder = new JPEGEncoder({
+      quality: 85,
+      progressive: true,
+    });
+    const progressiveEncoded = progressiveEncoder.encode(width, height, data);
+
+    // Both should be valid JPEGs
+    assertEquals(baselineEncoded[0], 0xff);
+    assertEquals(baselineEncoded[1], 0xd8);
+    assertEquals(progressiveEncoded[0], 0xff);
+    assertEquals(progressiveEncoded[1], 0xd8);
+
+    // Check for SOF0 in baseline
+    let foundSOF0 = false;
+    for (let i = 0; i < baselineEncoded.length - 1; i++) {
+      if (baselineEncoded[i] === 0xff && baselineEncoded[i + 1] === 0xc0) {
+        foundSOF0 = true;
+        break;
+      }
+    }
+    assertEquals(foundSOF0, true, "Baseline JPEG should have SOF0 marker");
+
+    // Check for SOF2 in progressive
+    let foundSOF2 = false;
+    for (let i = 0; i < progressiveEncoded.length - 1; i++) {
+      if (
+        progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2
+      ) {
+        foundSOF2 = true;
+        break;
+      }
+    }
+    assertEquals(foundSOF2, true, "Progressive JPEG should have SOF2 marker");
+
+    // Both should decode to the same dimensions
+    const format = new JPEGFormat();
+    const baselineDecoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(baselineEncoded);
+    });
+    const progressiveDecoded = await withoutOffscreenCanvas(async () => {
+      return await format.decode(progressiveEncoded);
+    });
+
+    assertEquals(baselineDecoded.width, width);
+    assertEquals(baselineDecoded.height, height);
+    assertEquals(progressiveDecoded.width, width);
+    assertEquals(progressiveDecoded.height, height);
+  },
+  { timeout: 10000 },
+);

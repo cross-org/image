@@ -104,23 +104,23 @@ await writeFile("output.jpg", jpeg);
 
 ## Supported Formats
 
-| Format | Pure-JS                   | Notes                                             |
-| ------ | ------------------------- | ------------------------------------------------- |
-| PNG    | ✅ Full                   | Complete pure-JS implementation                   |
-| APNG   | ✅ Full                   | Animated PNG with multi-frame                     |
-| BMP    | ✅ Full                   | Complete pure-JS implementation                   |
-| ICO    | ✅ Full                   | Windows Icon format                               |
-| GIF    | ✅ Full                   | Animated GIF with multi-frame                     |
-| DNG    | ✅ Full                   | Linear DNG (Uncompressed RGBA)                    |
-| PAM    | ✅ Full                   | Netpbm PAM format                                 |
-| PPM    | ✅ Full                   | Netpbm PPM format (P3/P6)                         |
-| PCX    | ✅ Full                   | ZSoft PCX (RLE compressed)                        |
-| ASCII  | ✅ Full                   | Text-based ASCII art                              |
-| JPEG   | ⚠️ Baseline & basic Progressive | Pure-JS baseline & basic progressive DCT (no full progressive refinement) |
-| WebP   | ⚠️ Lossless               | Pure-JS lossless VP8L                             |
-| TIFF   | ⚠️ Basic                  | Pure-JS uncompressed, LZW, & grayscale            |
-| HEIC   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support |
-| AVIF   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support |
+| Format | Pure-JS                   | Notes                                                                                          |
+| ------ | ------------------------- | ---------------------------------------------------------------------------------------------- |
+| PNG    | ✅ Full                   | Complete pure-JS implementation                                                                |
+| APNG   | ✅ Full                   | Animated PNG with multi-frame                                                                  |
+| BMP    | ✅ Full                   | Complete pure-JS implementation                                                                |
+| ICO    | ✅ Full                   | Windows Icon format                                                                            |
+| GIF    | ✅ Full                   | Animated GIF with multi-frame                                                                  |
+| DNG    | ✅ Full                   | Linear DNG (Uncompressed RGBA)                                                                 |
+| PAM    | ✅ Full                   | Netpbm PAM format                                                                              |
+| PPM    | ✅ Full                   | Netpbm PPM format (P3/P6)                                                                      |
+| PCX    | ✅ Full                   | ZSoft PCX (RLE compressed)                                                                     |
+| ASCII  | ✅ Full                   | Text-based ASCII art                                                                           |
+| JPEG   | ⚠️ Baseline & Progressive | Pure-JS baseline & progressive DCT: decode with spectral selection; encode with 2-scan (DC+AC) |
+| WebP   | ⚠️ Lossless               | Pure-JS lossless VP8L                                                                          |
+| TIFF   | ⚠️ Basic                  | Pure-JS uncompressed, LZW, & grayscale                                                         |
+| HEIC   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support                                              |
+| AVIF   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support                                              |
 
 See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for

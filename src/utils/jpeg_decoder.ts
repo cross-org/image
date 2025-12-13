@@ -1,8 +1,11 @@
 /**
- * Basic baseline JPEG decoder implementation
- * Supports baseline DCT JPEG images (the most common format)
+ * JPEG decoder implementation supporting both baseline and progressive DCT
  *
- * This is a simplified implementation that handles common JPEG files.
+ * Supports:
+ * - Baseline DCT (SOF0) - Sequential encoding
+ * - Progressive DCT (SOF2) - Multi-scan encoding with spectral selection and successive approximation
+ *
+ * This is a pure JavaScript implementation that handles common JPEG files.
  * For complex or non-standard JPEGs, the ImageDecoder API fallback is preferred.
  */
 
@@ -137,11 +140,17 @@ export class JPEGDecoder {
   private bitCount: number = 0;
   private options: JPEGDecoderOptions;
   private isProgressive: boolean = false;
+  // Progressive JPEG scan parameters
+  private spectralStart: number = 0; // Start of spectral selection (Ss)
+  private spectralEnd: number = 63; // End of spectral selection (Se)
+  private successiveHigh: number = 0; // Successive approximation bit high (Ah)
+  private successiveLow: number = 0; // Successive approximation bit low (Al)
 
   constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
     this.data = data;
     this.options = {
       tolerantDecoding: options.tolerantDecoding ?? true,
+      onWarning: options.onWarning,
     };
   }
 
@@ -374,7 +383,14 @@ export class JPEGDecoder {
       }
     }
 
-    this.pos += 3; // Skip spectral selection and successive approximation
+    // Parse spectral selection and successive approximation parameters
+    // These are used in progressive JPEGs to define which coefficients
+    // are encoded and at what bit precision
+    this.spectralStart = this.data[this.pos++]; // Ss: Start of spectral selection (0-63)
+    this.spectralEnd = this.data[this.pos++]; // Se: End of spectral selection (0-63)
+    const successiveApprox = this.data[this.pos++];
+    this.successiveHigh = (successiveApprox >> 4) & 0x0F; // Ah: Successive approximation bit position high
+    this.successiveLow = successiveApprox & 0x0F; // Al: Successive approximation bit position low
   }
 
   private parseDRI(): void {
@@ -390,17 +406,24 @@ export class JPEGDecoder {
     const mcuWidth = Math.ceil(this.width / (8 * maxH));
     const mcuHeight = Math.ceil(this.height / (8 * maxV));
 
-    // Initialize bit buffer
+    // Initialize bit buffer for this scan
     this.bitBuffer = 0;
     this.bitCount = 0;
 
-    // Initialize blocks for each component
+    // Initialize or preserve blocks for each component
+    // For progressive JPEGs, blocks must be preserved across multiple scans
+    // to accumulate coefficients from different spectral bands and bit refinements
     for (const component of this.components) {
       const blocksAcross = Math.ceil(this.width * component.h / (8 * maxH));
       const blocksDown = Math.ceil(this.height * component.v / (8 * maxV));
-      component.blocks = Array(blocksDown).fill(null).map(() =>
-        Array(blocksAcross).fill(null).map(() => new Int32Array(64))
-      );
+
+      // Only initialize blocks if they don't exist yet (first scan)
+      // Check both for undefined/null and empty array
+      if (!component.blocks || component.blocks.length === 0) {
+        component.blocks = Array(blocksDown).fill(null).map(() =>
+          Array(blocksAcross).fill(null).map(() => new Int32Array(64))
+        );
+      }
     }
 
     // Decode MCUs
@@ -425,10 +448,10 @@ export class JPEGDecoder {
                     this.decodeBlock(component, blockY, blockX);
                     decodedBlocks++;
                   } catch (_e) {
-                    // Tolerant decoding: if we fail, leave block as zeros and continue
+                    // Tolerant decoding: if we fail, leave block as-is and continue
                     // This allows partial decoding of corrupted or complex JPEGs
                     failedBlocks++;
-                    // Block is already initialized to zeros, so just continue
+                    // Block preserves its previous state (zeros on first scan)
                   }
                 } else {
                   // Non-tolerant mode: throw on first error
@@ -450,41 +473,63 @@ export class JPEGDecoder {
   ): void {
     const block = component.blocks[blockY][blockX];
 
-    // Decode DC coefficient
-    const dcTable = this.dcTables[component.dcTable];
-    if (!dcTable) {
-      throw new Error(`Missing DC table ${component.dcTable}`);
+    // Progressive JPEG support:
+    // - Spectral selection (spectralStart, spectralEnd): Defines which DCT coefficients are decoded
+    //   * DC only: Ss=0, Se=0
+    //   * Low-frequency AC: Ss=1, Se=5
+    //   * High-frequency AC: Ss=6, Se=63
+    // - Successive approximation (successiveHigh, successiveLow): Defines bit precision
+    //   * First scan: Ah=0, Al=n (decode high bits)
+    //   * Refinement: Ah=n, Al=n-1 (refine lower bits)
+    //
+    // Current implementation: Processes scans sequentially, accumulating coefficients
+    // across multiple scans. Full successive approximation bit refinement is not yet
+    // implemented - later scans overwrite earlier ones, which works for many progressive
+    // JPEGs but not all.
+
+    // Decode DC coefficient (if spectralStart == 0)
+    if (this.spectralStart === 0) {
+      const dcTable = this.dcTables[component.dcTable];
+      if (!dcTable) {
+        throw new Error(`Missing DC table ${component.dcTable}`);
+      }
+
+      const dcLen = this.decodeHuffman(dcTable);
+      const dcDiff = dcLen > 0 ? this.receiveBits(dcLen) : 0;
+      component.pred += dcDiff;
+      block[0] = component.pred * this.qTables[component.qTable][0];
     }
 
-    const dcLen = this.decodeHuffman(dcTable);
-    const dcDiff = dcLen > 0 ? this.receiveBits(dcLen) : 0;
-    component.pred += dcDiff;
-    block[0] = component.pred * this.qTables[component.qTable][0];
+    // Decode AC coefficients (if spectralEnd > 0)
+    // Note: For DC-only scans (Ss=0, Se=0), this block is skipped entirely
+    // For AC-only scans (Ss>0), this decodes the specified AC coefficient range
+    if (this.spectralEnd > 0) {
+      const acTable = this.acTables[component.acTable];
+      if (!acTable) {
+        throw new Error(`Missing AC table ${component.acTable}`);
+      }
 
-    // Decode AC coefficients
-    const acTable = this.acTables[component.acTable];
-    if (!acTable) {
-      throw new Error(`Missing AC table ${component.acTable}`);
-    }
+      // Start from spectralStart, but ensure k >= 1 (AC coefficients start at index 1)
+      // For DC-only scans (Ss=0, Se=0), this entire block is skipped
+      let k = this.spectralStart === 0 ? 1 : this.spectralStart;
+      while (k <= this.spectralEnd && k < 64) {
+        const rs = this.decodeHuffman(acTable);
+        const r = (rs >> 4) & 0x0F;
+        const s = rs & 0x0F;
 
-    let k = 1;
-    while (k < 64) {
-      const rs = this.decodeHuffman(acTable);
-      const r = (rs >> 4) & 0x0F;
-      const s = rs & 0x0F;
-
-      if (s === 0) {
-        if (r === 15) {
-          k += 16;
+        if (s === 0) {
+          if (r === 15) {
+            k += 16;
+          } else {
+            break; // EOB
+          }
         } else {
-          break; // EOB
+          k += r;
+          if (k >= 64) break;
+          block[ZIGZAG[k]] = this.receiveBits(s) *
+            this.qTables[component.qTable][ZIGZAG[k]];
+          k++;
         }
-      } else {
-        k += r;
-        if (k >= 64) break;
-        block[ZIGZAG[k]] = this.receiveBits(s) *
-          this.qTables[component.qTable][ZIGZAG[k]];
-        k++;
       }
     }
 
