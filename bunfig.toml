@@ -1,5 +1,0 @@
-[test]
-# Set default timeout for Bun tests to 60 seconds (60000ms)
-# This is needed because @cross/test's timeout option is not properly
-# passed to Bun's native test runner in version 0.0.14
-timeout = 60000
