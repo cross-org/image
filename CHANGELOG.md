@@ -19,6 +19,12 @@ and this project adheres to
 - Comprehensive documentation for fault-tolerant decoding in README.md
 - Tests for fault-tolerant modes in GIF and WebP decoders
 
+### Changed
+
+- Deduplicated RGB and range clamping code by introducing `clamp()` and
+  `clampRgb()` helper functions in `byte_utils.ts`, improving code
+  maintainability
+
 ### Fixed
 
 - JPEG roundtrip encoding now clamps DCT coefficients to valid Huffman table
