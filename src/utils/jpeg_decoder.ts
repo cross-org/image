@@ -17,6 +17,13 @@ export interface JPEGDecoderOptions {
    * @default true
    */
   tolerantDecoding?: boolean;
+  /**
+   * Optional callback for handling warnings during decoding.
+   * Called when non-fatal issues occur, such as falling back to runtime decoder.
+   * @param message - The warning message
+   * @param details - Optional additional context or error information
+   */
+  onWarning?: (message: string, details?: unknown) => void;
 }
 
 // JPEG markers

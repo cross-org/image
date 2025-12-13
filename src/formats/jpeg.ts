@@ -233,12 +233,8 @@ export class JPEGFormat implements ImageFormat {
         bitmap.close();
 
         return new Uint8Array(imageData.data.buffer);
-      } catch (error) {
+      } catch (_error) {
         // ImageDecoder API failed, fall through to pure JS decoder
-        console.warn(
-          "JPEG decoding with ImageDecoder failed, using pure JS decoder:",
-          error,
-        );
       }
     }
 
