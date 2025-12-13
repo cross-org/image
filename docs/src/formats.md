@@ -60,7 +60,7 @@ This table shows which format standards and variants are supported:
 |        | - 32-bit RGBA                       | ✅ Full           | Pure-JS        |
 |        | - Compressed variants (RLE)         | ❌ Not Yet        | -              |
 | JPEG   | JPEG/JFIF Baseline DCT              | ✅ Full           | Pure-JS        |
-|        | Progressive DCT (SOF2)              | ✅ Full           | Pure-JS        |
+|        | Progressive DCT (SOF2)              | ⚠️ Basic          | Pure-JS        |
 |        | - EXIF metadata                     | ✅ Full           | Pure-JS        |
 |        | - JFIF (APP0) with DPI              | ✅ Full           | Pure-JS        |
 | WebP   | WebP Lossless (VP8L)                | ⚠️ Basic          | Pure-JS        |

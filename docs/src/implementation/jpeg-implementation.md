@@ -6,12 +6,12 @@ nav_order: 1
 
 # JPEG Pure-JS Implementation Notes
 
-- **Decoder:** baseline DCT (SOF0) and progressive DCT (SOF2) implemented.
+- **Decoder:** baseline DCT (SOF0) and basic progressive DCT (SOF2) implemented.
   Supports Huffman (DC/AC), DQT, IDCT, YCbCr→RGB, grayscale, and chroma
   subsampling (4:4:4, 4:2:2, 4:2:0). Includes fault-tolerant decoding mode
   (enabled by default) for block-level error recovery. Progressive JPEGs are
-  decoded by processing multiple scans sequentially. Arithmetic and lossless
-  JPEGs are not supported.
+  decoded by processing multiple scans sequentially (without full successive
+  approximation refinement). Arithmetic and lossless JPEGs are not supported.
 - **Encoder:** baseline DCT implemented with adjustable quality, standard
   Huffman tables, and JFIF/EXIF marker support. Defaults to 4:4:4 (no
   subsampling). Progressive encoding and optimized Huffman tables are not

@@ -615,7 +615,7 @@ test("JPEG: Progressive JPEG decoding from debug folder", async () => {
 });
 
 test("JPEG: All debug folder images decode successfully", async () => {
-  // Test that all images in the debug folder can be decoded
+  // Test that all images in the debug folder can be decoded with pure-JS decoder
   const debugFiles = [
     "debug/1000015567.jpg",
     "debug/JPEG_compression_Example.jpg", // Progressive JPEG
@@ -624,7 +624,10 @@ test("JPEG: All debug folder images decode successfully", async () => {
 
   for (const file of debugFiles) {
     const data = await readFile(file);
-    const image = await Image.decode(data);
+    // Force pure-JS decoder to test progressive JPEG implementation
+    const image = await withoutOffscreenCanvas(async () => {
+      return await Image.decode(data);
+    });
 
     // Verify basic properties
     assertEquals(
