@@ -157,6 +157,7 @@ export class JPEGDecoder {
   private successiveHigh: number = 0; // Successive approximation bit high (Ah)
   private successiveLow: number = 0; // Successive approximation bit low (Al)
   private scanComponentIds: number[] = []; // Component IDs included in current scan
+  private eobRun: number = 0; // Remaining blocks to skip due to EOBn
 
   constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
     this.data = data;
@@ -442,7 +443,8 @@ export class JPEGDecoder {
     this.bitBuffer = 0;
     this.bitCount = 0;
 
-    // Reset DC predictors at the start of each scan (JPEG spec requirement)
+    // Reset DC predictors and EOB run at the start of each scan (JPEG spec requirement)
+    this.eobRun = 0;
     for (const component of this.components) {
       component.pred = 0;
     }
@@ -537,6 +539,14 @@ export class JPEGDecoder {
   ): void {
     const block = component.blocks[blockY][blockX];
 
+    // Check if this block should be skipped due to EOBn (end-of-block run)
+    // EOBn symbols indicate multiple consecutive blocks are all zero in the spectral range
+    if (this.eobRun > 0) {
+      this.eobRun--;
+      // Block remains as-is (zeros or previous values from earlier scans)
+      return;
+    }
+
     // Progressive JPEG support:
     // - Spectral selection (spectralStart, spectralEnd): Defines which DCT coefficients are decoded
     //   * DC only: Ss=0, Se=0
@@ -599,7 +609,14 @@ export class JPEGDecoder {
             if (r === 15) {
               k += 16;
             } else {
-              break; // EOB
+              // EOBn: End of block with run length
+              // (r, 0) where r != 15 means this block and the next (2^r - 1) blocks
+              // in the spectral selection range are all zero
+              // Set eobRun to skip subsequent blocks
+              if (r > 0) {
+                this.eobRun = (1 << r) - 1; // 2^r - 1 additional blocks to skip
+              }
+              break; // End this block
             }
           } else {
             k += r;
