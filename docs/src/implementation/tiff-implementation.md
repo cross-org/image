@@ -1,7 +1,3 @@
-## title: "TIFF" parent: "Implementation Notes" nav_order: 3
-
-# TIFF Pure-JS Implementation Notes
-
 ---
 title: "TIFF"
 parent: "Implementation Notes"
@@ -22,9 +18,7 @@ nav_order: 3
 - **Tests:** `test/formats/tiff.test.ts` and multi-page tests in `test/*`.
 - **Notes:** LZW uses MSB-first bit packing with 9→12-bit codes; multi-page
   layout writes pixel data then IFDs. Fallbacks maintain compatibility for rare
-  compressions. option
-
-9. **Grayscale with alpha** - Support for grayscale images with transparency
+  compressions.
 
 ## References
 
