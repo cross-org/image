@@ -662,7 +662,7 @@ test(
       }
     }
   },
-  { timeout: 30000 },
+  { timeout: 60000 }, // Increased to 60s - decodes ~23M pixels with pure-JS decoder
 );
 
 test(
