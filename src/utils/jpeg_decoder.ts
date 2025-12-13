@@ -211,6 +211,21 @@ export class JPEGDecoder {
       throw new Error("Failed to decode JPEG: invalid dimensions");
     }
 
+    // For progressive JPEGs, perform IDCT on all blocks after all scans are complete
+    // This ensures that frequency-domain coefficients from multiple scans are properly
+    // accumulated before transformation to spatial domain
+    if (this.isProgressive) {
+      for (const component of this.components) {
+        if (component.blocks) {
+          for (const row of component.blocks) {
+            for (const block of row) {
+              this.idct(block);
+            }
+          }
+        }
+      }
+    }
+
     // Convert YCbCr to RGB
     return this.convertToRGB();
   }
@@ -533,8 +548,12 @@ export class JPEGDecoder {
       }
     }
 
-    // Perform IDCT
-    this.idct(block);
+    // Perform IDCT only for baseline JPEGs
+    // For progressive JPEGs, IDCT is deferred until all scans are complete
+    // to preserve frequency-domain coefficients for accumulation across scans
+    if (!this.isProgressive) {
+      this.idct(block);
+    }
   }
 
   private decodeHuffman(table: HuffmanTable): number {

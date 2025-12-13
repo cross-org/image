@@ -1,0 +1,177 @@
+/**
+ * Test progressive JPEG decoding with multiple scans
+ */
+
+import { assertEquals, assertGreater } from "@std/assert";
+import { test } from "@cross/test";
+import { JPEGDecoder } from "../../src/utils/jpeg_decoder.ts";
+import { JPEGEncoder } from "../../src/utils/jpeg_encoder.ts";
+
+test(
+  "Progressive JPEG: decoder correctly accumulates coefficients across scans",
+  () => {
+    // Create a test pattern with clear features
+    const width = 32;
+    const height = 32;
+    const data = new Uint8Array(width * height * 4);
+
+    // Create a checkerboard pattern with gradients
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const checkerboard = (Math.floor(x / 8) + Math.floor(y / 8)) % 2;
+        const base = checkerboard ? 200 : 50;
+
+        data[i] = base + Math.floor((x / width) * 50); // R
+        data[i + 1] = base + Math.floor((y / height) * 50); // G
+        data[i + 2] = base; // B
+        data[i + 3] = 255; // A
+      }
+    }
+
+    // Encode as progressive JPEG
+    const encoder = new JPEGEncoder({
+      quality: 85,
+      progressive: true,
+    });
+    const encoded = encoder.encode(width, height, data);
+
+    // Verify it's progressive (has SOF2 marker)
+    let hasSOF2 = false;
+    for (let i = 0; i < encoded.length - 1; i++) {
+      if (encoded[i] === 0xff && encoded[i + 1] === 0xc2) {
+        hasSOF2 = true;
+        break;
+      }
+    }
+    assertEquals(hasSOF2, true, "Should be a progressive JPEG");
+
+    // Decode the progressive JPEG
+    const decoder = new JPEGDecoder(encoded);
+    const decoded = decoder.decode();
+
+    // Verify dimensions
+    assertEquals(decoded.length, width * height * 4);
+
+    // Verify the pattern is recognizable
+    // Check that corner pixels have expected characteristics
+    const topLeft = decoded[0]; // R channel of top-left
+    const topRight = decoded[(width - 1) * 4]; // R channel of top-right
+
+    // Top-left should have lower R value than top-right (gradient)
+    assertGreater(topRight, topLeft, "Gradient should be preserved");
+
+    // Bottom-left should have different G value than top-left (vertical gradient)
+    const topLeftG = decoded[1];
+    const bottomLeftG = decoded[((height - 1) * width) * 4 + 1];
+    assertGreater(
+      bottomLeftG,
+      topLeftG,
+      "Vertical gradient should be preserved",
+    );
+
+    // Verify we don't have all-gray or all-zero image (common failure modes)
+    let hasVariation = false;
+    for (let i = 0; i < Math.min(100, decoded.length / 4); i++) {
+      const idx = i * 4;
+      const r = decoded[idx];
+      const g = decoded[idx + 1];
+      const b = decoded[idx + 2];
+      if (r !== g || g !== b || r !== 128) {
+        hasVariation = true;
+        break;
+      }
+    }
+    assertEquals(hasVariation, true, "Image should not be all gray");
+  },
+);
+
+test("Progressive JPEG: roundtrip preserves image quality", () => {
+  // Create a more complex pattern
+  const width = 64;
+  const height = 64;
+  const data = new Uint8Array(width * height * 4);
+
+  // Create concentric circles pattern
+  const centerX = width / 2;
+  const centerY = height / 2;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const value = Math.floor(128 + 127 * Math.sin(dist / 4));
+
+      data[i] = value; // R
+      data[i + 1] = 255 - value; // G (inverse)
+      data[i + 2] = 128; // B (constant)
+      data[i + 3] = 255; // A
+    }
+  }
+
+  // Encode as progressive
+  const encoder = new JPEGEncoder({
+    quality: 90,
+    progressive: true,
+  });
+  const encoded = encoder.encode(width, height, data);
+
+  // Decode
+  const decoder = new JPEGDecoder(encoded);
+  const decoded = decoder.decode();
+
+  assertEquals(decoded.length, width * height * 4);
+
+  // Verify center pixel has expected characteristics
+  const centerIdx = (Math.floor(centerY) * width + Math.floor(centerX)) * 4;
+  const centerR = decoded[centerIdx];
+  const centerG = decoded[centerIdx + 1];
+
+  // Center should be roughly in the middle range (not 0 or 255)
+  assertGreater(centerR, 50, "Center R should not be too dark");
+  assertGreater(250, centerR, "Center R should not be too bright");
+  assertGreater(centerG, 50, "Center G should not be too dark");
+  assertGreater(250, centerG, "Center G should not be too bright");
+});
+
+test(
+  "Progressive JPEG: handles grayscale progressive images",
+  () => {
+    // Create a grayscale gradient
+    const width = 32;
+    const height = 32;
+    const data = new Uint8Array(width * height * 4);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const gray = Math.floor((x / width) * 255);
+
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+        data[i + 3] = 255;
+      }
+    }
+
+    // Encode as progressive
+    const encoder = new JPEGEncoder({
+      quality: 85,
+      progressive: true,
+    });
+    const encoded = encoder.encode(width, height, data);
+
+    // Decode
+    const decoder = new JPEGDecoder(encoded);
+    const decoded = decoder.decode();
+
+    assertEquals(decoded.length, width * height * 4);
+
+    // Verify gradient is preserved
+    const leftEdge = decoded[0]; // First pixel R
+    const rightEdge = decoded[(width - 1) * 4]; // Last pixel in first row R
+
+    assertGreater(rightEdge, leftEdge + 100, "Gradient should be significant");
+  },
+);
