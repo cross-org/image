@@ -4,6 +4,21 @@
  */
 
 /**
+ * Detect system endianness
+ * Returns true if little-endian (most common), false if big-endian
+ */
+function isLittleEndian(): boolean {
+  const buffer = new ArrayBuffer(4);
+  const uint32View = new Uint32Array(buffer);
+  const uint8View = new Uint8Array(buffer);
+  uint32View[0] = 0x01020304;
+  return uint8View[0] === 0x04;
+}
+
+// Cache the endianness check result
+const IS_LITTLE_ENDIAN = isLittleEndian();
+
+/**
  * Composite one image on top of another at a specified position
  * @param base Base image data (RGBA)
  * @param baseWidth Base image width
@@ -801,18 +816,36 @@ export function rotate180(
 ): Uint8Array {
   const result = new Uint8Array(data.length);
 
-  // Use Uint32Array view for faster 4-byte (pixel) copying
-  // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
-  const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
-  const dst32 = new Uint32Array(
-    result.buffer,
-    result.byteOffset,
-    width * height,
-  );
-  const totalPixels = width * height;
+  // Only use Uint32Array optimization on little-endian systems to avoid byte order issues
+  if (IS_LITTLE_ENDIAN) {
+    // Use Uint32Array view for faster 4-byte (pixel) copying
+    // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
+    const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
+    const dst32 = new Uint32Array(
+      result.buffer,
+      result.byteOffset,
+      width * height,
+    );
+    const totalPixels = width * height;
 
-  for (let i = 0; i < totalPixels; i++) {
-    dst32[totalPixels - 1 - i] = src32[i];
+    for (let i = 0; i < totalPixels; i++) {
+      dst32[totalPixels - 1 - i] = src32[i];
+    }
+  } else {
+    // Fallback for big-endian systems - byte-by-byte copying
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const srcIdx = (y * width + x) * 4;
+        const dstX = width - 1 - x;
+        const dstY = height - 1 - y;
+        const dstIdx = (dstY * width + dstX) * 4;
+
+        result[dstIdx] = data[srcIdx];
+        result[dstIdx + 1] = data[srcIdx + 1];
+        result[dstIdx + 2] = data[srcIdx + 2];
+        result[dstIdx + 3] = data[srcIdx + 3];
+      }
+    }
   }
 
   return result;
@@ -865,21 +898,38 @@ export function flipHorizontal(
 ): Uint8Array {
   const result = new Uint8Array(data.length);
 
-  // Use Uint32Array view for faster 4-byte (pixel) copying
-  // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
-  const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
-  const dst32 = new Uint32Array(
-    result.buffer,
-    result.byteOffset,
-    width * height,
-  );
+  // Only use Uint32Array optimization on little-endian systems to avoid byte order issues
+  if (IS_LITTLE_ENDIAN) {
+    // Use Uint32Array view for faster 4-byte (pixel) copying
+    // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
+    const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
+    const dst32 = new Uint32Array(
+      result.buffer,
+      result.byteOffset,
+      width * height,
+    );
 
-  for (let y = 0; y < height; y++) {
-    const rowStart = y * width;
-    for (let x = 0; x < width; x++) {
-      const srcIdx = rowStart + x;
-      const dstIdx = rowStart + (width - 1 - x);
-      dst32[dstIdx] = src32[srcIdx];
+    for (let y = 0; y < height; y++) {
+      const rowStart = y * width;
+      for (let x = 0; x < width; x++) {
+        const srcIdx = rowStart + x;
+        const dstIdx = rowStart + (width - 1 - x);
+        dst32[dstIdx] = src32[srcIdx];
+      }
+    }
+  } else {
+    // Fallback for big-endian systems - byte-by-byte copying
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const srcIdx = (y * width + x) * 4;
+        const dstX = width - 1 - x;
+        const dstIdx = (y * width + dstX) * 4;
+
+        result[dstIdx] = data[srcIdx];
+        result[dstIdx + 1] = data[srcIdx + 1];
+        result[dstIdx + 2] = data[srcIdx + 2];
+        result[dstIdx + 3] = data[srcIdx + 3];
+      }
     }
   }
 

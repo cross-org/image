@@ -97,7 +97,6 @@ export class LZWDecoder {
 
       if (code < this.dict.length && this.dict[code]) {
         const entry = this.dict[code];
-        // Spread operator for array concatenation
         output.push(...entry);
 
         if (this.prevCode !== null && this.prevCode < this.dict.length) {
