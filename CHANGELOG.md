@@ -110,6 +110,6 @@ history of previous releases.
 
 ---
 
-[Unreleased]: https://github.com/cross-org/image/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/cross-org/image/compare/v0.2.4...HEAD
 [0.2.3]: https://github.com/cross-org/image/releases/tag/v0.2.3
 [0.2.2]: https://github.com/cross-org/image/releases/tag/v0.2.2

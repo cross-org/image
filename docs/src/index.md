@@ -129,11 +129,13 @@ await writeFile("output.jpg", jpeg);
 @cross/image supports 15 image formats with varying levels of pure-JS
 implementation:
 
-- **PNG, APNG, BMP, ICO, GIF, DNG, PAM, PPM, PCX, ASCII** - Full pure-JS implementation
+- **PNG, APNG, BMP, ICO, GIF, DNG, PAM, PPM, PCX, ASCII** - Full pure-JS
+  implementation
 - **JPEG** - Pure-JS baseline DCT, native API for progressive
 - **WebP** - Pure-JS lossless, native API for lossy VP8
 - **TIFF** - Pure-JS uncompressed + LZW, native API for other compressions
-- **HEIC, AVIF** - Runtime-based implementation (requires ImageDecoder/OffscreenCanvas API)
+- **HEIC, AVIF** - Runtime-based implementation (requires
+  ImageDecoder/OffscreenCanvas API)
 
 See the [Format Support](formats.md) page for detailed compatibility
 information.
