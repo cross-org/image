@@ -610,13 +610,15 @@ export class JPEGDecoder {
               k += 16;
             } else {
               // EOBn: End of block with run length
-              // (r, 0) where r != 15 means this block and the next (2^r - 1) blocks
-              // in the spectral selection range are all zero
-              // Set eobRun to skip subsequent blocks
+              // (r, 0) where r > 0 indicates EOBn with additional unsigned bits
+              // Read r unsigned bits and compute: eobRun = (2^r - 1) + bits
+              // This specifies how many ADDITIONAL blocks (after current) to skip
               if (r > 0) {
-                this.eobRun = (1 << r) - 1; // 2^r - 1 additional blocks to skip
+                const additionalBits = this.receiveUnsignedBits(r);
+                this.eobRun = (1 << r) - 1 + additionalBits;
               }
-              break; // End this block
+              // else r=0: just EOB for this block, no additional blocks to skip
+              break; // End current block
             }
           } else {
             k += r;
@@ -813,6 +815,15 @@ export class JPEGDecoder {
       value = value - (1 << n) + 1;
     }
 
+    return value;
+  }
+
+  private receiveUnsignedBits(n: number): number {
+    // Read n bits as an unsigned integer (no magnitude conversion)
+    let value = 0;
+    for (let i = 0; i < n; i++) {
+      value = (value << 1) | this.readBit();
+    }
     return value;
   }
 
