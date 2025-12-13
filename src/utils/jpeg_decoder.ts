@@ -390,13 +390,13 @@ export class JPEGDecoder {
 
     // Track which components are included in this scan
     this.scanComponentIds = [];
-    
+
     for (let i = 0; i < numComponents; i++) {
       const id = this.data[this.pos++];
       const tables = this.data[this.pos++];
 
       this.scanComponentIds.push(id);
-      
+
       const component = this.components.find((c) => c.id === id);
       if (component) {
         component.dcTable = (tables >> 4) & 0x0F;
@@ -455,7 +455,7 @@ export class JPEGDecoder {
     // Decode MCUs
     let decodedBlocks = 0;
     let failedBlocks = 0;
-    let scanEnded = false; // Flag to indicate end of scan data
+    let _scanEnded = false; // Flag to indicate end of scan data
 
     outerLoop:
     for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
@@ -464,11 +464,13 @@ export class JPEGDecoder {
         for (const component of this.components) {
           // Skip components not included in this scan
           // For progressive JPEGs, each scan may only include a subset of components
-          if (this.scanComponentIds.length > 0 &&
-              !this.scanComponentIds.includes(component.id)) {
+          if (
+            this.scanComponentIds.length > 0 &&
+            !this.scanComponentIds.includes(component.id)
+          ) {
             continue;
           }
-          
+
           for (let v = 0; v < component.v; v++) {
             for (let h = 0; h < component.h; h++) {
               const blockY = mcuY * component.v + v;
@@ -485,8 +487,10 @@ export class JPEGDecoder {
                   } catch (e) {
                     // Check if we've hit the end of scan data (marker found)
                     // This is normal and means we should stop decoding this scan
-                    if ((e as Error).message.includes("Marker found in scan data")) {
-                      scanEnded = true;
+                    if (
+                      (e as Error).message.includes("Marker found in scan data")
+                    ) {
+                      _scanEnded = true;
                       break outerLoop;
                     }
                     // Tolerant decoding: for other errors, leave block as-is and continue
@@ -501,8 +505,10 @@ export class JPEGDecoder {
                     decodedBlocks++;
                   } catch (e) {
                     // End of scan is not an error, it's a normal condition
-                    if ((e as Error).message.includes("Marker found in scan data")) {
-                      scanEnded = true;
+                    if (
+                      (e as Error).message.includes("Marker found in scan data")
+                    ) {
+                      _scanEnded = true;
                       break outerLoop;
                     }
                     // For other errors, rethrow
