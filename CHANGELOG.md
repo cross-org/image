@@ -8,19 +8,27 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- Progressive JPEG decoding now correctly accumulates DCT coefficients across
+  multiple scans by deferring IDCT until all scans complete, fixing issues with
+  half-decoded or corrupted-looking progressive images
+- Successive approximation in progressive JPEGs now properly handled: high-bit
+  scans (Ah=0, Al>0) and refinement scans (Ah>0) correctly accumulate
+  bit-precision, eliminating blocky/low-resolution appearance in images with
+  successive approximation encoding
+- DC predictor now correctly resets at the start of each scan per JPEG
+  specification, preventing coefficient accumulation artifacts across scans
+
 ### Added
 
 - Progressive JPEG support in pure JavaScript decoder - can now decode both
-  baseline (SOF0) and progressive (SOF2) JPEGs without requiring runtime APIs
+  baseline (SOF0) and progressive (SOF2) JPEGs without requiring runtime APIs,
+  including full successive approximation bit-refinement support
 - `createImageBitmap` + `OffscreenCanvas` fallback for JPEG decoding in
   environments with canvas APIs available
-
-### Fixed
-
-- `onWarning` callback option for all decoder options (`JPEGDecoderOptions`,
-  `WebPDecoderOptions`, `GIFDecoderOptions`) to handle non-fatal warnings during
-  decoding
-- Documentation for warning callbacks in README.md
+- Comprehensive tests for progressive JPEG decoding in
+  `test/formats/jpeg_progressive.test.ts`
 
 ### Changed
 
@@ -29,6 +37,10 @@ and this project adheres to
 - Tolerant decoding warnings now use optional `onWarning` callbacks instead of
   console output
 - Fallback behavior (pure-JS to runtime APIs) is now silent by default
+- `onWarning` callback option for all decoder options (`JPEGDecoderOptions`,
+  `WebPDecoderOptions`, `GIFDecoderOptions`) to handle non-fatal warnings during
+  decoding
+- Documentation for warning callbacks in README.md
 
 ## [0.3.0] - 2025-12-13
 
