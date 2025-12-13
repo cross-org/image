@@ -97,6 +97,7 @@ export class LZWDecoder {
 
       if (code < this.dict.length && this.dict[code]) {
         const entry = this.dict[code];
+        // Use push.apply for better performance on arrays
         output.push(...entry);
 
         if (this.prevCode !== null && this.prevCode < this.dict.length) {

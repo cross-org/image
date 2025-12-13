@@ -40,18 +40,22 @@ export function composite(
 
   // Iterate over the overlapping region
   for (let py = startY; py < endY; py++) {
+    const baseRowOffset = py * baseWidth * 4;
+    const overlayRowOffset = (py - y) * overlayWidth * 4;
+
     for (let px = startX; px < endX; px++) {
-      // Calculate indices
-      const baseIdx = (py * baseWidth + px) * 4;
-      const overlayX = px - x;
-      const overlayY = py - y;
-      const overlayIdx = (overlayY * overlayWidth + overlayX) * 4;
+      // Calculate indices with pre-computed offsets
+      const baseIdx = baseRowOffset + px * 4;
+      const overlayIdx = overlayRowOffset + (px - x) * 4;
 
       // Get overlay pixel with opacity
       const overlayR = overlay[overlayIdx];
       const overlayG = overlay[overlayIdx + 1];
       const overlayB = overlay[overlayIdx + 2];
-      const overlayA = (overlay[overlayIdx + 3] / 255) * finalOpacity;
+      const overlayA = (overlay[overlayIdx + 3] * finalOpacity) / 255;
+
+      // Skip if overlay is fully transparent
+      if (overlayA === 0) continue;
 
       // Get base pixel
       const baseR = result[baseIdx];
@@ -63,16 +67,17 @@ export function composite(
       const outA = overlayA + baseA * (1 - overlayA);
 
       if (outA > 0) {
-        result[baseIdx] = Math.round(
-          (overlayR * overlayA + baseR * baseA * (1 - overlayA)) / outA,
-        );
-        result[baseIdx + 1] = Math.round(
-          (overlayG * overlayA + baseG * baseA * (1 - overlayA)) / outA,
-        );
-        result[baseIdx + 2] = Math.round(
-          (overlayB * overlayA + baseB * baseA * (1 - overlayA)) / outA,
-        );
-        result[baseIdx + 3] = Math.round(outA * 255);
+        const invOverlayA = 1 - overlayA;
+        const baseWeight = baseA * invOverlayA;
+        const invOutA = 1 / outA;
+
+        result[baseIdx] =
+          ((overlayR * overlayA + baseR * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 1] =
+          ((overlayG * overlayA + baseG * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 2] =
+          ((overlayB * overlayA + baseB * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 3] = (outA * 255 + 0.5) | 0;
       }
     }
   }
@@ -534,17 +539,22 @@ export function gaussianBlur(
 ): Uint8Array {
   const clampedRadius = Math.max(1, Math.floor(radius));
   const kernel = generateGaussianKernel(clampedRadius, sigma);
+  const widthMinus1 = width - 1;
+  const heightMinus1 = height - 1;
 
   // Apply horizontal pass
   const temp = new Uint8Array(data.length);
 
   for (let y = 0; y < height; y++) {
+    const rowOffset = y * width * 4;
+
     for (let x = 0; x < width; x++) {
       let r = 0, g = 0, b = 0, a = 0;
 
       for (let kx = -clampedRadius; kx <= clampedRadius; kx++) {
-        const px = Math.max(0, Math.min(width - 1, x + kx));
-        const idx = (y * width + px) * 4;
+        const px = x + kx;
+        const clampedPx = px < 0 ? 0 : (px > widthMinus1 ? widthMinus1 : px);
+        const idx = rowOffset + clampedPx * 4;
         const weight = kernel[kx + clampedRadius];
 
         r += data[idx] * weight;
@@ -553,11 +563,11 @@ export function gaussianBlur(
         a += data[idx + 3] * weight;
       }
 
-      const outIdx = (y * width + x) * 4;
-      temp[outIdx] = Math.round(r);
-      temp[outIdx + 1] = Math.round(g);
-      temp[outIdx + 2] = Math.round(b);
-      temp[outIdx + 3] = Math.round(a);
+      const outIdx = rowOffset + x * 4;
+      temp[outIdx] = (r + 0.5) | 0;
+      temp[outIdx + 1] = (g + 0.5) | 0;
+      temp[outIdx + 2] = (b + 0.5) | 0;
+      temp[outIdx + 3] = (a + 0.5) | 0;
     }
   }
 
@@ -565,12 +575,15 @@ export function gaussianBlur(
   const result = new Uint8Array(data.length);
 
   for (let y = 0; y < height; y++) {
+    const rowOffset = y * width * 4;
+
     for (let x = 0; x < width; x++) {
       let r = 0, g = 0, b = 0, a = 0;
 
       for (let ky = -clampedRadius; ky <= clampedRadius; ky++) {
-        const py = Math.max(0, Math.min(height - 1, y + ky));
-        const idx = (py * width + x) * 4;
+        const py = y + ky;
+        const clampedPy = py < 0 ? 0 : (py > heightMinus1 ? heightMinus1 : py);
+        const idx = clampedPy * width * 4 + x * 4;
         const weight = kernel[ky + clampedRadius];
 
         r += temp[idx] * weight;
@@ -579,11 +592,11 @@ export function gaussianBlur(
         a += temp[idx + 3] * weight;
       }
 
-      const outIdx = (y * width + x) * 4;
-      result[outIdx] = Math.round(r);
-      result[outIdx + 1] = Math.round(g);
-      result[outIdx + 2] = Math.round(b);
-      result[outIdx + 3] = Math.round(a);
+      const outIdx = rowOffset + x * 4;
+      result[outIdx] = (r + 0.5) | 0;
+      result[outIdx + 1] = (g + 0.5) | 0;
+      result[outIdx + 2] = (b + 0.5) | 0;
+      result[outIdx + 3] = (a + 0.5) | 0;
     }
   }
 
