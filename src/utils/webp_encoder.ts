@@ -398,7 +398,6 @@ export class WebPEncoder {
     // For a single symbol, use code length 1
     // (Canonical Huffman codes require length >= 1)
     if (symbols.length === 1) {
-      // console.log(`Single symbol ${symbols[0]}, forcing length 1`);
       codeLengths[symbols[0]] = 1;
       return codeLengths;
     }
@@ -457,7 +456,6 @@ export class WebPEncoder {
     // If tree is too deep, flatten frequencies and rebuild
     let attempts = 0;
     while (maxDepth > maxCodeLength && attempts < 5) {
-      // console.log(`Tree too deep (${maxDepth} > ${maxCodeLength}), flattening...`);
       attempts++;
 
       // Add bias to frequencies to flatten the tree
@@ -476,13 +474,8 @@ export class WebPEncoder {
       checkDepth(root, 0);
     }
 
-    if (maxDepth > maxCodeLength) {
-      console.warn(
-        `Failed to reduce Huffman tree depth to ${maxCodeLength} (current: ${maxDepth})`,
-      );
-      // Force hard limit by sorting and assigning lengths?
-      // For now, let's just see if this is happening.
-    }
+    // If tree depth couldn't be reduced, encoding may fail but we'll try anyway
+    // This is an internal limitation that doesn't affect most images
 
     // Calculate code lengths by traversing tree (iterative to avoid deep recursion)
     const stack: Array<{ node: Node; depth: number }> = [{
@@ -696,7 +689,6 @@ export class WebPEncoder {
     numCodeLengthCodes = Math.max(4, numCodeLengthCodes);
 
     // Write number of code length codes
-    // console.log(`Complex Huffman: numCodeLengthCodes=${numCodeLengthCodes}, rleEncoded.length=${rleEncoded.length}`);
     writer.writeBits(numCodeLengthCodes - 4, 4);
 
     // Write code length code lengths

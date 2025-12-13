@@ -33,6 +33,13 @@ export interface WebPDecoderOptions {
    * @default true
    */
   tolerantDecoding?: boolean;
+  /**
+   * Optional callback for handling warnings during decoding.
+   * Called when non-fatal issues occur, such as partial decode in tolerant mode.
+   * @param message - The warning message
+   * @param details - Optional additional context or error information
+   */
+  onWarning?: (message: string, details?: unknown) => void;
 }
 
 // Helper to read little-endian values
@@ -110,7 +117,6 @@ class HuffmanTable {
       const bit = reader.readBits(1);
       node = bit === 0 ? node.left! : node.right!;
       if (!node) {
-        // console.log("Invalid Huffman code - walked off tree");
         throw new Error("Invalid Huffman code");
       }
     }
@@ -397,14 +403,10 @@ export class WebPDecoder {
         }
       } catch (e) {
         // Tolerant decoding: fill remaining pixels with gray (128, 128, 128, 255)
-        if (typeof console !== "undefined" && console.warn) {
-          console.warn(
-            `WebP VP8L: Partial decode at pixel ${
-              pixelIndex / 4
-            }/${numPixels}:`,
-            e,
-          );
-        }
+        this.options.onWarning?.(
+          `WebP VP8L: Partial decode at pixel ${pixelIndex / 4}/${numPixels}`,
+          e,
+        );
         while (pixelIndex < pixelData.length) {
           pixelData[pixelIndex++] = 128; // R
           pixelData[pixelIndex++] = 128; // G

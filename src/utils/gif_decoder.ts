@@ -16,6 +16,13 @@ export interface GIFDecoderOptions {
    * @default true
    */
   tolerantDecoding?: boolean;
+  /**
+   * Optional callback for handling warnings during decoding.
+   * Called when non-fatal issues occur, such as skipping corrupted frames.
+   * @param message - The warning message
+   * @param details - Optional additional context or error information
+   */
+  onWarning?: (message: string, details?: unknown) => void;
 }
 
 interface GIFImage {
@@ -291,9 +298,7 @@ export class GIFDecoder {
           } catch (e) {
             // Tolerant decoding: skip corrupted frames and continue
             // This allows partial decoding of multi-frame GIFs with some bad frames
-            if (typeof console !== "undefined" && console.warn) {
-              console.warn("GIF: Skipping corrupted frame:", e);
-            }
+            this.options.onWarning?.("GIF: Skipping corrupted frame", e);
           }
         } else {
           // Non-tolerant mode: throw on first error

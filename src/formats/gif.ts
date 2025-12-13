@@ -76,12 +76,8 @@ export class GIFFormat implements ImageFormat {
         data: result.data,
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       };
-    } catch (error) {
+    } catch (_error) {
       // Fall back to runtime decoder if pure-JS fails
-      console.warn(
-        "Pure-JS GIF decoder failed, falling back to runtime:",
-        error,
-      );
 
       let pos = 6; // Skip "GIF89a" or "GIF87a"
       const width = readUint16LE(data, pos);
@@ -179,12 +175,8 @@ export class GIFFormat implements ImageFormat {
       }
 
       return encoded;
-    } catch (error) {
+    } catch (_error) {
       // Fall back to runtime encoding if pure-JS fails
-      console.warn(
-        "Pure-JS GIF encoder failed, falling back to runtime:",
-        error,
-      );
 
       if (typeof OffscreenCanvas !== "undefined") {
         try {

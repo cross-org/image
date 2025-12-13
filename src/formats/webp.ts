@@ -218,12 +218,8 @@ export class WebPFormat implements ImageFormat {
         bitmap.close();
 
         return new Uint8Array(imageData.data.buffer);
-      } catch (error) {
+      } catch (_error) {
         // ImageDecoder API failed, fall through to pure JS decoder
-        console.warn(
-          "WebP decoding with ImageDecoder failed, using pure JS decoder:",
-          error,
-        );
       }
     }
 

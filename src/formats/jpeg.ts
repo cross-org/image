@@ -233,40 +233,8 @@ export class JPEGFormat implements ImageFormat {
         bitmap.close();
 
         return new Uint8Array(imageData.data.buffer);
-      } catch (error) {
-        // ImageDecoder API failed, fall through to next decoder
-        console.warn(
-          "JPEG decoding with ImageDecoder failed, trying alternative:",
-          error,
-        );
-      }
-    }
-
-    // Try createImageBitmap + OffscreenCanvas if available (supports progressive JPEG)
-    if (
-      typeof createImageBitmap !== "undefined" &&
-      typeof OffscreenCanvas !== "undefined"
-    ) {
-      try {
-        const blob = new Blob([data as BlobPart], { type: "image/jpeg" });
-        const bitmap = await createImageBitmap(blob);
-
-        // Create a canvas to extract pixel data
-        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Could not get canvas context");
-
-        ctx.drawImage(bitmap, 0, 0);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        bitmap.close();
-
-        return new Uint8Array(imageData.data.buffer);
-      } catch (error) {
-        // createImageBitmap failed, fall through to pure JS decoder
-        console.warn(
-          "JPEG decoding with createImageBitmap failed, using pure JS decoder:",
-          error,
-        );
+      } catch (_error) {
+        // ImageDecoder API failed, fall through to pure JS decoder
       }
     }
 

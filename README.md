@@ -169,6 +169,15 @@ const rgba1 = tolerantDecoder.decode();
 // Disable for strict validation
 const strictDecoder = new JPEGDecoder(data, { tolerantDecoding: false });
 const rgba2 = strictDecoder.decode(); // Throws on any decoding error
+
+// Optional: receive warnings during decoding
+const decoderWithWarnings = new JPEGDecoder(data, {
+  tolerantDecoding: true,
+  onWarning: (message, details) => {
+    console.log(`JPEG Warning: ${message}`, details);
+  },
+});
+const rgba3 = decoderWithWarnings.decode();
 ```
 
 **Note:** When using `Image.decode()`, the library automatically tries
@@ -204,6 +213,15 @@ const result = tolerantDecoder.decodeAllFrames();
 // Strict mode - throws on first corrupted frame
 const strictDecoder = new GIFDecoder(data, { tolerantDecoding: false });
 const strictResult = strictDecoder.decodeAllFrames();
+
+// Optional: receive warnings when frames are skipped
+const decoderWithWarnings = new GIFDecoder(data, {
+  tolerantDecoding: true,
+  onWarning: (message, details) => {
+    console.log(`GIF Warning: ${message}`, details);
+  },
+});
+const resultWithWarnings = decoderWithWarnings.decodeAllFrames();
 ```
 
 ### WebP Fault-Tolerant Decoding (VP8L Lossless)
@@ -230,6 +248,15 @@ const result = tolerantDecoder.decode();
 // Strict mode - throws on first decode error
 const strictDecoder = new WebPDecoder(data, { tolerantDecoding: false });
 const strictResult = strictDecoder.decode();
+
+// Optional: receive warnings during partial decode
+const decoderWithWarnings = new WebPDecoder(data, {
+  tolerantDecoding: true,
+  onWarning: (message, details) => {
+    console.log(`WebP Warning: ${message}`, details);
+  },
+});
+const resultWithWarnings = decoderWithWarnings.decode();
 ```
 
 ### When to Use Fault-Tolerant Modes
@@ -248,6 +275,32 @@ const strictResult = strictDecoder.decode();
 - Quality control in professional workflows
 - Detecting file corruption explicitly
 - Testing image encoder implementations
+
+### Warning Callbacks
+
+All decoders support an optional `onWarning` callback that gets invoked when
+non-fatal issues occur during decoding. This is useful for logging, monitoring,
+or debugging decoding issues without using `console` methods.
+
+**Example:**
+
+```typescript
+import { WebPDecoder } from "@cross/image/utils/webp_decoder";
+
+const decoder = new WebPDecoder(data, {
+  tolerantDecoding: true,
+  onWarning: (message, details) => {
+    // Log to your preferred logging system
+    myLogger.warn(message, details);
+  },
+});
+const result = decoder.decode();
+```
+
+The callback receives:
+
+- `message`: A human-readable description of the warning
+- `details`: Optional additional context (usually the error object)
 
 ## Metadata Support
 

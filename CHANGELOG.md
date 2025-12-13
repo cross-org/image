@@ -19,6 +19,18 @@ and this project adheres to
 
 - JPEG images in debug/ folder now decode successfully, including progressive
   JPEGs
+- `onWarning` callback option for all decoder options (`JPEGDecoderOptions`,
+  `WebPDecoderOptions`, `GIFDecoderOptions`) to handle non-fatal warnings during
+  decoding
+- Documentation for warning callbacks in README.md
+
+### Changed
+
+- Removed all `console.log`, `console.warn`, and `console.error` statements from
+  library code
+- Tolerant decoding warnings now use optional `onWarning` callbacks instead of
+  console output
+- Fallback behavior (pure-JS to runtime APIs) is now silent by default
 
 ## [0.3.0] - 2025-12-13
 
