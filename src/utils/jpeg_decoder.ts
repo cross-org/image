@@ -145,6 +145,7 @@ export class JPEGDecoder {
   private spectralEnd: number = 63; // End of spectral selection (Se)
   private successiveHigh: number = 0; // Successive approximation bit high (Ah)
   private successiveLow: number = 0; // Successive approximation bit low (Al)
+  private scanComponentIds: number[] = []; // Component IDs included in current scan
 
   constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
     this.data = data;
@@ -387,10 +388,15 @@ export class JPEGDecoder {
     const _length = this.readUint16();
     const numComponents = this.data[this.pos++];
 
+    // Track which components are included in this scan
+    this.scanComponentIds = [];
+    
     for (let i = 0; i < numComponents; i++) {
       const id = this.data[this.pos++];
       const tables = this.data[this.pos++];
 
+      this.scanComponentIds.push(id);
+      
       const component = this.components.find((c) => c.id === id);
       if (component) {
         component.dcTable = (tables >> 4) & 0x0F;
@@ -449,11 +455,20 @@ export class JPEGDecoder {
     // Decode MCUs
     let decodedBlocks = 0;
     let failedBlocks = 0;
+    let scanEnded = false; // Flag to indicate end of scan data
 
+    outerLoop:
     for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
       for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
         // Decode all components in this MCU
         for (const component of this.components) {
+          // Skip components not included in this scan
+          // For progressive JPEGs, each scan may only include a subset of components
+          if (this.scanComponentIds.length > 0 &&
+              !this.scanComponentIds.includes(component.id)) {
+            continue;
+          }
+          
           for (let v = 0; v < component.v; v++) {
             for (let h = 0; h < component.h; h++) {
               const blockY = mcuY * component.v + v;
@@ -467,16 +482,32 @@ export class JPEGDecoder {
                   try {
                     this.decodeBlock(component, blockY, blockX);
                     decodedBlocks++;
-                  } catch (_e) {
-                    // Tolerant decoding: if we fail, leave block as-is and continue
+                  } catch (e) {
+                    // Check if we've hit the end of scan data (marker found)
+                    // This is normal and means we should stop decoding this scan
+                    if ((e as Error).message.includes("Marker found in scan data")) {
+                      scanEnded = true;
+                      break outerLoop;
+                    }
+                    // Tolerant decoding: for other errors, leave block as-is and continue
                     // This allows partial decoding of corrupted or complex JPEGs
                     failedBlocks++;
                     // Block preserves its previous state (zeros on first scan)
                   }
                 } else {
-                  // Non-tolerant mode: throw on first error
-                  this.decodeBlock(component, blockY, blockX);
-                  decodedBlocks++;
+                  // Non-tolerant mode: decode block, but handle end-of-scan markers gracefully
+                  try {
+                    this.decodeBlock(component, blockY, blockX);
+                    decodedBlocks++;
+                  } catch (e) {
+                    // End of scan is not an error, it's a normal condition
+                    if ((e as Error).message.includes("Marker found in scan data")) {
+                      scanEnded = true;
+                      break outerLoop;
+                    }
+                    // For other errors, rethrow
+                    throw e;
+                  }
                 }
               }
             }
@@ -559,7 +590,8 @@ export class JPEGDecoder {
             }
           } else {
             k += r;
-            if (k >= 64) break;
+            // Check bounds: if k exceeds spectralEnd or 63, stop decoding
+            if (k > this.spectralEnd || k >= 64) break;
             // For successive approximation, shift the coefficient left by Al bits
             const coeff = this.receiveBits(s) << this.successiveLow;
             block[ZIGZAG[k]] = coeff *
