@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-12-13
+
 ### Added
 
 - Fault-tolerant decoding modes for GIF, WebP, and JPEG formats
@@ -44,7 +46,7 @@ and this project adheres to
 - Optimized Gaussian blur with pre-computed offsets and reduced Math function
   calls
 
-## 0.2.4 - 2025-12-11
+## [0.2.4] - 2025-12-11
 
 ### Added
 
@@ -110,6 +112,8 @@ history of previous releases.
 
 ---
 
-[Unreleased]: https://github.com/cross-org/image/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/cross-org/image/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cross-org/image/releases/tag/v0.3.0
+[0.2.4]: https://github.com/cross-org/image/releases/tag/v0.2.4
 [0.2.3]: https://github.com/cross-org/image/releases/tag/v0.2.3
 [0.2.2]: https://github.com/cross-org/image/releases/tag/v0.2.2
