@@ -82,7 +82,7 @@ export class HEICFormat implements ImageFormat {
    * @returns Encoded HEIC image bytes
    */
   async encode(imageData: ImageData): Promise<Uint8Array> {
-    const { width, height, data, metadata } = imageData;
+    const { width, height, data, metadata: _metadata } = imageData;
 
     // Try to use runtime encoding if available
     if (typeof OffscreenCanvas !== "undefined") {
@@ -106,12 +106,7 @@ export class HEICFormat implements ImageFormat {
           // parsing and modifying the ISOBMFF container structure
           // For now, we rely on the runtime encoder to preserve metadata
           // if it was passed through the canvas
-          if (metadata) {
-            // Future enhancement: inject metadata into HEIC container
-            console.warn(
-              "HEIC metadata injection not yet implemented, metadata may be lost",
-            );
-          }
+          // Future enhancement: inject metadata into HEIC container
 
           return encoded;
         }
