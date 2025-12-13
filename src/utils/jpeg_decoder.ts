@@ -1,10 +1,10 @@
 /**
  * JPEG decoder implementation supporting both baseline and progressive DCT
- * 
+ *
  * Supports:
  * - Baseline DCT (SOF0) - Sequential encoding
  * - Progressive DCT (SOF2) - Multi-scan encoding with spectral selection and successive approximation
- * 
+ *
  * This is a pure JavaScript implementation that handles common JPEG files.
  * For complex or non-standard JPEGs, the ImageDecoder API fallback is preferred.
  */
@@ -416,7 +416,7 @@ export class JPEGDecoder {
     for (const component of this.components) {
       const blocksAcross = Math.ceil(this.width * component.h / (8 * maxH));
       const blocksDown = Math.ceil(this.height * component.v / (8 * maxV));
-      
+
       // Only initialize blocks if they don't exist yet (first scan)
       if (component.blocks.length === 0) {
         component.blocks = Array(blocksDown).fill(null).map(() =>

@@ -23,7 +23,7 @@ status:
 | PPM    | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | Netpbm PPM (Portable PixMap) P3/P6 formats   |
 | PCX    | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | ZSoft PCX (RLE compressed)                   |
 | ASCII  | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation          |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline & Progressive | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline & progressive DCT       |
+| JPEG   | ✅   | ✅    | ⚠️ Baseline & Progressive | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS baseline & progressive with spectral selection |
 | GIF    | ✅   | ✅    | ✅ Full                   | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
 | WebP   | ✅   | ✅    | ⚠️ Lossless               | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
 | TIFF   | ✅   | ✅    | ⚠️ Basic                  | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed, LZW, & grayscale   |
@@ -60,7 +60,9 @@ This table shows which format standards and variants are supported:
 |        | - 32-bit RGBA                       | ✅ Full           | Pure-JS        |
 |        | - Compressed variants (RLE)         | ❌ Not Yet        | -              |
 | JPEG   | JPEG/JFIF Baseline DCT              | ✅ Full           | Pure-JS        |
-|        | Progressive DCT (SOF2)              | ⚠️ Basic          | Pure-JS        |
+|        | Progressive DCT (SOF2)              | ⚠️ Partial        | Pure-JS        |
+|        | - Spectral selection                | ✅ Full           | Pure-JS        |
+|        | - Successive approximation          | ⚠️ Partial        | Pure-JS        |
 |        | - EXIF metadata                     | ✅ Full           | Pure-JS        |
 |        | - JFIF (APP0) with DPI              | ✅ Full           | Pure-JS        |
 | WebP   | WebP Lossless (VP8L)                | ⚠️ Basic          | Pure-JS        |
@@ -120,7 +122,7 @@ This table shows which format standards and variants are supported:
 | PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
 | ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
 | GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
-| JPEG   | ✅       | ✅          | ✅          | ✅  | Pure-JS baseline & progressive DCT          |
+| JPEG   | ✅       | ✅          | ✅          | ✅  | Pure-JS baseline & progressive DCT with spectral selection |
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full   |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW+grayscale |
 | HEIC   | ✅       | ⚠️ Runtime  | ✅          | ✅  | Requires ImageDecoder API support           |

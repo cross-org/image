@@ -116,7 +116,7 @@ await writeFile("output.jpg", jpeg);
 | PPM    | ✅ Full                         | Netpbm PPM format (P3/P6)                                                 |
 | PCX    | ✅ Full                         | ZSoft PCX (RLE compressed)                                                |
 | ASCII  | ✅ Full                         | Text-based ASCII art                                                      |
-| JPEG   | ⚠️ Baseline & basic Progressive | Pure-JS baseline & basic progressive DCT (no full progressive refinement) |
+| JPEG   | ⚠️ Baseline & Progressive       | Pure-JS baseline & progressive DCT with spectral selection (partial successive approximation) |
 | WebP   | ⚠️ Lossless                     | Pure-JS lossless VP8L                                                     |
 | TIFF   | ⚠️ Basic                        | Pure-JS uncompressed, LZW, & grayscale                                    |
 | HEIC   | 🔌 Runtime                      | Requires ImageDecoder/OffscreenCanvas API support                         |

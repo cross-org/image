@@ -725,7 +725,7 @@ test("JPEG: Progressive JPEG - multi-scan accumulation", async () => {
 
   // For a properly decoded progressive JPEG, we should see a coherent image
   // with reasonable color distribution (not all black, all white, or noisy)
-  
+
   let totalR = 0;
   let totalG = 0;
   let totalB = 0;
