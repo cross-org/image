@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
+import { readFile } from "@cross/fs";
 
 import { JPEGFormat } from "../../src/formats/jpeg.ts";
 import { Image } from "../../src/image.ts";
@@ -572,7 +573,7 @@ test("JPEG: Progressive JPEG decoding from debug folder", async () => {
   const format = new JPEGFormat();
 
   // Test with the progressive JPEG from debug folder
-  const data = await Deno.readFile("debug/JPEG_compression_Example.jpg");
+  const data = await readFile("debug/JPEG_compression_Example.jpg");
 
   // This is a progressive JPEG (SOF2 marker 0xFFC2)
   // It should now decode successfully with pure-JS decoder
@@ -622,7 +623,7 @@ test("JPEG: All debug folder images decode successfully", async () => {
   ];
 
   for (const file of debugFiles) {
-    const data = await Deno.readFile(file);
+    const data = await readFile(file);
     const image = await Image.decode(data);
 
     // Verify basic properties
