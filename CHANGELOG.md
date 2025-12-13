@@ -32,6 +32,17 @@ and this project adheres to
 - Optimized WebP encoder/decoder with typed arrays (Uint8Array, Uint32Array) for
   improved performance
 - Reduced memory allocations in hot paths for DCT/IDCT operations
+- Optimized image processing operations with lookup tables and reduced Math
+  function calls
+- Optimized resize operations (nearest, bilinear) with bitwise operations and
+  pre-computed values
+- Optimized rotation and flip operations using Uint32Array views and batch
+  copying
+- Optimized crop operation with row-based batch copying
+- Optimized composite operation by reducing redundant calculations in inner
+  loops
+- Optimized Gaussian blur with pre-computed offsets and reduced Math function
+  calls
 
 ## 0.2.4 - 2025-12-11
 

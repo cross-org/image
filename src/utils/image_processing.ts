@@ -4,6 +4,21 @@
  */
 
 /**
+ * Detect system endianness
+ * Returns true if little-endian (most common), false if big-endian
+ */
+function isLittleEndian(): boolean {
+  const buffer = new ArrayBuffer(4);
+  const uint32View = new Uint32Array(buffer);
+  const uint8View = new Uint8Array(buffer);
+  uint32View[0] = 0x01020304;
+  return uint8View[0] === 0x04;
+}
+
+// Cache the endianness check result
+const IS_LITTLE_ENDIAN = isLittleEndian();
+
+/**
  * Composite one image on top of another at a specified position
  * @param base Base image data (RGBA)
  * @param baseWidth Base image width
@@ -40,18 +55,22 @@ export function composite(
 
   // Iterate over the overlapping region
   for (let py = startY; py < endY; py++) {
+    const baseRowOffset = py * baseWidth * 4;
+    const overlayRowOffset = (py - y) * overlayWidth * 4;
+
     for (let px = startX; px < endX; px++) {
-      // Calculate indices
-      const baseIdx = (py * baseWidth + px) * 4;
-      const overlayX = px - x;
-      const overlayY = py - y;
-      const overlayIdx = (overlayY * overlayWidth + overlayX) * 4;
+      // Calculate indices with pre-computed offsets
+      const baseIdx = baseRowOffset + px * 4;
+      const overlayIdx = overlayRowOffset + (px - x) * 4;
 
       // Get overlay pixel with opacity
       const overlayR = overlay[overlayIdx];
       const overlayG = overlay[overlayIdx + 1];
       const overlayB = overlay[overlayIdx + 2];
       const overlayA = (overlay[overlayIdx + 3] / 255) * finalOpacity;
+
+      // Skip if overlay is fully transparent
+      if (overlayA === 0) continue;
 
       // Get base pixel
       const baseR = result[baseIdx];
@@ -62,17 +81,18 @@ export function composite(
       // Alpha compositing using "over" operation
       const outA = overlayA + baseA * (1 - overlayA);
 
-      if (outA > 0) {
-        result[baseIdx] = Math.round(
-          (overlayR * overlayA + baseR * baseA * (1 - overlayA)) / outA,
-        );
-        result[baseIdx + 1] = Math.round(
-          (overlayG * overlayA + baseG * baseA * (1 - overlayA)) / outA,
-        );
-        result[baseIdx + 2] = Math.round(
-          (overlayB * overlayA + baseB * baseA * (1 - overlayA)) / outA,
-        );
-        result[baseIdx + 3] = Math.round(outA * 255);
+      if (outA > 0.001) {
+        const invOverlayA = 1 - overlayA;
+        const baseWeight = baseA * invOverlayA;
+        const invOutA = 1 / outA;
+
+        result[baseIdx] =
+          ((overlayR * overlayA + baseR * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 1] =
+          ((overlayG * overlayA + baseG * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 2] =
+          ((overlayB * overlayA + baseB * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 3] = (outA * 255 + 0.5) | 0;
       }
     }
   }
@@ -91,12 +111,26 @@ export function adjustBrightness(
   amount: number,
 ): Uint8Array {
   const result = new Uint8Array(data.length);
-  const adjust = Math.max(-1, Math.min(1, amount)) * 255;
+  const clampedAmount = Math.max(-1, Math.min(1, amount));
+  const adjust = clampedAmount * 255;
+
+  // Pre-compute lookup table for clamping
+  // Range: -255 to 511 (data value 0-255 + adjust -255 to 255), offset by 255 for zero-based index
+  const LUT_SIZE = 767;
+  const LUT_OFFSET = 255;
+  const lut = new Uint8Array(LUT_SIZE);
+  for (let i = 0; i < LUT_SIZE; i++) {
+    const value = i - LUT_OFFSET;
+    lut[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
+  }
+
+  // Use bitwise OR for fast rounding (equivalent to Math.round for positive numbers)
+  const adjustInt = (adjust + 0.5) | 0;
 
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, data[i] + adjust)); // R
-    result[i + 1] = Math.max(0, Math.min(255, data[i + 1] + adjust)); // G
-    result[i + 2] = Math.max(0, Math.min(255, data[i + 2] + adjust)); // B
+    result[i] = lut[data[i] + adjustInt + LUT_OFFSET]; // R
+    result[i + 1] = lut[data[i + 1] + adjustInt + LUT_OFFSET]; // G
+    result[i + 2] = lut[data[i + 2] + adjustInt + LUT_OFFSET]; // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -115,16 +149,17 @@ export function adjustContrast(data: Uint8Array, amount: number): Uint8Array {
   const factor = (259 * (contrast * 255 + 255)) /
     (255 * (259 - contrast * 255));
 
+  // Pre-compute lookup table for all possible pixel values
+  const lut = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) {
+    const val = factor * (i - 128) + 128;
+    lut[i] = val < 0 ? 0 : (val > 255 ? 255 : Math.round(val));
+  }
+
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, factor * (data[i] - 128) + 128)); // R
-    result[i + 1] = Math.max(
-      0,
-      Math.min(255, factor * (data[i + 1] - 128) + 128),
-    ); // G
-    result[i + 2] = Math.max(
-      0,
-      Math.min(255, factor * (data[i + 2] - 128) + 128),
-    ); // B
+    result[i] = lut[data[i]]; // R
+    result[i + 1] = lut[data[i + 1]]; // G
+    result[i + 2] = lut[data[i + 2]]; // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -142,10 +177,17 @@ export function adjustExposure(data: Uint8Array, amount: number): Uint8Array {
   const stops = Math.max(-3, Math.min(3, amount));
   const multiplier = Math.pow(2, stops);
 
+  // Pre-compute lookup table for all possible pixel values
+  const lut = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) {
+    const val = i * multiplier;
+    lut[i] = val > 255 ? 255 : (val + 0.5) | 0;
+  }
+
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, data[i] * multiplier)); // R
-    result[i + 1] = Math.max(0, Math.min(255, data[i + 1] * multiplier)); // G
-    result[i + 2] = Math.max(0, Math.min(255, data[i + 2] * multiplier)); // B
+    result[i] = lut[data[i]]; // R
+    result[i + 1] = lut[data[i + 1]]; // G
+    result[i + 2] = lut[data[i + 2]]; // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -407,17 +449,13 @@ export function crop(
   const actualHeight = endY - startY;
 
   const result = new Uint8Array(actualWidth * actualHeight * 4);
+  const rowBytes = actualWidth * 4;
 
+  // Copy entire rows at once for better performance
   for (let py = 0; py < actualHeight; py++) {
-    for (let px = 0; px < actualWidth; px++) {
-      const srcIdx = ((startY + py) * width + (startX + px)) * 4;
-      const dstIdx = (py * actualWidth + px) * 4;
-
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
-    }
+    const srcOffset = ((startY + py) * width + startX) * 4;
+    const dstOffset = py * rowBytes;
+    result.set(data.subarray(srcOffset, srcOffset + rowBytes), dstOffset);
   }
 
   return { data: result, width: actualWidth, height: actualHeight };
@@ -519,17 +557,22 @@ export function gaussianBlur(
 ): Uint8Array {
   const clampedRadius = Math.max(1, Math.floor(radius));
   const kernel = generateGaussianKernel(clampedRadius, sigma);
+  const widthMinus1 = width - 1;
+  const heightMinus1 = height - 1;
 
   // Apply horizontal pass
   const temp = new Uint8Array(data.length);
 
   for (let y = 0; y < height; y++) {
+    const rowOffset = y * width * 4;
+
     for (let x = 0; x < width; x++) {
       let r = 0, g = 0, b = 0, a = 0;
 
       for (let kx = -clampedRadius; kx <= clampedRadius; kx++) {
-        const px = Math.max(0, Math.min(width - 1, x + kx));
-        const idx = (y * width + px) * 4;
+        const px = x + kx;
+        const clampedPx = px < 0 ? 0 : (px > widthMinus1 ? widthMinus1 : px);
+        const idx = rowOffset + clampedPx * 4;
         const weight = kernel[kx + clampedRadius];
 
         r += data[idx] * weight;
@@ -538,11 +581,11 @@ export function gaussianBlur(
         a += data[idx + 3] * weight;
       }
 
-      const outIdx = (y * width + x) * 4;
-      temp[outIdx] = Math.round(r);
-      temp[outIdx + 1] = Math.round(g);
-      temp[outIdx + 2] = Math.round(b);
-      temp[outIdx + 3] = Math.round(a);
+      const outIdx = rowOffset + x * 4;
+      temp[outIdx] = (r + 0.5) | 0;
+      temp[outIdx + 1] = (g + 0.5) | 0;
+      temp[outIdx + 2] = (b + 0.5) | 0;
+      temp[outIdx + 3] = (a + 0.5) | 0;
     }
   }
 
@@ -550,12 +593,15 @@ export function gaussianBlur(
   const result = new Uint8Array(data.length);
 
   for (let y = 0; y < height; y++) {
+    const rowOffset = y * width * 4;
+
     for (let x = 0; x < width; x++) {
       let r = 0, g = 0, b = 0, a = 0;
 
       for (let ky = -clampedRadius; ky <= clampedRadius; ky++) {
-        const py = Math.max(0, Math.min(height - 1, y + ky));
-        const idx = (py * width + x) * 4;
+        const py = y + ky;
+        const clampedPy = py < 0 ? 0 : (py > heightMinus1 ? heightMinus1 : py);
+        const idx = clampedPy * width * 4 + x * 4;
         const weight = kernel[ky + clampedRadius];
 
         r += temp[idx] * weight;
@@ -564,11 +610,11 @@ export function gaussianBlur(
         a += temp[idx + 3] * weight;
       }
 
-      const outIdx = (y * width + x) * 4;
-      result[outIdx] = Math.round(r);
-      result[outIdx + 1] = Math.round(g);
-      result[outIdx + 2] = Math.round(b);
-      result[outIdx + 3] = Math.round(a);
+      const outIdx = rowOffset + x * 4;
+      result[outIdx] = (r + 0.5) | 0;
+      result[outIdx + 1] = (g + 0.5) | 0;
+      result[outIdx + 2] = (b + 0.5) | 0;
+      result[outIdx + 3] = (a + 0.5) | 0;
     }
   }
 
@@ -770,17 +816,35 @@ export function rotate180(
 ): Uint8Array {
   const result = new Uint8Array(data.length);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcIdx = (y * width + x) * 4;
-      const dstX = width - 1 - x;
-      const dstY = height - 1 - y;
-      const dstIdx = (dstY * width + dstX) * 4;
+  // Only use Uint32Array optimization on little-endian systems to avoid byte order issues
+  if (IS_LITTLE_ENDIAN) {
+    // Use Uint32Array view for faster 4-byte (pixel) copying
+    // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
+    const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
+    const dst32 = new Uint32Array(
+      result.buffer,
+      result.byteOffset,
+      width * height,
+    );
+    const totalPixels = width * height;
 
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
+    for (let i = 0; i < totalPixels; i++) {
+      dst32[totalPixels - 1 - i] = src32[i];
+    }
+  } else {
+    // Fallback for big-endian systems - byte-by-byte copying
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const srcIdx = (y * width + x) * 4;
+        const dstX = width - 1 - x;
+        const dstY = height - 1 - y;
+        const dstIdx = (dstY * width + dstX) * 4;
+
+        result[dstIdx] = data[srcIdx];
+        result[dstIdx + 1] = data[srcIdx + 1];
+        result[dstIdx + 2] = data[srcIdx + 2];
+        result[dstIdx + 3] = data[srcIdx + 3];
+      }
     }
   }
 
@@ -834,16 +898,38 @@ export function flipHorizontal(
 ): Uint8Array {
   const result = new Uint8Array(data.length);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcIdx = (y * width + x) * 4;
-      const dstX = width - 1 - x;
-      const dstIdx = (y * width + dstX) * 4;
+  // Only use Uint32Array optimization on little-endian systems to avoid byte order issues
+  if (IS_LITTLE_ENDIAN) {
+    // Use Uint32Array view for faster 4-byte (pixel) copying
+    // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
+    const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
+    const dst32 = new Uint32Array(
+      result.buffer,
+      result.byteOffset,
+      width * height,
+    );
 
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
+    for (let y = 0; y < height; y++) {
+      const rowStart = y * width;
+      for (let x = 0; x < width; x++) {
+        const srcIdx = rowStart + x;
+        const dstIdx = rowStart + (width - 1 - x);
+        dst32[dstIdx] = src32[srcIdx];
+      }
+    }
+  } else {
+    // Fallback for big-endian systems - byte-by-byte copying
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const srcIdx = (y * width + x) * 4;
+        const dstX = width - 1 - x;
+        const dstIdx = (y * width + dstX) * 4;
+
+        result[dstIdx] = data[srcIdx];
+        result[dstIdx + 1] = data[srcIdx + 1];
+        result[dstIdx + 2] = data[srcIdx + 2];
+        result[dstIdx + 3] = data[srcIdx + 3];
+      }
     }
   }
 
@@ -863,18 +949,13 @@ export function flipVertical(
   height: number,
 ): Uint8Array {
   const result = new Uint8Array(data.length);
+  const rowBytes = width * 4;
 
+  // Copy entire rows at once for better performance
   for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcIdx = (y * width + x) * 4;
-      const dstY = height - 1 - y;
-      const dstIdx = (dstY * width + x) * 4;
-
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
-    }
+    const srcOffset = y * rowBytes;
+    const dstOffset = (height - 1 - y) * rowBytes;
+    result.set(data.subarray(srcOffset, srcOffset + rowBytes), dstOffset);
   }
 
   return result;
