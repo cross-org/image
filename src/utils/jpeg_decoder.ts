@@ -494,13 +494,13 @@ export class JPEGDecoder {
     //   * Low-frequency AC: Ss=1, Se=5
     //   * High-frequency AC: Ss=6, Se=63
     // - Successive approximation (successiveHigh, successiveLow): Defines bit precision
-    //   * First scan: Ah=0, Al=n (decode high bits)
-    //   * Refinement: Ah=n, Al=n-1 (refine lower bits)
+    //   * First scan: Ah=0, Al=n (decode high bits, shift left by Al)
+    //   * Refinement scan: Ah=n, Al=n-1 (refine lower bits by adding bit at position Al)
     //
-    // Current implementation: Processes scans sequentially, accumulating coefficients
-    // across multiple scans. Full successive approximation bit refinement is not yet
-    // implemented - later scans overwrite earlier ones, which works for many progressive
-    // JPEGs but not all.
+    // Implementation: Processes scans sequentially, accumulating coefficients across
+    // multiple scans. Supports full successive approximation bit refinement for both
+    // DC and AC coefficients. IDCT is deferred until all scans complete to preserve
+    // frequency-domain data for proper accumulation.
 
     // Decode DC coefficient (if spectralStart == 0)
     if (this.spectralStart === 0) {
