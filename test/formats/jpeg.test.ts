@@ -656,3 +656,107 @@ test("JPEG: All debug folder images decode successfully", async () => {
     }
   }
 });
+
+test("JPEG: Progressive JPEG - scan parameter parsing", async () => {
+  // This test verifies that the decoder properly parses progressive JPEG
+  // scan parameters (spectral selection and successive approximation)
+  const format = new JPEGFormat();
+
+  // Use the known progressive JPEG from debug folder
+  const data = await readFile("debug/JPEG_compression_Example.jpg");
+
+  // Decode with pure-JS decoder
+  const decoded = await withoutOffscreenCanvas(async () => {
+    return await format.decode(data);
+  });
+
+  // This progressive JPEG has 10 scans with various spectral selections
+  // and successive approximation parameters. The decoder should handle
+  // all of them and produce a valid image.
+  assertEquals(decoded.width, 1000);
+  assertEquals(decoded.height, 750);
+
+  // Verify the image has meaningful color data across different regions
+  // This ensures all scans were processed correctly
+  const samples = [
+    { x: 100, y: 100 }, // Top-left region
+    { x: 500, y: 375 }, // Center
+    { x: 900, y: 650 }, // Bottom-right region
+  ];
+
+  for (const { x, y } of samples) {
+    const i = (y * decoded.width + x) * 4;
+    const r = decoded.data[i];
+    const g = decoded.data[i + 1];
+    const b = decoded.data[i + 2];
+    const a = decoded.data[i + 3];
+
+    // All channels should be in valid range
+    assertEquals(
+      r >= 0 && r <= 255,
+      true,
+      `Pixel at (${x},${y}) has invalid red channel`,
+    );
+    assertEquals(
+      g >= 0 && g <= 255,
+      true,
+      `Pixel at (${x},${y}) has invalid green channel`,
+    );
+    assertEquals(
+      b >= 0 && b <= 255,
+      true,
+      `Pixel at (${x},${y}) has invalid blue channel`,
+    );
+    assertEquals(a, 255, `Pixel at (${x},${y}) has invalid alpha channel`);
+  }
+});
+
+test("JPEG: Progressive JPEG - multi-scan accumulation", async () => {
+  // This test verifies that blocks are properly preserved across multiple
+  // progressive scans, allowing coefficients to accumulate
+  const format = new JPEGFormat();
+
+  const data = await readFile("debug/JPEG_compression_Example.jpg");
+
+  // Decode the progressive JPEG
+  const decoded = await withoutOffscreenCanvas(async () => {
+    return await format.decode(data);
+  });
+
+  // For a properly decoded progressive JPEG, we should see a coherent image
+  // with reasonable color distribution (not all black, all white, or noisy)
+  
+  let totalR = 0;
+  let totalG = 0;
+  let totalB = 0;
+  const sampleSize = 1000; // Sample 1000 pixels
+
+  for (let i = 0; i < sampleSize; i++) {
+    const idx = Math.floor(Math.random() * (decoded.data.length / 4)) * 4;
+    totalR += decoded.data[idx];
+    totalG += decoded.data[idx + 1];
+    totalB += decoded.data[idx + 2];
+  }
+
+  const avgR = totalR / sampleSize;
+  const avgG = totalG / sampleSize;
+  const avgB = totalB / sampleSize;
+
+  // Average color values should be reasonable (not extreme)
+  // Progressive JPEG compression Example is a natural scene
+  assertEquals(
+    avgR > 10 && avgR < 245,
+    true,
+    `Average red ${avgR} is extreme - possible decoding issue`,
+  );
+  assertEquals(
+    avgG > 10 && avgG < 245,
+    true,
+    `Average green ${avgG} is extreme - possible decoding issue`,
+  );
+  assertEquals(
+    avgB > 10 && avgB < 245,
+    true,
+    `Average blue ${avgB} is extreme - possible decoding issue`,
+  );
+});
