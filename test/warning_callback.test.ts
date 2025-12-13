@@ -6,34 +6,51 @@
 import { test } from "@cross/test";
 import { assertEquals } from "@std/assert";
 import { GIFDecoder } from "../src/utils/gif_decoder.ts";
-import { WebPDecoder } from "../src/utils/webp_decoder.ts";
-import { JPEGDecoder } from "../src/utils/jpeg_decoder.ts";
+import type { GIFDecoderOptions } from "../src/utils/gif_decoder.ts";
+import type { WebPDecoderOptions } from "../src/utils/webp_decoder.ts";
+import type { JPEGDecoderOptions } from "../src/utils/jpeg_decoder.ts";
 
 test("GIFDecoder - onWarning callback is called for corrupted frame", () => {
   // Create a minimal GIF with a corrupted frame
   const gif = new Uint8Array([
     // Header
-    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, // "GIF89a"
+    0x47,
+    0x49,
+    0x46,
+    0x38,
+    0x39,
+    0x61, // "GIF89a"
     // Logical Screen Descriptor
-    0x02, 0x00, // width = 2
-    0x02, 0x00, // height = 2
+    0x02,
+    0x00, // width = 2
+    0x02,
+    0x00, // height = 2
     0xF0, // Global Color Table Flag, color resolution, sort flag
     0x00, // background color index
     0x00, // pixel aspect ratio
     // Global Color Table (2 colors)
-    0x00, 0x00, 0x00, // color 0: black
-    0xFF, 0xFF, 0xFF, // color 1: white
+    0x00,
+    0x00,
+    0x00, // color 0: black
+    0xFF,
+    0xFF,
+    0xFF, // color 1: white
     // Image Descriptor
     0x2C, // image separator
-    0x00, 0x00, // left
-    0x00, 0x00, // top
-    0x02, 0x00, // width = 2
-    0x02, 0x00, // height = 2
+    0x00,
+    0x00, // left
+    0x00,
+    0x00, // top
+    0x02,
+    0x00, // width = 2
+    0x02,
+    0x00, // height = 2
     0x00, // packed fields (no local color table)
     // Image Data (intentionally corrupted)
     0x01, // LZW minimum code size
     0x02, // block size
-    0xFF, 0xFF, // invalid LZW data
+    0xFF,
+    0xFF, // invalid LZW data
     0x00, // block terminator
     // Trailer
     0x3B, // GIF trailer
@@ -65,7 +82,7 @@ test("WebPDecoder - onWarning option exists and accepts callback", () => {
   // We don't test actual warning scenario as it requires complex VP8L corruption
   let warningCalled = false;
 
-  const options = {
+  const options: WebPDecoderOptions = {
     tolerantDecoding: true,
     onWarning: (_message: string, _details?: unknown) => {
       warningCalled = true;
@@ -77,7 +94,7 @@ test("WebPDecoder - onWarning option exists and accepts callback", () => {
   assertEquals(options.tolerantDecoding, true);
 
   // Call the callback directly to verify it works
-  options.onWarning("test message");
+  options.onWarning!("test message");
   assertEquals(warningCalled, true);
 });
 
@@ -85,7 +102,7 @@ test("JPEGDecoder - onWarning option exists and accepts callback", () => {
   // Just verify the option type is accepted (structural test)
   let warningCalled = false;
 
-  const options = {
+  const options: JPEGDecoderOptions = {
     tolerantDecoding: true,
     onWarning: (_message: string, _details?: unknown) => {
       warningCalled = true;
@@ -97,7 +114,7 @@ test("JPEGDecoder - onWarning option exists and accepts callback", () => {
   assertEquals(options.tolerantDecoding, true);
 
   // Call the callback directly to verify it works
-  options.onWarning("test message", { someDetail: "value" });
+  options.onWarning!("test message", { someDetail: "value" });
   assertEquals(warningCalled, true);
 });
 
@@ -124,16 +141,11 @@ test("Decoder options - onWarning is optional", () => {
   assertEquals(options3.tolerantDecoding, undefined);
 });
 
-// Import the options types to verify they compile
-import type { GIFDecoderOptions } from "../src/utils/gif_decoder.ts";
-import type { WebPDecoderOptions } from "../src/utils/webp_decoder.ts";
-import type { JPEGDecoderOptions } from "../src/utils/jpeg_decoder.ts";
-
 test("Decoder options types - onWarning signature", () => {
   // Verify the callback signature is correct
   const callback: NonNullable<GIFDecoderOptions["onWarning"]> = (
     message,
-    details,
+    _details,
   ) => {
     assertEquals(typeof message, "string");
     // details can be undefined
