@@ -11,8 +11,8 @@ nav_order: 4
   (delay, disposal, transparency), comment/XMP metadata extraction, and
   fault-tolerant decoding (enabled by default) for frame-level error recovery.
 - **Encoder:** GIF89a format with LZW compression, global color table with
-  palette generation and color quantization, transparency, multi-frame animation,
-  GCE (delay and disposal method), and optimized color palettes.
+  palette generation and color quantization, transparency, multi-frame
+  animation, GCE (delay and disposal method), and optimized color palettes.
 - **Fault-Tolerant Mode:** enabled by default. Skips corrupted frames instead of
   failing; continues decoding remaining frames even if LZW decompression fails.
   Can be disabled via `GIFDecoderOptions` for strict validation.

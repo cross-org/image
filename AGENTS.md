@@ -12,8 +12,10 @@ Repo CI inputs (`.github/workflows/tests.yaml`):
 - Node: jsr deps set; no npm deps; test_target: test/*.test.ts
 
 Source of truth:
-[Deno](https://github.com/cross-org/workflows/blob/main/.github/workflows/deno-ci.yml) |
-[Bun](https://github.com/cross-org/workflows/blob/main/.github/workflows/bun-ci.yml) |
+[Deno](https://github.com/cross-org/workflows/blob/main/.github/workflows/deno-ci.yml)
+|
+[Bun](https://github.com/cross-org/workflows/blob/main/.github/workflows/bun-ci.yml)
+|
 [Node](https://github.com/cross-org/workflows/blob/main/.github/workflows/node-ci.yml)
 
 ## Precommit Validation
