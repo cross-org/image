@@ -32,7 +32,7 @@ npm/
 deno.lock
 
 # Bun
-bunfig.toml
+# bunfig.toml is NOT ignored - needed for test timeout configuration
 
 # Local
 lab/
