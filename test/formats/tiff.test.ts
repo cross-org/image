@@ -677,10 +677,6 @@ test("TIFF: PackBits compresses repeated patterns efficiently", async () => {
     compression: "packbits",
   });
 
-  console.log(
-    `Uncompressed: ${uncompressed.length}, PackBits: ${packbitsCompressed.length}`,
-  );
-
   // PackBits may not always compress well for RGBA data, but it should decode correctly
   // The main goal is to verify that encoding and decoding work correctly
   const decoded = await format.decode(packbitsCompressed);
