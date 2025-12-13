@@ -609,16 +609,18 @@ export class JPEGDecoder {
             if (r === 15) {
               k += 16;
             } else {
-              // EOBn: End of block with run length
-              // (r, 0) where r > 0 indicates EOBn with additional unsigned bits
-              // Read r unsigned bits and compute: eobRun = (2^r - 1) + bits
-              // This specifies how many ADDITIONAL blocks (after current) to skip
-              if (r > 0) {
+              // EOB or EOBn (end of block, possibly with run length)
+              // EOBn is ONLY used in progressive JPEG with spectral selection
+              // For baseline JPEG, (r,0) where r!=0,15 should not occur
+              if (this.isProgressive && r > 0) {
+                // Progressive JPEG: EOBn with additional unsigned bits
+                // Read r unsigned bits and compute: eobRun = (2^r - 1) + bits
+                // This specifies how many ADDITIONAL blocks (after current) to skip
                 const additionalBits = this.receiveUnsignedBits(r);
                 this.eobRun = (1 << r) - 1 + additionalBits;
               }
-              // else r=0: just EOB for this block, no additional blocks to skip
-              break; // End current block
+              // For both baseline and progressive: end current block
+              break;
             }
           } else {
             k += r;
