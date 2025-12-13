@@ -10,6 +10,17 @@
  */
 
 /**
+ * Custom error class for end-of-scan marker detection
+ * Thrown when a marker is encountered in scan data, indicating the scan has ended
+ */
+class EndOfScanError extends Error {
+  constructor(message: string = "End of scan marker detected") {
+    super(message);
+    this.name = "EndOfScanError";
+  }
+}
+
+/**
  * Options for JPEG decoder
  */
 export interface JPEGDecoderOptions {
@@ -487,9 +498,7 @@ export class JPEGDecoder {
                   } catch (e) {
                     // Check if we've hit the end of scan data (marker found)
                     // This is normal and means we should stop decoding this scan
-                    if (
-                      (e as Error).message.includes("Marker found in scan data")
-                    ) {
+                    if (e instanceof EndOfScanError) {
                       _scanEnded = true;
                       break outerLoop;
                     }
@@ -505,9 +514,7 @@ export class JPEGDecoder {
                     decodedBlocks++;
                   } catch (e) {
                     // End of scan is not an error, it's a normal condition
-                    if (
-                      (e as Error).message.includes("Marker found in scan data")
-                    ) {
+                    if (e instanceof EndOfScanError) {
                       _scanEnded = true;
                       break outerLoop;
                     }
@@ -596,8 +603,9 @@ export class JPEGDecoder {
             }
           } else {
             k += r;
-            // Check bounds: if k exceeds spectralEnd or 63, stop decoding
-            if (k > this.spectralEnd || k >= 64) break;
+            // Check bounds: if k exceeds spectralEnd, stop decoding
+            // (spectralEnd is guaranteed to be <= 63 per JPEG spec)
+            if (k > this.spectralEnd) break;
             // For successive approximation, shift the coefficient left by Al bits
             const coeff = this.receiveBits(s) << this.successiveLow;
             block[ZIGZAG[k]] = coeff *
@@ -765,7 +773,7 @@ export class JPEGDecoder {
           // Other marker found in scan data - this indicates end of scan
           // Back up to before the marker
           this.pos--;
-          throw new Error("Marker found in scan data");
+          throw new EndOfScanError();
         }
       }
 
