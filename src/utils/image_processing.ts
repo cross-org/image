@@ -66,7 +66,7 @@ export function composite(
       // Alpha compositing using "over" operation
       const outA = overlayA + baseA * (1 - overlayA);
 
-      if (outA > 0) {
+      if (outA > 0.001) {
         const invOverlayA = 1 - overlayA;
         const baseWeight = baseA * invOverlayA;
         const invOutA = 1 / outA;
