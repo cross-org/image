@@ -7,6 +7,18 @@ import { test } from "@cross/test";
 import { JPEGDecoder } from "../../src/utils/jpeg_decoder.ts";
 import { JPEGEncoder } from "../../src/utils/jpeg_encoder.ts";
 
+/**
+ * Helper function to check if a JPEG has SOF2 marker (progressive JPEG)
+ */
+function hasProgressiveMarker(data: Uint8Array): boolean {
+  for (let i = 0; i < data.length - 1; i++) {
+    if (data[i] === 0xff && data[i + 1] === 0xc2) {
+      return true;
+    }
+  }
+  return false;
+}
+
 test(
   "Progressive JPEG: decoder correctly accumulates coefficients across scans",
   () => {
@@ -37,14 +49,11 @@ test(
     const encoded = encoder.encode(width, height, data);
 
     // Verify it's progressive (has SOF2 marker)
-    let hasSOF2 = false;
-    for (let i = 0; i < encoded.length - 1; i++) {
-      if (encoded[i] === 0xff && encoded[i + 1] === 0xc2) {
-        hasSOF2 = true;
-        break;
-      }
-    }
-    assertEquals(hasSOF2, true, "Should be a progressive JPEG");
+    assertEquals(
+      hasProgressiveMarker(encoded),
+      true,
+      "Should be a progressive JPEG",
+    );
 
     // Decode the progressive JPEG
     const decoder = new JPEGDecoder(encoded);
@@ -71,13 +80,14 @@ test(
     );
 
     // Verify we don't have all-gray or all-zero image (common failure modes)
+    const NEUTRAL_GRAY = 128;
     let hasVariation = false;
     for (let i = 0; i < Math.min(100, decoded.length / 4); i++) {
       const idx = i * 4;
       const r = decoded[idx];
       const g = decoded[idx + 1];
       const b = decoded[idx + 2];
-      if (r !== g || g !== b || r !== 128) {
+      if (r !== g || g !== b || r !== NEUTRAL_GRAY) {
         hasVariation = true;
         break;
       }
