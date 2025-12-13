@@ -129,6 +129,7 @@ export class JPEGDecoder {
   private bitBuffer: number = 0;
   private bitCount: number = 0;
   private options: JPEGDecoderOptions;
+  private isProgressive: boolean = false;
 
   constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
     this.data = data;
@@ -156,15 +157,20 @@ export class JPEGDecoder {
       } else if (marker === SOS) {
         this.parseSOS();
         this.decodeScan();
-        break; // Stop after first scan for baseline JPEG
+        // For progressive JPEG, continue to process more scans
+        // For baseline JPEG, stop after first scan
+        if (!this.isProgressive) {
+          break;
+        }
       } else if (marker === DQT) {
         this.parseDQT();
       } else if (marker === DHT) {
         this.parseDHT();
-      } else if (marker === SOF0) {
+      } else if (marker === SOF0 || marker === SOF2) {
+        // Parse SOF for both baseline (SOF0) and progressive (SOF2)
+        // Progressive JPEGs have the same frame header structure
         this.parseSOF();
-      } else if (marker === SOF2) {
-        throw new Error("Progressive JPEG not supported in pure JS decoder");
+        this.isProgressive = marker === SOF2;
       } else if (marker === DRI) {
         this.parseDRI();
       } else if (marker >= 0xFFE0 && marker <= 0xFFEF) {
