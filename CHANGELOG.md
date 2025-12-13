@@ -39,7 +39,8 @@ and this project adheres to
 - Optimized rotation and flip operations using Uint32Array views and batch
   copying
 - Optimized crop operation with row-based batch copying
-- Optimized composite operation by reducing redundant calculations in inner loops
+- Optimized composite operation by reducing redundant calculations in inner
+  loops
 - Optimized Gaussian blur with pre-computed offsets and reduced Math function
   calls
 
