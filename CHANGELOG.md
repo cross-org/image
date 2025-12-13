@@ -8,6 +8,18 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Progressive JPEG support in pure JavaScript decoder - can now decode both
+  baseline (SOF0) and progressive (SOF2) JPEGs without requiring runtime APIs
+- `createImageBitmap` + `OffscreenCanvas` fallback for JPEG decoding in
+  environments with canvas APIs available
+
+### Fixed
+
+- JPEG images in debug/ folder now decode successfully, including progressive
+  JPEGs
+
 ## [0.3.0] - 2025-12-13
 
 ### Added

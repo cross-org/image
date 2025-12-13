@@ -104,23 +104,23 @@ await writeFile("output.jpg", jpeg);
 
 ## Supported Formats
 
-| Format | Pure-JS     | Notes                                             |
-| ------ | ----------- | ------------------------------------------------- |
-| PNG    | ✅ Full     | Complete pure-JS implementation                   |
-| APNG   | ✅ Full     | Animated PNG with multi-frame                     |
-| BMP    | ✅ Full     | Complete pure-JS implementation                   |
-| ICO    | ✅ Full     | Windows Icon format                               |
-| GIF    | ✅ Full     | Animated GIF with multi-frame                     |
-| DNG    | ✅ Full     | Linear DNG (Uncompressed RGBA)                    |
-| PAM    | ✅ Full     | Netpbm PAM format                                 |
-| PPM    | ✅ Full     | Netpbm PPM format (P3/P6)                         |
-| PCX    | ✅ Full     | ZSoft PCX (RLE compressed)                        |
-| ASCII  | ✅ Full     | Text-based ASCII art                              |
-| JPEG   | ⚠️ Baseline | Pure-JS baseline DCT only                         |
-| WebP   | ⚠️ Lossless | Pure-JS lossless VP8L                             |
-| TIFF   | ⚠️ Basic    | Pure-JS uncompressed, LZW, & grayscale            |
-| HEIC   | 🔌 Runtime  | Requires ImageDecoder/OffscreenCanvas API support |
-| AVIF   | 🔌 Runtime  | Requires ImageDecoder/OffscreenCanvas API support |
+| Format | Pure-JS                   | Notes                                             |
+| ------ | ------------------------- | ------------------------------------------------- |
+| PNG    | ✅ Full                   | Complete pure-JS implementation                   |
+| APNG   | ✅ Full                   | Animated PNG with multi-frame                     |
+| BMP    | ✅ Full                   | Complete pure-JS implementation                   |
+| ICO    | ✅ Full                   | Windows Icon format                               |
+| GIF    | ✅ Full                   | Animated GIF with multi-frame                     |
+| DNG    | ✅ Full                   | Linear DNG (Uncompressed RGBA)                    |
+| PAM    | ✅ Full                   | Netpbm PAM format                                 |
+| PPM    | ✅ Full                   | Netpbm PPM format (P3/P6)                         |
+| PCX    | ✅ Full                   | ZSoft PCX (RLE compressed)                        |
+| ASCII  | ✅ Full                   | Text-based ASCII art                              |
+| JPEG   | ⚠️ Baseline & Progressive | Pure-JS baseline & basic progressive DCT          |
+| WebP   | ⚠️ Lossless               | Pure-JS lossless VP8L                             |
+| TIFF   | ⚠️ Basic                  | Pure-JS uncompressed, LZW, & grayscale            |
+| HEIC   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support |
+| AVIF   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support |
 
 See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for
@@ -136,6 +136,7 @@ some blocks fail to decode, filling failed blocks with neutral values.
 **Features:**
 
 - **Enabled by default** - Handles real-world JPEGs from various devices
+- **Progressive JPEG support** - Decodes both baseline and progressive JPEGs
 - **Configurable** - Can be disabled for strict validation
 - **Fault-tolerant** - Recovers partial image data instead of failing completely
 - **Zero configuration** - Works automatically with the standard
@@ -144,6 +145,7 @@ some blocks fail to decode, filling failed blocks with neutral values.
 **When to use:**
 
 - Mobile phone JPEGs with complex encoding patterns
+- Progressive JPEG images from web sources
 - Images from various camera manufacturers
 - Partially corrupted JPEG files
 - Production applications requiring maximum compatibility
