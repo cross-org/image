@@ -17,8 +17,6 @@ and this project adheres to
 
 ### Fixed
 
-- JPEG images in debug/ folder now decode successfully, including progressive
-  JPEGs
 - `onWarning` callback option for all decoder options (`JPEGDecoderOptions`,
   `WebPDecoderOptions`, `GIFDecoderOptions`) to handle non-fatal warnings during
   decoding
