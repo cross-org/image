@@ -575,7 +575,7 @@ export class JPEGDecoder {
           if (s === 1) {
             // New non-zero coefficient in refinement scan
             // Skip r zero coefficients (refining non-zeros along the way)
-            for (let i = 0; i < r && k <= this.spectralEnd; k++) {
+            for (let i = 0; i < r && k <= this.spectralEnd && k < 64;) {
               if (block[ZIGZAG[k]] !== 0) {
                 // Refine non-zero coefficient
                 const bit = this.readBit();
@@ -588,10 +588,11 @@ export class JPEGDecoder {
               } else {
                 i++; // Count actual zeros
               }
+              k++;
             }
 
             // Decode the new coefficient
-            if (k <= this.spectralEnd) {
+            if (k <= this.spectralEnd && k < 64) {
               const bit = this.readBit();
               const coeff = bit
                 ? (1 << this.successiveLow)
@@ -603,7 +604,7 @@ export class JPEGDecoder {
           } else if (s === 0) {
             if (r === 15) {
               // ZRL: Skip 15 coefficients (refining non-zeros)
-              for (let i = 0; i < 15 && k <= this.spectralEnd; k++) {
+              for (let i = 0; i < 15 && k <= this.spectralEnd && k < 64;) {
                 if (block[ZIGZAG[k]] !== 0) {
                   // Refine non-zero coefficient
                   const bit = this.readBit();
@@ -616,10 +617,11 @@ export class JPEGDecoder {
                 } else {
                   i++; // Count actual zeros
                 }
+                k++;
               }
             } else {
               // EOB: Skip r coefficients then done
-              for (let i = 0; i < r && k <= this.spectralEnd; k++) {
+              for (let i = 0; i < r && k <= this.spectralEnd && k < 64;) {
                 if (block[ZIGZAG[k]] !== 0) {
                   // Refine non-zero coefficient
                   const bit = this.readBit();
@@ -632,6 +634,7 @@ export class JPEGDecoder {
                 } else {
                   i++; // Count actual zeros
                 }
+                k++;
               }
               break; // EOB
             }
