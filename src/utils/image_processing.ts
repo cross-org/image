@@ -91,12 +91,23 @@ export function adjustBrightness(
   amount: number,
 ): Uint8Array {
   const result = new Uint8Array(data.length);
-  const adjust = Math.max(-1, Math.min(1, amount)) * 255;
+  const clampedAmount = Math.max(-1, Math.min(1, amount));
+  const adjust = clampedAmount * 255;
+
+  // Pre-compute lookup table for clamping
+  // Use a wider range to avoid negative indices
+  const lut = new Uint8Array(767); // -255 to 511 range, offset by 255
+  for (let i = 0; i < 767; i++) {
+    const value = i - 255;
+    lut[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
+  }
+
+  const adjustInt = (adjust + 0.5) | 0;
 
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, data[i] + adjust)); // R
-    result[i + 1] = Math.max(0, Math.min(255, data[i + 1] + adjust)); // G
-    result[i + 2] = Math.max(0, Math.min(255, data[i + 2] + adjust)); // B
+    result[i] = lut[data[i] + adjustInt + 255]; // R
+    result[i + 1] = lut[data[i + 1] + adjustInt + 255]; // G
+    result[i + 2] = lut[data[i + 2] + adjustInt + 255]; // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -115,16 +126,17 @@ export function adjustContrast(data: Uint8Array, amount: number): Uint8Array {
   const factor = (259 * (contrast * 255 + 255)) /
     (255 * (259 - contrast * 255));
 
+  // Pre-compute lookup table for all possible pixel values
+  const lut = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) {
+    const val = factor * (i - 128) + 128;
+    lut[i] = val < 0 ? 0 : (val > 255 ? 255 : (val + 0.5) | 0);
+  }
+
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, factor * (data[i] - 128) + 128)); // R
-    result[i + 1] = Math.max(
-      0,
-      Math.min(255, factor * (data[i + 1] - 128) + 128),
-    ); // G
-    result[i + 2] = Math.max(
-      0,
-      Math.min(255, factor * (data[i + 2] - 128) + 128),
-    ); // B
+    result[i] = lut[data[i]]; // R
+    result[i + 1] = lut[data[i + 1]]; // G
+    result[i + 2] = lut[data[i + 2]]; // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -142,10 +154,17 @@ export function adjustExposure(data: Uint8Array, amount: number): Uint8Array {
   const stops = Math.max(-3, Math.min(3, amount));
   const multiplier = Math.pow(2, stops);
 
+  // Pre-compute lookup table for all possible pixel values
+  const lut = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) {
+    const val = i * multiplier;
+    lut[i] = val > 255 ? 255 : (val + 0.5) | 0;
+  }
+
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, data[i] * multiplier)); // R
-    result[i + 1] = Math.max(0, Math.min(255, data[i + 1] * multiplier)); // G
-    result[i + 2] = Math.max(0, Math.min(255, data[i + 2] * multiplier)); // B
+    result[i] = lut[data[i]]; // R
+    result[i + 1] = lut[data[i + 1]]; // G
+    result[i + 2] = lut[data[i + 2]]; // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -407,17 +426,13 @@ export function crop(
   const actualHeight = endY - startY;
 
   const result = new Uint8Array(actualWidth * actualHeight * 4);
+  const rowBytes = actualWidth * 4;
 
+  // Copy entire rows at once for better performance
   for (let py = 0; py < actualHeight; py++) {
-    for (let px = 0; px < actualWidth; px++) {
-      const srcIdx = ((startY + py) * width + (startX + px)) * 4;
-      const dstIdx = (py * actualWidth + px) * 4;
-
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
-    }
+    const srcOffset = ((startY + py) * width + startX) * 4;
+    const dstOffset = py * rowBytes;
+    result.set(data.subarray(srcOffset, srcOffset + rowBytes), dstOffset);
   }
 
   return { data: result, width: actualWidth, height: actualHeight };
@@ -770,18 +785,17 @@ export function rotate180(
 ): Uint8Array {
   const result = new Uint8Array(data.length);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcIdx = (y * width + x) * 4;
-      const dstX = width - 1 - x;
-      const dstY = height - 1 - y;
-      const dstIdx = (dstY * width + dstX) * 4;
+  // Use Uint32Array view for faster 4-byte (pixel) copying
+  const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
+  const dst32 = new Uint32Array(
+    result.buffer,
+    result.byteOffset,
+    width * height,
+  );
+  const totalPixels = width * height;
 
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
-    }
+  for (let i = 0; i < totalPixels; i++) {
+    dst32[totalPixels - 1 - i] = src32[i];
   }
 
   return result;
@@ -834,16 +848,20 @@ export function flipHorizontal(
 ): Uint8Array {
   const result = new Uint8Array(data.length);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcIdx = (y * width + x) * 4;
-      const dstX = width - 1 - x;
-      const dstIdx = (y * width + dstX) * 4;
+  // Use Uint32Array view for faster 4-byte (pixel) copying
+  const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
+  const dst32 = new Uint32Array(
+    result.buffer,
+    result.byteOffset,
+    width * height,
+  );
 
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
+  for (let y = 0; y < height; y++) {
+    const rowStart = y * width;
+    for (let x = 0; x < width; x++) {
+      const srcIdx = rowStart + x;
+      const dstIdx = rowStart + (width - 1 - x);
+      dst32[dstIdx] = src32[srcIdx];
     }
   }
 
@@ -863,18 +881,13 @@ export function flipVertical(
   height: number,
 ): Uint8Array {
   const result = new Uint8Array(data.length);
+  const rowBytes = width * 4;
 
+  // Copy entire rows at once for better performance
   for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcIdx = (y * width + x) * 4;
-      const dstY = height - 1 - y;
-      const dstIdx = (dstY * width + x) * 4;
-
-      result[dstIdx] = data[srcIdx];
-      result[dstIdx + 1] = data[srcIdx + 1];
-      result[dstIdx + 2] = data[srcIdx + 2];
-      result[dstIdx + 3] = data[srcIdx + 3];
-    }
+    const srcOffset = y * rowBytes;
+    const dstOffset = (height - 1 - y) * rowBytes;
+    result.set(data.subarray(srcOffset, srcOffset + rowBytes), dstOffset);
   }
 
   return result;
