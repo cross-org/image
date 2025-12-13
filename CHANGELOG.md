@@ -17,6 +17,8 @@ and this project adheres to
   scans (Ah=0, Al>0) and refinement scans (Ah>0) correctly accumulate
   bit-precision, eliminating blocky/low-resolution appearance in images with
   successive approximation encoding
+- DC predictor now correctly resets at the start of each scan per JPEG
+  specification, preventing coefficient accumulation artifacts across scans
 
 ### Added
 

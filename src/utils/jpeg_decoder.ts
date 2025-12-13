@@ -425,6 +425,11 @@ export class JPEGDecoder {
     this.bitBuffer = 0;
     this.bitCount = 0;
 
+    // Reset DC predictors at the start of each scan (JPEG spec requirement)
+    for (const component of this.components) {
+      component.pred = 0;
+    }
+
     // Initialize or preserve blocks for each component
     // For progressive JPEGs, blocks must be preserved across multiple scans
     // to accumulate coefficients from different spectral bands and bit refinements
