@@ -67,3 +67,23 @@ export function writeInt32LE(
 ): void {
   writeUint32LE(data, offset, value < 0 ? value + UINT32_RANGE : value);
 }
+
+/**
+ * Clamp a value to the range [0, 255] for RGB channel values
+ * @param value Value to clamp
+ * @returns Clamped value in range [0, 255]
+ */
+export function clampRgb(value: number): number {
+  return Math.max(0, Math.min(255, value));
+}
+
+/**
+ * Clamp a value to a specified range [min, max]
+ * @param value Value to clamp
+ * @param min Minimum value
+ * @param max Maximum value
+ * @returns Clamped value in range [min, max]
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}

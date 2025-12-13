@@ -3,6 +3,8 @@
  * level adjustments, and color manipulations.
  */
 
+import { clamp, clampRgb } from "./byte_utils.ts";
+
 /**
  * Composite one image on top of another at a specified position
  * @param base Base image data (RGBA)
@@ -30,7 +32,7 @@ export function composite(
   const result = new Uint8Array(base);
 
   // Clamp opacity to valid range
-  const finalOpacity = Math.max(0, Math.min(1, opacity));
+  const finalOpacity = clamp(opacity, 0, 1);
 
   // Calculate the region to composite
   const startX = Math.max(0, x);
@@ -91,12 +93,12 @@ export function adjustBrightness(
   amount: number,
 ): Uint8Array {
   const result = new Uint8Array(data.length);
-  const adjust = Math.max(-1, Math.min(1, amount)) * 255;
+  const adjust = clamp(amount, -1, 1) * 255;
 
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, data[i] + adjust)); // R
-    result[i + 1] = Math.max(0, Math.min(255, data[i + 1] + adjust)); // G
-    result[i + 2] = Math.max(0, Math.min(255, data[i + 2] + adjust)); // B
+    result[i] = clampRgb(data[i] + adjust); // R
+    result[i + 1] = clampRgb(data[i + 1] + adjust); // G
+    result[i + 2] = clampRgb(data[i + 2] + adjust); // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -111,20 +113,14 @@ export function adjustBrightness(
  */
 export function adjustContrast(data: Uint8Array, amount: number): Uint8Array {
   const result = new Uint8Array(data.length);
-  const contrast = Math.max(-1, Math.min(1, amount));
+  const contrast = clamp(amount, -1, 1);
   const factor = (259 * (contrast * 255 + 255)) /
     (255 * (259 - contrast * 255));
 
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, factor * (data[i] - 128) + 128)); // R
-    result[i + 1] = Math.max(
-      0,
-      Math.min(255, factor * (data[i + 1] - 128) + 128),
-    ); // G
-    result[i + 2] = Math.max(
-      0,
-      Math.min(255, factor * (data[i + 2] - 128) + 128),
-    ); // B
+    result[i] = clampRgb(factor * (data[i] - 128) + 128); // R
+    result[i + 1] = clampRgb(factor * (data[i + 1] - 128) + 128); // G
+    result[i + 2] = clampRgb(factor * (data[i + 2] - 128) + 128); // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -139,13 +135,13 @@ export function adjustContrast(data: Uint8Array, amount: number): Uint8Array {
  */
 export function adjustExposure(data: Uint8Array, amount: number): Uint8Array {
   const result = new Uint8Array(data.length);
-  const stops = Math.max(-3, Math.min(3, amount));
+  const stops = clamp(amount, -3, 3);
   const multiplier = Math.pow(2, stops);
 
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = Math.max(0, Math.min(255, data[i] * multiplier)); // R
-    result[i + 1] = Math.max(0, Math.min(255, data[i + 1] * multiplier)); // G
-    result[i + 2] = Math.max(0, Math.min(255, data[i + 2] * multiplier)); // B
+    result[i] = clampRgb(data[i] * multiplier); // R
+    result[i + 1] = clampRgb(data[i + 1] * multiplier); // G
+    result[i + 2] = clampRgb(data[i + 2] * multiplier); // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -163,7 +159,7 @@ export function adjustSaturation(
   amount: number,
 ): Uint8Array {
   const result = new Uint8Array(data.length);
-  const sat = Math.max(-1, Math.min(1, amount)) + 1; // Convert to 0-2 range
+  const sat = clamp(amount, -1, 1) + 1; // Convert to 0-2 range
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
@@ -174,9 +170,9 @@ export function adjustSaturation(
     const gray = 0.299 * r + 0.587 * g + 0.114 * b;
 
     // Interpolate between gray and original color based on saturation
-    result[i] = Math.max(0, Math.min(255, gray + (r - gray) * sat));
-    result[i + 1] = Math.max(0, Math.min(255, gray + (g - gray) * sat));
-    result[i + 2] = Math.max(0, Math.min(255, gray + (b - gray) * sat));
+    result[i] = clampRgb(gray + (r - gray) * sat);
+    result[i + 1] = clampRgb(gray + (g - gray) * sat);
+    result[i + 2] = clampRgb(gray + (b - gray) * sat);
     result[i + 3] = data[i + 3];
   }
 
@@ -528,7 +524,7 @@ export function gaussianBlur(
       let r = 0, g = 0, b = 0, a = 0;
 
       for (let kx = -clampedRadius; kx <= clampedRadius; kx++) {
-        const px = Math.max(0, Math.min(width - 1, x + kx));
+        const px = clamp(x + kx, 0, width - 1);
         const idx = (y * width + px) * 4;
         const weight = kernel[kx + clampedRadius];
 
@@ -554,7 +550,7 @@ export function gaussianBlur(
       let r = 0, g = 0, b = 0, a = 0;
 
       for (let ky = -clampedRadius; ky <= clampedRadius; ky++) {
-        const py = Math.max(0, Math.min(height - 1, y + ky));
+        const py = clamp(y + ky, 0, height - 1);
         const idx = (py * width + x) * 4;
         const weight = kernel[ky + clampedRadius];
 
@@ -590,7 +586,7 @@ export function sharpen(
   amount = 0.5,
 ): Uint8Array {
   const result = new Uint8Array(data.length);
-  const clampedAmount = Math.max(0, Math.min(1, amount));
+  const clampedAmount = clamp(amount, 0, 1);
 
   // Sharpen kernel (Laplacian-based)
   // Center weight is 1 + 4*amount, neighbors are -amount
@@ -625,9 +621,9 @@ export function sharpen(
         }
       }
 
-      result[idx] = Math.max(0, Math.min(255, Math.round(r)));
-      result[idx + 1] = Math.max(0, Math.min(255, Math.round(g)));
-      result[idx + 2] = Math.max(0, Math.min(255, Math.round(b)));
+      result[idx] = clampRgb(Math.round(r));
+      result[idx + 1] = clampRgb(Math.round(g));
+      result[idx + 2] = clampRgb(Math.round(b));
       result[idx + 3] = data[idx + 3]; // Alpha unchanged
     }
   }

@@ -1,6 +1,9 @@
 /**
  * Bilinear interpolation resize
  */
+
+import { clamp, clampRgb } from "./byte_utils.ts";
+
 export function resizeBilinear(
   src: Uint8Array,
   srcWidth: number,
@@ -113,8 +116,8 @@ function getPixel(
   height: number,
   channel: number,
 ): number {
-  const clampedX = Math.max(0, Math.min(width - 1, x));
-  const clampedY = Math.max(0, Math.min(height - 1, y));
+  const clampedX = clamp(x, 0, width - 1);
+  const clampedY = clamp(y, 0, height - 1);
   return src[(clampedY * width + clampedX) * 4 + channel];
 }
 
@@ -158,7 +161,7 @@ export function resizeBicubic(
 
         // Clamp to valid range
         const dstIdx = (y * dstWidth + x) * 4 + c;
-        dst[dstIdx] = Math.max(0, Math.min(255, Math.round(value)));
+        dst[dstIdx] = clampRgb(Math.round(value));
       }
     }
   }
