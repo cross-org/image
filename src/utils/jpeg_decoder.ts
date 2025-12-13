@@ -614,7 +614,7 @@ export class JPEGDecoder {
               // For baseline JPEG, (r,0) where r!=0,15 should not occur
               if (this.isProgressive && r > 0) {
                 // Progressive JPEG: EOBn with additional unsigned bits
-                // Read r unsigned bits and compute: eobRun = (2^r - 1) + bits
+                // Formula: eobRun = (1 << r) - 1 + additionalBits
                 // This specifies how many ADDITIONAL blocks (after current) to skip
                 const additionalBits = this.receiveUnsignedBits(r);
                 this.eobRun = (1 << r) - 1 + additionalBits;
@@ -822,6 +822,12 @@ export class JPEGDecoder {
 
   private receiveUnsignedBits(n: number): number {
     // Read n bits as an unsigned integer (no magnitude conversion)
+    // Input validation: n should be between 0 and 16
+    if (n < 0 || n > 16) {
+      throw new Error(`Invalid bit count: ${n} (must be 0-16)`);
+    }
+    if (n === 0) return 0;
+
     let value = 0;
     for (let i = 0; i < n; i++) {
       value = (value << 1) | this.readBit();
