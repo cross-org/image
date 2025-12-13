@@ -1,5 +1,6 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { test } from "@cross/test";
+import { readFile } from "@cross/fs";
 
 import { JPEGFormat } from "../../src/formats/jpeg.ts";
 import { Image } from "../../src/image.ts";
@@ -566,4 +567,92 @@ test("JPEG: Huffman code roundtrip with extreme values", async () => {
       assertEquals(current.height, height);
     }
   });
+});
+
+test("JPEG: Progressive JPEG decoding from debug folder", async () => {
+  const format = new JPEGFormat();
+
+  // Test with the progressive JPEG from debug folder
+  const data = await readFile("debug/JPEG_compression_Example.jpg");
+
+  // This is a progressive JPEG (SOF2 marker 0xFFC2)
+  // It should now decode successfully with pure-JS decoder
+  const decoded = await withoutOffscreenCanvas(async () => {
+    return await format.decode(data);
+  });
+
+  // Verify dimensions (this is a 1000x750 image)
+  assertEquals(decoded.width, 1000);
+  assertEquals(decoded.height, 750);
+  assertEquals(decoded.data.length, 1000 * 750 * 4);
+
+  // Verify alpha channel is properly set
+  for (let i = 3; i < decoded.data.length; i += 4) {
+    assertEquals(decoded.data[i], 255, "Alpha channel should be 255");
+  }
+
+  // Verify we got actual color data (not all zeros or all one value)
+  const firstPixelR = decoded.data[0];
+  const firstPixelG = decoded.data[1];
+  const firstPixelB = decoded.data[2];
+
+  // Check that pixels have reasonable values (0-255 range)
+  assertEquals(
+    firstPixelR >= 0 && firstPixelR <= 255,
+    true,
+    "Red channel should be in valid range",
+  );
+  assertEquals(
+    firstPixelG >= 0 && firstPixelG <= 255,
+    true,
+    "Green channel should be in valid range",
+  );
+  assertEquals(
+    firstPixelB >= 0 && firstPixelB <= 255,
+    true,
+    "Blue channel should be in valid range",
+  );
+});
+
+test("JPEG: All debug folder images decode successfully", async () => {
+  // Test that all images in the debug folder can be decoded with pure-JS decoder
+  const debugFiles = [
+    "debug/1000015567.jpg",
+    "debug/JPEG_compression_Example.jpg", // Progressive JPEG
+    "debug/landscape_hires_4000x2667_6.83mb.jpg",
+  ];
+
+  for (const file of debugFiles) {
+    const data = await readFile(file);
+    // Force pure-JS decoder to test progressive JPEG implementation
+    const image = await withoutOffscreenCanvas(async () => {
+      return await Image.decode(data);
+    });
+
+    // Verify basic properties
+    assertEquals(
+      image.width > 0,
+      true,
+      `${file}: width should be positive`,
+    );
+    assertEquals(
+      image.height > 0,
+      true,
+      `${file}: height should be positive`,
+    );
+    assertEquals(
+      image.data.length,
+      image.width * image.height * 4,
+      `${file}: data length should match dimensions`,
+    );
+
+    // Verify alpha channel
+    for (let i = 3; i < image.data.length; i += 4) {
+      assertEquals(
+        image.data[i],
+        255,
+        `${file}: alpha channel should be 255`,
+      );
+    }
+  }
 });

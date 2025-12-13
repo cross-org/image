@@ -13,22 +13,22 @@ and runtime compatibility.
 This table shows which image formats are supported and their implementation
 status:
 
-| Format | Read | Write | Pure-JS Decode | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                        |
-| ------ | ---- | ----- | -------------- | -------------- | ----------------- | ------------------ | -------------------------------------------- |
-| PNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
-| APNG   | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | N/A                | Animated PNG with multi-frame support        |
-| BMP    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
-| DNG    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Linear DNG (Uncompressed RGBA)               |
-| PAM    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Netpbm PAM (Portable Arbitrary Map)          |
-| PPM    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Netpbm PPM (Portable PixMap) P3/P6 formats   |
-| PCX    | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | ZSoft PCX (RLE compressed)                   |
-| ASCII  | ✅   | ✅    | ✅ Full        | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation          |
-| JPEG   | ✅   | ✅    | ⚠️ Baseline    | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline DCT only                |
-| GIF    | ✅   | ✅    | ✅ Full        | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
-| WebP   | ✅   | ✅    | ⚠️ Lossless    | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
-| TIFF   | ✅   | ✅    | ⚠️ Basic       | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed, LZW, & grayscale   |
-| HEIC   | ✅   | ✅    | ❌             | ❌             | ✅ ImageDecoder   | ✅ OffscreenCanvas | Requires runtime API support                 |
-| AVIF   | ✅   | ✅    | ❌             | ❌             | ✅ ImageDecoder   | ✅ OffscreenCanvas | Requires runtime API support                 |
+| Format | Read | Write | Pure-JS Decode            | Pure-JS Encode | Native API Decode | Native API Encode  | Notes                                        |
+| ------ | ---- | ----- | ------------------------- | -------------- | ----------------- | ------------------ | -------------------------------------------- |
+| PNG    | ✅   | ✅    | ✅ Full                   | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| APNG   | ✅   | ✅    | ✅ Full                   | ✅ Full        | ✅ ImageDecoder   | N/A                | Animated PNG with multi-frame support        |
+| BMP    | ✅   | ✅    | ✅ Full                   | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| DNG    | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | Linear DNG (Uncompressed RGBA)               |
+| PAM    | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | Netpbm PAM (Portable Arbitrary Map)          |
+| PPM    | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | Netpbm PPM (Portable PixMap) P3/P6 formats   |
+| PCX    | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | ZSoft PCX (RLE compressed)                   |
+| ASCII  | ✅   | ✅    | ✅ Full                   | ✅ Full        | N/A               | N/A                | Text-based ASCII art representation          |
+| JPEG   | ✅   | ✅    | ⚠️ Baseline & Progressive | ⚠️ Baseline    | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for baseline & progressive DCT       |
+| GIF    | ✅   | ✅    | ✅ Full                   | ✅ Full        | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation              |
+| WebP   | ✅   | ✅    | ⚠️ Lossless               | ⚠️ Quantized   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS VP8L with quality-based quantization |
+| TIFF   | ✅   | ✅    | ⚠️ Basic                  | ⚠️ Basic       | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS for uncompressed, LZW, & grayscale   |
+| HEIC   | ✅   | ✅    | ❌                        | ❌             | ✅ ImageDecoder   | ✅ OffscreenCanvas | Requires runtime API support                 |
+| AVIF   | ✅   | ✅    | ❌                        | ❌             | ✅ ImageDecoder   | ✅ OffscreenCanvas | Requires runtime API support                 |
 
 **Legend:**
 
@@ -60,7 +60,7 @@ This table shows which format standards and variants are supported:
 |        | - 32-bit RGBA                       | ✅ Full           | Pure-JS        |
 |        | - Compressed variants (RLE)         | ❌ Not Yet        | -              |
 | JPEG   | JPEG/JFIF Baseline DCT              | ✅ Full           | Pure-JS        |
-|        | Progressive DCT                     | ⚠️ Native only    | ImageDecoder   |
+|        | Progressive DCT (SOF2)              | ⚠️ Basic          | Pure-JS        |
 |        | - EXIF metadata                     | ✅ Full           | Pure-JS        |
 |        | - JFIF (APP0) with DPI              | ✅ Full           | Pure-JS        |
 | WebP   | WebP Lossless (VP8L)                | ⚠️ Basic          | Pure-JS        |
@@ -120,7 +120,7 @@ This table shows which format standards and variants are supported:
 | PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
 | ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
 | GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                    |
-| JPEG   | ✅       | ⚠️ Baseline | ✅          | ✅  | Node 18: pure-JS baseline only, 20+: full   |
+| JPEG   | ✅       | ✅          | ✅          | ✅  | Pure-JS baseline & progressive DCT          |
 | WebP   | ✅       | ⚠️ Lossless | ✅          | ✅  | Node 18: pure-JS lossless only, 20+: full   |
 | TIFF   | ✅       | ✅          | ✅          | ✅  | Node 18: pure-JS uncompressed+LZW+grayscale |
 | HEIC   | ✅       | ⚠️ Runtime  | ✅          | ✅  | Requires ImageDecoder API support           |
