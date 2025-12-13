@@ -509,10 +509,23 @@ export class JPEGDecoder {
         throw new Error(`Missing DC table ${component.dcTable}`);
       }
 
-      const dcLen = this.decodeHuffman(dcTable);
-      const dcDiff = dcLen > 0 ? this.receiveBits(dcLen) : 0;
-      component.pred += dcDiff;
-      block[0] = component.pred * this.qTables[component.qTable][0];
+      if (this.successiveHigh === 0) {
+        // First DC scan: decode the DC coefficient
+        const dcLen = this.decodeHuffman(dcTable);
+        const dcDiff = dcLen > 0 ? this.receiveBits(dcLen) : 0;
+        component.pred += dcDiff;
+        // For successive approximation, shift the coefficient left by Al bits
+        const coeff = component.pred << this.successiveLow;
+        block[0] = coeff * this.qTables[component.qTable][0];
+      } else {
+        // DC refinement scan: add a refinement bit
+        const bit = this.readBit();
+        if (bit) {
+          // Add the refinement bit at position Al
+          const refinement = 1 << this.successiveLow;
+          block[0] += refinement * this.qTables[component.qTable][0];
+        }
+      }
     }
 
     // Decode AC coefficients (if spectralEnd > 0)
@@ -524,26 +537,105 @@ export class JPEGDecoder {
         throw new Error(`Missing AC table ${component.acTable}`);
       }
 
-      // Start from spectralStart, but ensure k >= 1 (AC coefficients start at index 1)
-      // For DC-only scans (Ss=0, Se=0), this entire block is skipped
-      let k = this.spectralStart === 0 ? 1 : this.spectralStart;
-      while (k <= this.spectralEnd && k < 64) {
-        const rs = this.decodeHuffman(acTable);
-        const r = (rs >> 4) & 0x0F;
-        const s = rs & 0x0F;
+      if (this.successiveHigh === 0) {
+        // First AC scan: decode new coefficients
+        // Start from spectralStart, but ensure k >= 1 (AC coefficients start at index 1)
+        let k = this.spectralStart === 0 ? 1 : this.spectralStart;
+        while (k <= this.spectralEnd && k < 64) {
+          const rs = this.decodeHuffman(acTable);
+          const r = (rs >> 4) & 0x0F;
+          const s = rs & 0x0F;
 
-        if (s === 0) {
-          if (r === 15) {
-            k += 16;
+          if (s === 0) {
+            if (r === 15) {
+              k += 16;
+            } else {
+              break; // EOB
+            }
           } else {
-            break; // EOB
+            k += r;
+            if (k >= 64) break;
+            // For successive approximation, shift the coefficient left by Al bits
+            const coeff = this.receiveBits(s) << this.successiveLow;
+            block[ZIGZAG[k]] = coeff *
+              this.qTables[component.qTable][ZIGZAG[k]];
+            k++;
           }
-        } else {
-          k += r;
-          if (k >= 64) break;
-          block[ZIGZAG[k]] = this.receiveBits(s) *
-            this.qTables[component.qTable][ZIGZAG[k]];
-          k++;
+        }
+      } else {
+        // AC refinement scan: refine existing non-zero coefficients
+        // This is complex: we need to handle both zero runs and refinement bits
+        let k = this.spectralStart === 0 ? 1 : this.spectralStart;
+
+        while (k <= this.spectralEnd && k < 64) {
+          const rs = this.decodeHuffman(acTable);
+          const r = (rs >> 4) & 0x0F; // Run length
+          const s = rs & 0x0F; // Should be 0 or 1 for refinement
+
+          if (s === 1) {
+            // New non-zero coefficient in refinement scan
+            // Skip r zero coefficients (refining non-zeros along the way)
+            for (let i = 0; i < r && k <= this.spectralEnd; k++) {
+              if (block[ZIGZAG[k]] !== 0) {
+                // Refine non-zero coefficient
+                const bit = this.readBit();
+                if (bit) {
+                  const refinement = 1 << this.successiveLow;
+                  const sign = block[ZIGZAG[k]] < 0 ? -1 : 1;
+                  block[ZIGZAG[k]] += sign * refinement *
+                    this.qTables[component.qTable][ZIGZAG[k]];
+                }
+              } else {
+                i++; // Count actual zeros
+              }
+            }
+
+            // Decode the new coefficient
+            if (k <= this.spectralEnd) {
+              const bit = this.readBit();
+              const coeff = bit
+                ? (1 << this.successiveLow)
+                : -(1 << this.successiveLow);
+              block[ZIGZAG[k]] = coeff *
+                this.qTables[component.qTable][ZIGZAG[k]];
+              k++;
+            }
+          } else if (s === 0) {
+            if (r === 15) {
+              // ZRL: Skip 15 coefficients (refining non-zeros)
+              for (let i = 0; i < 15 && k <= this.spectralEnd; k++) {
+                if (block[ZIGZAG[k]] !== 0) {
+                  // Refine non-zero coefficient
+                  const bit = this.readBit();
+                  if (bit) {
+                    const refinement = 1 << this.successiveLow;
+                    const sign = block[ZIGZAG[k]] < 0 ? -1 : 1;
+                    block[ZIGZAG[k]] += sign * refinement *
+                      this.qTables[component.qTable][ZIGZAG[k]];
+                  }
+                } else {
+                  i++; // Count actual zeros
+                }
+              }
+            } else {
+              // EOB: Skip r coefficients then done
+              for (let i = 0; i < r && k <= this.spectralEnd; k++) {
+                if (block[ZIGZAG[k]] !== 0) {
+                  // Refine non-zero coefficient
+                  const bit = this.readBit();
+                  if (bit) {
+                    const refinement = 1 << this.successiveLow;
+                    const sign = block[ZIGZAG[k]] < 0 ? -1 : 1;
+                    block[ZIGZAG[k]] += sign * refinement *
+                      this.qTables[component.qTable][ZIGZAG[k]];
+                  }
+                } else {
+                  i++; // Count actual zeros
+                }
+              }
+              break; // EOB
+            }
+          }
         }
       }
     }

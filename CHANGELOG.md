@@ -13,11 +13,16 @@ and this project adheres to
 - Progressive JPEG decoding now correctly accumulates DCT coefficients across
   multiple scans by deferring IDCT until all scans complete, fixing issues with
   half-decoded or corrupted-looking progressive images
+- Successive approximation in progressive JPEGs now properly handled: high-bit
+  scans (Ah=0, Al>0) and refinement scans (Ah>0) correctly accumulate
+  bit-precision, eliminating blocky/low-resolution appearance in images with
+  successive approximation encoding
 
 ### Added
 
 - Progressive JPEG support in pure JavaScript decoder - can now decode both
-  baseline (SOF0) and progressive (SOF2) JPEGs without requiring runtime APIs
+  baseline (SOF0) and progressive (SOF2) JPEGs without requiring runtime APIs,
+  including full successive approximation bit-refinement support
 - `createImageBitmap` + `OffscreenCanvas` fallback for JPEG decoding in
   environments with canvas APIs available
 - Comprehensive tests for progressive JPEG decoding in
