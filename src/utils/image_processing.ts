@@ -138,7 +138,7 @@ export function adjustContrast(data: Uint8Array, amount: number): Uint8Array {
   const lut = new Uint8Array(256);
   for (let i = 0; i < 256; i++) {
     const val = factor * (i - 128) + 128;
-    lut[i] = val < 0 ? 0 : (val > 255 ? 255 : (val + 0.5) | 0);
+    lut[i] = val < 0 ? 0 : (val > 255 ? 255 : Math.round(val));
   }
 
   for (let i = 0; i < data.length; i += 4) {
