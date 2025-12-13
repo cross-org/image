@@ -418,7 +418,7 @@ export class JPEGDecoder {
       const blocksDown = Math.ceil(this.height * component.v / (8 * maxV));
 
       // Only initialize blocks if they don't exist yet (first scan)
-      if (component.blocks.length === 0) {
+      if (!component.blocks || component.blocks.length === 0) {
         component.blocks = Array(blocksDown).fill(null).map(() =>
           Array(blocksAcross).fill(null).map(() => new Int32Array(64))
         );
@@ -506,7 +506,9 @@ export class JPEGDecoder {
         throw new Error(`Missing AC table ${component.acTable}`);
       }
 
-      let k = Math.max(1, this.spectralStart);
+      // Start from spectralStart, but ensure k >= 1 (AC coefficients start at index 1)
+      // For DC-only scans (Ss=0, Se=0), this entire block is skipped
+      let k = this.spectralStart === 0 ? 1 : this.spectralStart;
       while (k <= this.spectralEnd && k < 64) {
         const rs = this.decodeHuffman(acTable);
         const r = (rs >> 4) & 0x0F;
