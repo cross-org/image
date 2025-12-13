@@ -5,6 +5,11 @@ import type {
   MultiFrameImageData,
 } from "../types.ts";
 import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
+import {
+  packBitsCompress,
+  packBitsDecompress,
+} from "../utils/tiff_packbits.ts";
+import { deflateCompress, deflateDecompress } from "../utils/tiff_deflate.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 // Constants for unit conversions
@@ -14,8 +19,8 @@ const DEFAULT_DPI = 72;
  * Options for TIFF encoding
  */
 export interface TIFFEncodeOptions {
-  /** Compression method: "none" for uncompressed (default), "lzw" for LZW compression */
-  compression?: "none" | "lzw";
+  /** Compression method: "none" for uncompressed (default), "lzw" for LZW, "packbits" for PackBits RLE, "deflate" for Adobe-style Deflate */
+  compression?: "none" | "lzw" | "packbits" | "deflate";
   /** Encode as grayscale instead of RGB/RGBA */
   grayscale?: boolean;
   /** Encode as RGB without alpha channel (ignored if grayscale is true) */
@@ -24,9 +29,9 @@ export interface TIFFEncodeOptions {
 
 /**
  * TIFF format handler
- * Implements pure-JS TIFF decoder for uncompressed and LZW-compressed RGB/RGBA images
- * and encoder for uncompressed and LZW-compressed RGBA TIFFs. Falls back to ImageDecoder
- * for other compressed TIFFs (JPEG, PackBits, etc.)
+ * Implements pure-JS TIFF decoder for uncompressed, LZW, PackBits, and Deflate-compressed RGB/RGBA images
+ * and encoder for uncompressed, LZW, PackBits, and Deflate-compressed RGBA TIFFs. Falls back to ImageDecoder
+ * for JPEG-compressed TIFFs.
  * Supports multi-page TIFF files.
  */
 export class TIFFFormat implements ImageFormat {
@@ -204,7 +209,10 @@ export class TIFFFormat implements ImageFormat {
     };
   }
 
-  encode(imageData: ImageData, options?: unknown): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
     const opts = options as TIFFEncodeOptions | undefined;
     const compression = opts?.compression ?? "none";
@@ -249,6 +257,14 @@ export class TIFFFormat implements ImageFormat {
       const encoder = new TIFFLZWEncoder();
       pixelData = encoder.compress(sourceData);
       compressionCode = 5;
+    } else if (compression === "packbits") {
+      // PackBits compress the pixel data
+      pixelData = packBitsCompress(sourceData);
+      compressionCode = 32773;
+    } else if (compression === "deflate") {
+      // Deflate compress the pixel data
+      pixelData = await deflateCompress(sourceData);
+      compressionCode = 8;
     } else {
       // Uncompressed
       pixelData = sourceData;
@@ -532,7 +548,7 @@ export class TIFFFormat implements ImageFormat {
   /**
    * Encode multi-page TIFF
    */
-  encodeFrames(
+  async encodeFrames(
     imageData: MultiFrameImageData,
     options?: unknown,
   ): Promise<Uint8Array> {
@@ -566,6 +582,10 @@ export class TIFFFormat implements ImageFormat {
       if (compression === "lzw") {
         const encoder = new TIFFLZWEncoder();
         pixelData = encoder.compress(frame.data);
+      } else if (compression === "packbits") {
+        pixelData = packBitsCompress(frame.data);
+      } else if (compression === "deflate") {
+        pixelData = await deflateCompress(frame.data);
       } else {
         pixelData = frame.data;
       }
@@ -607,7 +627,16 @@ export class TIFFFormat implements ImageFormat {
       dataOffset += 8;
 
       // Compression
-      const compressionCode = compression === "lzw" ? 5 : 1;
+      let compressionCode: number;
+      if (compression === "lzw") {
+        compressionCode = 5;
+      } else if (compression === "packbits") {
+        compressionCode = 32773;
+      } else if (compression === "deflate") {
+        compressionCode = 8;
+      } else {
+        compressionCode = 1;
+      }
       this.writeIFDEntry(result, 0x0103, 3, 1, compressionCode);
 
       // PhotometricInterpretation
@@ -623,9 +652,16 @@ export class TIFFFormat implements ImageFormat {
       this.writeIFDEntry(result, 0x0116, 4, 1, frame.height);
 
       // StripByteCounts
-      const pixelDataSize = compression === "lzw"
-        ? new TIFFLZWEncoder().compress(frame.data).length
-        : frame.data.length;
+      let pixelDataSize: number;
+      if (compression === "lzw") {
+        pixelDataSize = new TIFFLZWEncoder().compress(frame.data).length;
+      } else if (compression === "packbits") {
+        pixelDataSize = packBitsCompress(frame.data).length;
+      } else if (compression === "deflate") {
+        pixelDataSize = (await deflateCompress(frame.data)).length;
+      } else {
+        pixelDataSize = frame.data.length;
+      }
       this.writeIFDEntry(result, 0x0117, 4, 1, pixelDataSize);
 
       // XResolution
@@ -784,7 +820,7 @@ export class TIFFFormat implements ImageFormat {
 
     // Try pure JavaScript decoder first
     try {
-      const pureJSResult = this.decodePureJSFromIFD(
+      const pureJSResult = await this.decodePureJSFromIFD(
         data,
         ifdOffset,
         width,
@@ -1011,7 +1047,7 @@ export class TIFFFormat implements ImageFormat {
   ): Promise<Uint8Array> {
     // Try pure JavaScript decoder first for uncompressed TIFFs
     try {
-      const pureJSResult = this.decodePureJS(data, width, height);
+      const pureJSResult = await this.decodePureJS(data, width, height);
       if (pureJSResult) {
         return pureJSResult;
       }
@@ -1057,14 +1093,14 @@ export class TIFFFormat implements ImageFormat {
   }
 
   /**
-   * Pure JavaScript TIFF decoder for uncompressed and LZW-compressed RGB/RGBA images
+   * Pure JavaScript TIFF decoder for uncompressed, LZW, PackBits, and Deflate-compressed RGB/RGBA images
    * Returns null if the TIFF uses unsupported features
    */
-  private decodePureJS(
+  private async decodePureJS(
     data: Uint8Array,
     width: number,
     height: number,
-  ): Uint8Array | null {
+  ): Promise<Uint8Array | null> {
     // Validate minimum TIFF header size
     if (data.length < 8) {
       return null;
@@ -1083,8 +1119,11 @@ export class TIFFFormat implements ImageFormat {
       0x0103,
       isLittleEndian,
     );
-    if (compression !== 1 && compression !== 5) {
-      // Only support uncompressed (1) and LZW (5)
+    if (
+      compression !== 1 && compression !== 5 && compression !== 8 &&
+      compression !== 32773
+    ) {
+      // Support: 1 = uncompressed, 5 = LZW, 8 = Deflate, 32773 = PackBits
       return null;
     }
 
@@ -1157,6 +1196,20 @@ export class TIFFFormat implements ImageFormat {
       );
       const decoder = new TIFFLZWDecoder(compressedData);
       pixelData = decoder.decompress();
+    } else if (compression === 32773) {
+      // PackBits compressed
+      const compressedData = data.slice(
+        stripOffset,
+        stripOffset + stripByteCount,
+      );
+      pixelData = packBitsDecompress(compressedData);
+    } else if (compression === 8) {
+      // Deflate compressed
+      const compressedData = data.slice(
+        stripOffset,
+        stripOffset + stripByteCount,
+      );
+      pixelData = await deflateDecompress(compressedData);
     } else {
       // Uncompressed
       pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
@@ -1218,13 +1271,13 @@ export class TIFFFormat implements ImageFormat {
    * Pure JavaScript TIFF decoder for a specific IFD
    * Returns null if the TIFF uses unsupported features
    */
-  private decodePureJSFromIFD(
+  private async decodePureJSFromIFD(
     data: Uint8Array,
     ifdOffset: number,
     width: number,
     height: number,
     isLittleEndian: boolean,
-  ): Uint8Array | null {
+  ): Promise<Uint8Array | null> {
     // Check compression
     const compression = this.getIFDValue(
       data,
@@ -1232,8 +1285,11 @@ export class TIFFFormat implements ImageFormat {
       0x0103,
       isLittleEndian,
     );
-    if (compression !== 1 && compression !== 5) {
-      // Only support uncompressed (1) and LZW (5)
+    if (
+      compression !== 1 && compression !== 5 && compression !== 8 &&
+      compression !== 32773
+    ) {
+      // Support: 1 = uncompressed, 5 = LZW, 8 = Deflate, 32773 = PackBits
       return null;
     }
 
@@ -1306,6 +1362,20 @@ export class TIFFFormat implements ImageFormat {
       );
       const decoder = new TIFFLZWDecoder(compressedData);
       pixelData = decoder.decompress();
+    } else if (compression === 32773) {
+      // PackBits compressed
+      const compressedData = data.slice(
+        stripOffset,
+        stripOffset + stripByteCount,
+      );
+      pixelData = packBitsDecompress(compressedData);
+    } else if (compression === 8) {
+      // Deflate compressed
+      const compressedData = data.slice(
+        stripOffset,
+        stripOffset + stripByteCount,
+      );
+      pixelData = await deflateDecompress(compressedData);
     } else {
       // Uncompressed
       pixelData = data.slice(stripOffset, stripOffset + stripByteCount);
@@ -1446,8 +1516,10 @@ export class TIFFFormat implements ImageFormat {
       metadata.compression = "none";
     } else if (compression === 5) {
       metadata.compression = "lzw";
-    } else if (compression === 7) {
+    } else if (compression === 7 || compression === 6) {
       metadata.compression = "jpeg";
+    } else if (compression === 8) {
+      metadata.compression = "deflate";
     } else if (compression === 32773) {
       metadata.compression = "packbits";
     } else if (compression) {
