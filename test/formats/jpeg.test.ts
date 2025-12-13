@@ -799,7 +799,10 @@ test(
     }
 
     // Encode with progressive mode
-    const progressiveEncoder = new JPEGEncoder({ quality: 85, progressive: true });
+    const progressiveEncoder = new JPEGEncoder({
+      quality: 85,
+      progressive: true,
+    });
     const progressiveEncoded = progressiveEncoder.encode(width, height, data);
 
     // Should be a valid JPEG
@@ -809,7 +812,9 @@ test(
     // Should contain SOF2 marker (0xFFC2) for progressive JPEG
     let foundSOF2 = false;
     for (let i = 0; i < progressiveEncoded.length - 1; i++) {
-      if (progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2) {
+      if (
+        progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2
+      ) {
         foundSOF2 = true;
         break;
       }
@@ -845,11 +850,17 @@ test(
     const data = new Uint8Array(width * height * 4).fill(128);
 
     // Encode with baseline
-    const baselineEncoder = new JPEGEncoder({ quality: 85, progressive: false });
+    const baselineEncoder = new JPEGEncoder({
+      quality: 85,
+      progressive: false,
+    });
     const baselineEncoded = baselineEncoder.encode(width, height, data);
 
     // Encode with progressive
-    const progressiveEncoder = new JPEGEncoder({ quality: 85, progressive: true });
+    const progressiveEncoder = new JPEGEncoder({
+      quality: 85,
+      progressive: true,
+    });
     const progressiveEncoded = progressiveEncoder.encode(width, height, data);
 
     // Both should be valid JPEGs
@@ -871,7 +882,9 @@ test(
     // Check for SOF2 in progressive
     let foundSOF2 = false;
     for (let i = 0; i < progressiveEncoded.length - 1; i++) {
-      if (progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2) {
+      if (
+        progressiveEncoded[i] === 0xff && progressiveEncoded[i + 1] === 0xc2
+      ) {
         foundSOF2 = true;
         break;
       }

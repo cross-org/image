@@ -996,7 +996,7 @@ export class JPEGEncoder {
     successiveLow: number,
   ): void {
     output.push(0xff, 0xda); // SOS marker
-    
+
     // Length depends on number of components
     const length = 6 + componentIds.length * 2;
     output.push((length >> 8) & 0xff, length & 0xff);
@@ -1027,7 +1027,7 @@ export class JPEGEncoder {
     // Simplified progressive encoding with 2 scans:
     // Scan 1: DC coefficients for all components (Ss=0, Se=0)
     // Scan 2: AC coefficients for all components (Ss=1, Se=63)
-    
+
     // For a more sophisticated progressive JPEG, we would use multiple scans
     // with different spectral selections and successive approximation values.
     // This basic implementation provides progressive structure while keeping
@@ -1079,35 +1079,46 @@ export class JPEGEncoder {
 
     // Scan 1: DC-only (all components)
     this.writeProgressiveSOS(output, [1, 2, 3], 0, 0, 0, 0);
-    const dcScanData = this.encodeProgressiveDCScan(yBlocks, cbBlocks, crBlocks);
+    const dcScanData = this.encodeProgressiveDCScan(
+      yBlocks,
+      cbBlocks,
+      crBlocks,
+    );
     for (let i = 0; i < dcScanData.length; i++) {
       output.push(dcScanData[i]);
     }
 
     // Scan 2: AC coefficients (all components)
     this.writeProgressiveSOS(output, [1, 2, 3], 1, 63, 0, 0);
-    const acScanData = this.encodeProgressiveACScan(yBlocks, cbBlocks, crBlocks);
+    const acScanData = this.encodeProgressiveACScan(
+      yBlocks,
+      cbBlocks,
+      crBlocks,
+    );
     for (let i = 0; i < acScanData.length; i++) {
       output.push(acScanData[i]);
     }
   }
 
-  private dctAndQuantize(block: Float32Array, quantTable: number[]): Int32Array {
+  private dctAndQuantize(
+    block: Float32Array,
+    quantTable: number[],
+  ): Int32Array {
     // Perform DCT
     const dct = this.performDCT2D(block);
-    
+
     // Quantize
     const quantized = new Int32Array(64);
     for (let i = 0; i < 64; i++) {
       quantized[i] = Math.round(dct[i] / quantTable[i]);
     }
-    
+
     return quantized;
   }
 
   private performDCT2D(block: Float32Array): Float32Array {
     const output = new Float32Array(64);
-    
+
     for (let v = 0; v < 8; v++) {
       for (let u = 0; u < 8; u++) {
         let sum = 0;
@@ -1124,7 +1135,7 @@ export class JPEGEncoder {
         output[v * 8 + u] = sum / 4;
       }
     }
-    
+
     return output;
   }
 
@@ -1139,9 +1150,24 @@ export class JPEGEncoder {
 
     for (let i = 0; i < yBlocks.length; i++) {
       // Encode only DC coefficients
-      dcY = this.encodeOnlyDC(yBlocks[i][0], dcY, this.dcLuminanceHuffman, bitWriter);
-      dcCb = this.encodeOnlyDC(cbBlocks[i][0], dcCb, this.dcChrominanceHuffman, bitWriter);
-      dcCr = this.encodeOnlyDC(crBlocks[i][0], dcCr, this.dcChrominanceHuffman, bitWriter);
+      dcY = this.encodeOnlyDC(
+        yBlocks[i][0],
+        dcY,
+        this.dcLuminanceHuffman,
+        bitWriter,
+      );
+      dcCb = this.encodeOnlyDC(
+        cbBlocks[i][0],
+        dcCb,
+        this.dcChrominanceHuffman,
+        bitWriter,
+      );
+      dcCr = this.encodeOnlyDC(
+        crBlocks[i][0],
+        dcCr,
+        this.dcChrominanceHuffman,
+        bitWriter,
+      );
     }
 
     bitWriter.flush();
@@ -1185,7 +1211,9 @@ export class JPEGEncoder {
     bitWriter.writeBits(dcTable.codes[size], dcTable.sizes[size]);
 
     if (size > 0) {
-      const magnitude = clampedDiff < 0 ? clampedDiff + (1 << size) - 1 : clampedDiff;
+      const magnitude = clampedDiff < 0
+        ? clampedDiff + (1 << size) - 1
+        : clampedDiff;
       bitWriter.writeBits(magnitude, size);
     }
 
