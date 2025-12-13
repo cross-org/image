@@ -118,7 +118,7 @@ await writeFile("output.jpg", jpeg);
 | ASCII  | ✅ Full                   | Text-based ASCII art                                                                           |
 | JPEG   | ⚠️ Baseline & Progressive | Pure-JS baseline & progressive DCT: decode with spectral selection; encode with 2-scan (DC+AC) |
 | WebP   | ⚠️ Lossless               | Pure-JS lossless VP8L                                                                          |
-| TIFF   | ⚠️ Basic                  | Pure-JS uncompressed, LZW, & grayscale                                                         |
+| TIFF   | ⚠️ Basic                  | Pure-JS uncompressed, LZW, PackBits, & Deflate; grayscale & RGB/RGBA                           |
 | HEIC   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support                                              |
 | AVIF   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support                                              |
 
