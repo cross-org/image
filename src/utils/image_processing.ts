@@ -100,19 +100,22 @@ export function adjustBrightness(
   const adjust = clampedAmount * 255;
 
   // Pre-compute lookup table for clamping
-  // Use a wider range to avoid negative indices
-  const lut = new Uint8Array(767); // -255 to 511 range, offset by 255
-  for (let i = 0; i < 767; i++) {
-    const value = i - 255;
+  // Range: -255 to 511 (data value 0-255 + adjust -255 to 255), offset by 255 for zero-based index
+  const LUT_SIZE = 767;
+  const LUT_OFFSET = 255;
+  const lut = new Uint8Array(LUT_SIZE);
+  for (let i = 0; i < LUT_SIZE; i++) {
+    const value = i - LUT_OFFSET;
     lut[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
   }
 
+  // Use bitwise OR for fast rounding (equivalent to Math.round for positive numbers)
   const adjustInt = (adjust + 0.5) | 0;
 
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = lut[data[i] + adjustInt + 255]; // R
-    result[i + 1] = lut[data[i + 1] + adjustInt + 255]; // G
-    result[i + 2] = lut[data[i + 2] + adjustInt + 255]; // B
+    result[i] = lut[data[i] + adjustInt + LUT_OFFSET]; // R
+    result[i + 1] = lut[data[i + 1] + adjustInt + LUT_OFFSET]; // G
+    result[i + 2] = lut[data[i + 2] + adjustInt + LUT_OFFSET]; // B
     result[i + 3] = data[i + 3]; // A
   }
 
@@ -799,6 +802,7 @@ export function rotate180(
   const result = new Uint8Array(data.length);
 
   // Use Uint32Array view for faster 4-byte (pixel) copying
+  // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
   const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
   const dst32 = new Uint32Array(
     result.buffer,
@@ -862,6 +866,7 @@ export function flipHorizontal(
   const result = new Uint8Array(data.length);
 
   // Use Uint32Array view for faster 4-byte (pixel) copying
+  // Note: Uint8Array buffers are guaranteed to be aligned for any TypedArray view
   const src32 = new Uint32Array(data.buffer, data.byteOffset, width * height);
   const dst32 = new Uint32Array(
     result.buffer,
