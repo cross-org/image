@@ -904,10 +904,14 @@ export class JPEGDecoder {
       for (let row = 0; row < this.height; row++) {
         for (let col = 0; col < this.width; col++) {
           // Y component
-          const yBlockRow = Math.floor(row / 8);
-          const yBlockCol = Math.floor(col / 8);
-          const yBlockY = row % 8;
-          const yBlockX = col % 8;
+          // Scale pixel position by component sampling factors to get correct block position
+          // This is necessary when component has h>1 or v>1 (e.g., 4:2:0 chroma subsampling)
+          const yRow = Math.floor(row * y.v / maxV);
+          const yCol = Math.floor(col * y.h / maxH);
+          const yBlockRow = Math.floor(yRow / 8);
+          const yBlockCol = Math.floor(yCol / 8);
+          const yBlockY = yRow % 8;
+          const yBlockX = yCol % 8;
 
           let yVal = 0;
           if (yBlockRow < y.blocks.length && yBlockCol < y.blocks[0].length) {
