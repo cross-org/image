@@ -672,7 +672,7 @@ test("TIFF: PackBits compresses repeated patterns efficiently", async () => {
   const imageData = { width, height, data };
 
   // Encode uncompressed and PackBits
-  const uncompressed = await format.encode(imageData, { compression: "none" });
+  const _uncompressed = await format.encode(imageData, { compression: "none" });
   const packbitsCompressed = await format.encode(imageData, {
     compression: "packbits",
   });

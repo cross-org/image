@@ -45,6 +45,8 @@ Additional checks:
   minimize loops, and benchmark critical paths
 - If CI flips lint_docs=true: run deno doc --lint mod.ts
 - Keep this file lean
+- Keep temporary tests and files in a folder called `local_test/`, which is
+  gitignored
 
 ## Docs
 

@@ -142,10 +142,10 @@ information.
 
 ## JPEG Tolerant Decoding
 
-The JPEG decoder enables a tolerant decoding mode by default that keeps
-decoding even when individual blocks fail, filling those areas with neutral
-values instead of throwing. That makes the decoder resilient against complex
-mobile encodings, progressive scans, and partially corrupted files.
+The JPEG decoder enables a tolerant decoding mode by default that keeps decoding
+even when individual blocks fail, filling those areas with neutral values
+instead of throwing. That makes the decoder resilient against complex mobile
+encodings, progressive scans, and partially corrupted files.
 
 **Highlights:**
 
@@ -165,7 +165,8 @@ const strictDecoder = new JPEGDecoder(data, { tolerantDecoding: false });
 strictDecoder.decode(); // throws on first error
 ```
 
-Find implementation notes in [docs/src/implementation/jpeg-implementation.md](implementation/jpeg-implementation.md).
+Find implementation notes in
+[docs/src/implementation/jpeg-implementation.md](implementation/jpeg-implementation.md).
 
 ## Fault-Tolerant Decoding for Other Formats
 
@@ -174,8 +175,8 @@ Several other decoders ship with fault-tolerant defaults as well:
 - **GIF** - Skips corrupted frames and keeps valid ones instead of aborting.
 - **WebP VP8L** - Converts corrupted pixels to neutral gray and continues.
 
-Each decoder exposes the same `tolerantDecoding` option plus `onWarning`,
-so you can switch between resilience and strict validation with the same API.
+Each decoder exposes the same `tolerantDecoding` option plus `onWarning`, so you
+can switch between resilience and strict validation with the same API.
 
 ## Metadata Support
 
@@ -190,8 +191,8 @@ information, GPS coordinates, and DPI when saving images.
   orientation
 - GPS coordinates with full precision plus helper methods like
   `image.getPosition()`
-- EXIF, IFD0, InteropIFD, and GPS IFD tags across BYTE, ASCII, SHORT, LONG,
-  and RATIONAL types
+- EXIF, IFD0, InteropIFD, and GPS IFD tags across BYTE, ASCII, SHORT, LONG, and
+  RATIONAL types
 
 ```ts
 import { Image } from "@cross/image";
