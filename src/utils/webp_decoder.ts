@@ -323,9 +323,7 @@ export class WebPDecoder {
             // Literal pixel
             const red = huffmanTables.red.readSymbol(reader);
             const blue = huffmanTables.blue.readSymbol(reader);
-            const alpha = alphaUsed !== 0
-              ? huffmanTables.alpha.readSymbol(reader)
-              : 255;
+            const alpha = alphaUsed !== 0 ? huffmanTables.alpha.readSymbol(reader) : 255;
 
             pixelData[pixelIndex++] = red;
             pixelData[pixelIndex++] = green;
@@ -409,9 +407,7 @@ export class WebPDecoder {
           // Literal pixel
           const red = huffmanTables.red.readSymbol(reader);
           const blue = huffmanTables.blue.readSymbol(reader);
-          const alpha = alphaUsed !== 0
-            ? huffmanTables.alpha.readSymbol(reader)
-            : 255;
+          const alpha = alphaUsed !== 0 ? huffmanTables.alpha.readSymbol(reader) : 255;
 
           pixelData[pixelIndex++] = red;
           pixelData[pixelIndex++] = green;
@@ -544,9 +540,7 @@ export class WebPDecoder {
 
       const symbols: number[] = [];
       for (let i = 0; i < numSymbols; i++) {
-        const symbolBits = isFirstEightBits
-          ? reader.readBits(8)
-          : reader.readBits(1);
+        const symbolBits = isFirstEightBits ? reader.readBits(8) : reader.readBits(1);
         symbols.push(symbolBits);
       }
 
@@ -561,9 +555,7 @@ export class WebPDecoder {
       }
     } else {
       // Complex code - read code lengths
-      const maxSymbol = isGreen
-        ? (256 + 24 + (useColorCache ? (1 << colorCacheBits) : 0))
-        : 256;
+      const maxSymbol = isGreen ? (256 + 24 + (useColorCache ? (1 << colorCacheBits) : 0)) : 256;
 
       const codeLengths = this.readCodeLengths(reader, maxSymbol);
       this.buildHuffmanTable(table, codeLengths);

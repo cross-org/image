@@ -1,9 +1,4 @@
-import type {
-  ImageData,
-  ImageDecoderOptions,
-  ImageFormat,
-  ImageMetadata,
-} from "../types.ts";
+import type { ImageData, ImageDecoderOptions, ImageFormat, ImageMetadata } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**

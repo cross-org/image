@@ -5,8 +5,8 @@ parent: "Image Processing"
 
 # Filters
 
-Filters are image processing operations that modify pixel values based on their
-neighbors to achieve effects like blurring, sharpening, and noise reduction.
+Filters are image processing operations that modify pixel values based on their neighbors to achieve
+effects like blurring, sharpening, and noise reduction.
 
 ## Blur
 
@@ -20,13 +20,12 @@ blur(radius?: number): this
 
 ### Parameters
 
-- `radius` - Blur radius in pixels (default: 1). Larger values create stronger
-  blur
+- `radius` - Blur radius in pixels (default: 1). Larger values create stronger blur
 
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -49,13 +48,13 @@ await Deno.writeFile("blurred.png", output);
 
 ### Performance
 
-Box blur is fast but produces square-ish artifacts at high radii. For
-higher-quality blur, use `gaussianBlur()`.
+Box blur is fast but produces square-ish artifacts at high radii. For higher-quality blur, use
+`gaussianBlur()`.
 
 ## Gaussian Blur
 
-High-quality blur with smooth falloff. More computationally expensive than box
-blur but produces superior results.
+High-quality blur with smooth falloff. More computationally expensive than box blur but produces
+superior results.
 
 ### Signature
 
@@ -66,13 +65,13 @@ gaussianBlur(radius?: number, sigma?: number): this
 ### Parameters
 
 - `radius` - Blur radius in pixels (default: 1)
-- `sigma` - Standard deviation for Gaussian distribution (optional). If omitted,
-  calculated as `radius / 3` (captures ~99.7% of the Gaussian distribution)
+- `sigma` - Standard deviation for Gaussian distribution (optional). If omitted, calculated as
+  `radius / 3` (captures ~99.7% of the Gaussian distribution)
 
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -99,14 +98,13 @@ await Deno.writeFile("gaussian-blur.png", output);
 
 ### Performance
 
-Gaussian blur is slower than box blur, especially at large radii. Processing
-time increases with radius squared.
+Gaussian blur is slower than box blur, especially at large radii. Processing time increases with
+radius squared.
 
 ## Median Filter
 
-Non-linear filter that replaces each pixel with the median value of its
-neighbors. Excellent for removing "salt and pepper" noise while preserving
-edges.
+Non-linear filter that replaces each pixel with the median value of its neighbors. Excellent for
+removing "salt and pepper" noise while preserving edges.
 
 ### Signature
 
@@ -116,13 +114,12 @@ medianFilter(radius?: number): this
 
 ### Parameters
 
-- `radius` - Filter radius in pixels (default: 1). Creates a
-  `(2*radius+1) × (2*radius+1)` window
+- `radius` - Filter radius in pixels (default: 1). Creates a `(2*radius+1) × (2*radius+1)` window
 
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("noisy-photo.jpg");
 const image = await Image.decode(data);
@@ -149,14 +146,12 @@ await Deno.writeFile("denoised.png", output);
 
 ### Performance
 
-Median filter is computationally expensive, especially at large radii. Each
-pixel requires sorting `(2*radius+1)²` values. Use the smallest radius that
-achieves your goal.
+Median filter is computationally expensive, especially at large radii. Each pixel requires sorting
+`(2*radius+1)²` values. Use the smallest radius that achieves your goal.
 
 ## Sharpen
 
-Enhance image details and edges by accentuating differences between adjacent
-pixels.
+Enhance image details and edges by accentuating differences between adjacent pixels.
 
 ### Signature
 
@@ -174,7 +169,7 @@ sharpen(amount?: number): this
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("soft-photo.jpg");
 const image = await Image.decode(data);
@@ -214,7 +209,7 @@ Sharpen is a fast operation based on unsharp mask principles.
 Filters can be chained together for complex effects:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);

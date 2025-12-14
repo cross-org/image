@@ -14,7 +14,7 @@ This page demonstrates format-specific decoding and encoding operations.
 The library automatically detects image formats:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data); // Format auto-detected
@@ -36,7 +36,7 @@ const image = await Image.decode(data, "png");
 PNG supports full RGBA with lossless compression.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Decode PNG
 const pngData = await Deno.readFile("input.png");
@@ -49,11 +49,10 @@ await Deno.writeFile("output.png", output);
 
 ### JPEG
 
-JPEG is best for photographs. Quality setting controls file size vs. image
-quality.
+JPEG is best for photographs. Quality setting controls file size vs. image quality.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Decode JPEG
 const jpegData = await Deno.readFile("photo.jpg");
@@ -79,7 +78,7 @@ WebP supports both lossless and lossy compression.
 #### Lossless WebP
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -99,7 +98,7 @@ await Deno.writeFile("output-forced.webp", forcedLossless);
 #### Lossy WebP
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -124,7 +123,7 @@ TIFF supports various compression methods.
 #### Uncompressed TIFF
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -137,7 +136,7 @@ await Deno.writeFile("output.tiff", uncompressed);
 #### LZW Compressed TIFF
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -152,7 +151,7 @@ await Deno.writeFile("output-lzw.tiff", compressed);
 GIF is limited to 256 colors but supports animation.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -167,7 +166,7 @@ await Deno.writeFile("output.gif", gif);
 BMP is an uncompressed format commonly used on Windows.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -182,7 +181,7 @@ await Deno.writeFile("output.bmp", bmp);
 Convert images to text-based ASCII art.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -217,7 +216,7 @@ await Deno.writeFile("output.txt", extended);
 Linear DNG format for uncompressed RGBA data.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -232,7 +231,7 @@ await Deno.writeFile("output.dng", dng);
 Netpbm PAM format.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -247,7 +246,7 @@ await Deno.writeFile("output.pam", pam);
 Netpbm PPM format (P3 ASCII or P6 binary).
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -262,7 +261,7 @@ await Deno.writeFile("output.ppm", ppm);
 ZSoft PCX format with RLE compression.
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -277,7 +276,7 @@ await Deno.writeFile("output.pcx", pcx);
 ### PNG to JPEG
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const pngData = await Deno.readFile("input.png");
 const image = await Image.decode(pngData);
@@ -289,7 +288,7 @@ await Deno.writeFile("output.jpg", jpegData);
 ### JPEG to WebP
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const jpegData = await Deno.readFile("photo.jpg");
 const image = await Image.decode(jpegData);
@@ -302,7 +301,7 @@ await Deno.writeFile("photo.webp", webpData);
 ### Any Format to PNG
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Works with any supported input format
 const data = await Deno.readFile("input.webp");
@@ -317,7 +316,7 @@ await Deno.writeFile("output.png", pngData);
 ### Convert Multiple Images
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const inputFiles = ["photo1.jpg", "photo2.jpg", "photo3.jpg"];
 
@@ -337,7 +336,7 @@ for (const inputFile of inputFiles) {
 ### Create Multiple Sizes
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("original.jpg");
 
@@ -365,7 +364,7 @@ for (const size of sizes) {
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const pngData = await readFile("input.png");
 const image = await Image.decode(pngData);
@@ -378,7 +377,7 @@ await writeFile("output.jpg", jpegData);
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const jpegData = await readFile("photo.jpg");
 const image = await Image.decode(jpegData);
@@ -392,7 +391,7 @@ await writeFile("photo.webp", webpData);
 ### Format Conversion in Bun
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const input = Bun.file("input.png");
 const data = new Uint8Array(await input.arrayBuffer());

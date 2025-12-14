@@ -7,10 +7,7 @@ import type {
   TIFFEncoderOptions,
 } from "../types.ts";
 import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
-import {
-  packBitsCompress,
-  packBitsDecompress,
-} from "../utils/tiff_packbits.ts";
+import { packBitsCompress, packBitsDecompress } from "../utils/tiff_packbits.ts";
 import { deflateCompress, deflateDecompress } from "../utils/tiff_deflate.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
@@ -375,11 +372,9 @@ export class TIFFFormat implements ImageFormat {
 
     if (metadata?.creationDate) {
       const date = metadata.creationDate;
-      const dateStr = `${date.getFullYear()}:${
-        String(date.getMonth() + 1).padStart(2, "0")
-      }:${String(date.getDate()).padStart(2, "0")} ${
-        String(date.getHours()).padStart(2, "0")
-      }:${String(date.getMinutes()).padStart(2, "0")}:${
+      const dateStr = `${date.getFullYear()}:${String(date.getMonth() + 1).padStart(2, "0")}:${
+        String(date.getDate()).padStart(2, "0")
+      } ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${
         String(date.getSeconds()).padStart(2, "0")
       }\0`;
       const dateBytes = new TextEncoder().encode(dateStr);
@@ -439,11 +434,9 @@ export class TIFFFormat implements ImageFormat {
 
     if (metadata?.creationDate) {
       const date = metadata.creationDate;
-      const dateStr = `${date.getFullYear()}:${
-        String(date.getMonth() + 1).padStart(2, "0")
-      }:${String(date.getDate()).padStart(2, "0")} ${
-        String(date.getHours()).padStart(2, "0")
-      }:${String(date.getMinutes()).padStart(2, "0")}:${
+      const dateStr = `${date.getFullYear()}:${String(date.getMonth() + 1).padStart(2, "0")}:${
+        String(date.getDate()).padStart(2, "0")
+      } ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${
         String(date.getSeconds()).padStart(2, "0")
       }\0`;
       const dateBytes = new TextEncoder().encode(dateStr);
@@ -707,13 +700,11 @@ export class TIFFFormat implements ImageFormat {
 
         if (imageData.metadata.creationDate) {
           const date = imageData.metadata.creationDate;
-          const dateStr = `${date.getFullYear()}:${
-            String(date.getMonth() + 1).padStart(2, "0")
-          }:${String(date.getDate()).padStart(2, "0")} ${
-            String(date.getHours()).padStart(2, "0")
-          }:${String(date.getMinutes()).padStart(2, "0")}:${
-            String(date.getSeconds()).padStart(2, "0")
-          }\0`;
+          const dateStr = `${date.getFullYear()}:${String(date.getMonth() + 1).padStart(2, "0")}:${
+            String(date.getDate()).padStart(2, "0")
+          } ${String(date.getHours()).padStart(2, "0")}:${
+            String(date.getMinutes()).padStart(2, "0")
+          }:${String(date.getSeconds()).padStart(2, "0")}\0`;
           const dateBytes = new TextEncoder().encode(dateStr);
           this.writeIFDEntry(result, 0x0132, 2, dateBytes.length, dataOffset);
           dataOffset += dateBytes.length;
@@ -776,13 +767,11 @@ export class TIFFFormat implements ImageFormat {
 
         if (imageData.metadata.creationDate) {
           const date = imageData.metadata.creationDate;
-          const dateStr = `${date.getFullYear()}:${
-            String(date.getMonth() + 1).padStart(2, "0")
-          }:${String(date.getDate()).padStart(2, "0")} ${
-            String(date.getHours()).padStart(2, "0")
-          }:${String(date.getMinutes()).padStart(2, "0")}:${
-            String(date.getSeconds()).padStart(2, "0")
-          }\0`;
+          const dateStr = `${date.getFullYear()}:${String(date.getMonth() + 1).padStart(2, "0")}:${
+            String(date.getDate()).padStart(2, "0")
+          } ${String(date.getHours()).padStart(2, "0")}:${
+            String(date.getMinutes()).padStart(2, "0")
+          }:${String(date.getSeconds()).padStart(2, "0")}\0`;
           const dateBytes = new TextEncoder().encode(dateStr);
           for (const byte of dateBytes) {
             result.push(byte);

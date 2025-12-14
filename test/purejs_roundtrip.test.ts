@@ -417,8 +417,7 @@ test("Pure-JS WebP: encode and decode simple solid colors", async () => {
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   try {
     // Testing purposes - temporarily hiding OffscreenCanvas
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas = undefined;
 
     const encoded = await image.save("webp", { quality: 100 });
     const decoded = await Image.read(encoded);
@@ -446,8 +445,7 @@ test("Pure-JS WebP: encode and decode checkerboard (complex Huffman)", async () 
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   try {
     // Testing purposes - temporarily hiding OffscreenCanvas
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas = undefined;
 
     const encoded = await image.save("webp", { quality: 100 });
     const decoded = await Image.read(encoded);
@@ -475,8 +473,7 @@ test("Pure-JS WebP: encode and decode gradient (complex Huffman multi-channel)",
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   try {
     // Testing purposes - temporarily hiding OffscreenCanvas
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas = undefined;
 
     const encoded = await image.save("webp", { quality: 100 });
     const decoded = await Image.read(encoded);

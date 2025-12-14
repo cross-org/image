@@ -28,15 +28,12 @@ export function withoutOffscreenCanvas<T>(
   const originalOffscreenCanvas = globalThis.OffscreenCanvas;
   const originalImageDecoder = globalThis.ImageDecoder;
   try {
-    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
-      undefined;
-    (globalThis as unknown as { ImageDecoder?: unknown }).ImageDecoder =
-      undefined;
+    (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas = undefined;
+    (globalThis as unknown as { ImageDecoder?: unknown }).ImageDecoder = undefined;
     return fn();
   } finally {
     (globalThis as unknown as { OffscreenCanvas?: unknown }).OffscreenCanvas =
       originalOffscreenCanvas;
-    (globalThis as unknown as { ImageDecoder?: unknown }).ImageDecoder =
-      originalImageDecoder;
+    (globalThis as unknown as { ImageDecoder?: unknown }).ImageDecoder = originalImageDecoder;
   }
 }

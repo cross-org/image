@@ -1,8 +1,11 @@
 {
   "name": "@cross/image",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "exports": {
     ".": "./mod.ts"
+  },
+  "fmt": {
+    "lineWidth": 100
   },
   "lint": {
     "rules": {

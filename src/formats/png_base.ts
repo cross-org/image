@@ -142,9 +142,7 @@ export abstract class PNGBase {
     for (let x = 0; x < scanline.length; x++) {
       const left = x >= bytesPerPixel ? scanline[x - bytesPerPixel] : 0;
       const above = prevLine ? prevLine[x] : 0;
-      const upperLeft = (x >= bytesPerPixel && prevLine)
-        ? prevLine[x - bytesPerPixel]
-        : 0;
+      const upperLeft = (x >= bytesPerPixel && prevLine) ? prevLine[x - bytesPerPixel] : 0;
 
       switch (filterType) {
         case 0: // None
@@ -159,8 +157,7 @@ export abstract class PNGBase {
           scanline[x] = (scanline[x] + Math.floor((left + above) / 2)) & 0xff;
           break;
         case 4: // Paeth
-          scanline[x] =
-            (scanline[x] + this.paethPredictor(left, above, upperLeft)) & 0xff;
+          scanline[x] = (scanline[x] + this.paethPredictor(left, above, upperLeft)) & 0xff;
           break;
       }
     }
@@ -597,11 +594,9 @@ export abstract class PNGBase {
 
     if (metadata.creationDate) {
       const date = metadata.creationDate;
-      const dateStr = `${date.getFullYear()}:${
-        String(date.getMonth() + 1).padStart(2, "0")
-      }:${String(date.getDate()).padStart(2, "0")} ${
-        String(date.getHours()).padStart(2, "0")
-      }:${String(date.getMinutes()).padStart(2, "0")}:${
+      const dateStr = `${date.getFullYear()}:${String(date.getMonth() + 1).padStart(2, "0")}:${
+        String(date.getDate()).padStart(2, "0")
+      } ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${
         String(date.getSeconds()).padStart(2, "0")
       }\0`;
       entries.push({

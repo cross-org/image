@@ -86,12 +86,9 @@ export function composite(
         const baseWeight = baseA * invOverlayA;
         const invOutA = 1 / outA;
 
-        result[baseIdx] =
-          ((overlayR * overlayA + baseR * baseWeight) * invOutA + 0.5) | 0;
-        result[baseIdx + 1] =
-          ((overlayG * overlayA + baseG * baseWeight) * invOutA + 0.5) | 0;
-        result[baseIdx + 2] =
-          ((overlayB * overlayA + baseB * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx] = ((overlayR * overlayA + baseR * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 1] = ((overlayG * overlayA + baseG * baseWeight) * invOutA + 0.5) | 0;
+        result[baseIdx + 2] = ((overlayB * overlayA + baseB * baseWeight) * invOutA + 0.5) | 0;
         result[baseIdx + 3] = (outA * 255 + 0.5) | 0;
       }
     }

@@ -5,23 +5,20 @@ nav_order: 5
 
 # Examples
 
-This section provides practical examples of using @cross/image for common image
-processing tasks.
+This section provides practical examples of using @cross/image for common image processing tasks.
 
 ## Quick Links
 
-- **[Decoding & Encoding](decoding-encoding.md)** - Format-specific examples for
-  reading and writing images
+- **[Decoding & Encoding](decoding-encoding.md)** - Format-specific examples for reading and writing
+  images
 - **[Using Filters](filters.md)** - Practical filter examples and workflows
-- **[Manipulation Examples](manipulation.md)** - Resizing, cropping, and
-  compositing
-- **[Multi-Frame Images](multi-frame.md)** - Working with animated GIFs, APNGs,
-  and multi-page TIFFs
+- **[Manipulation Examples](manipulation.md)** - Resizing, cropping, and compositing
+- **[Multi-Frame Images](multi-frame.md)** - Working with animated GIFs, APNGs, and multi-page TIFFs
 
 ## Runtime File I/O
 
-The library operates on `Uint8Array` data. You can use your runtime's native
-file I/O methods to read and write images.
+The library operates on `Uint8Array` data. You can use your runtime's native file I/O methods to
+read and write images.
 
 ### Deno
 
@@ -50,7 +47,7 @@ await Bun.write("output.png", data);
 Here's a complete example showing common operations:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Decode an image (auto-detects format)
 const data = await Deno.readFile("input.png");
@@ -76,7 +73,7 @@ await Deno.writeFile("output.jpg", jpeg);
 ### Using Image.create()
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create a white 800x600 canvas
 const canvas = Image.create(800, 600, 255, 255, 255);
@@ -91,7 +88,7 @@ await Deno.writeFile("canvas.png", await canvas.encode("png"));
 ### Using Image.fromRGBA()
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create raw RGBA data
 const width = 100;
@@ -118,7 +115,7 @@ await Deno.writeFile("gradient.png", await image.encode("png"));
 All processing methods return `this`, allowing elegant method chaining:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -143,7 +140,7 @@ await Deno.writeFile("processed.png", output);
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const data = await readFile("input.png");
 const image = await Image.decode(data);
@@ -157,7 +154,7 @@ await writeFile("output.png", output);
 ### Bun Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const file = Bun.file("input.png");
 const data = new Uint8Array(await file.arrayBuffer());
@@ -173,9 +170,7 @@ await Bun.write("output.png", output);
 
 Explore the detailed examples in each section:
 
-- **[Decoding & Encoding](decoding-encoding.md)** - Learn format-specific
-  options
+- **[Decoding & Encoding](decoding-encoding.md)** - Learn format-specific options
 - **[Using Filters](filters.md)** - Apply blur, sharpen, and noise reduction
 - **[Manipulation Examples](manipulation.md)** - Transform and layer images
-- **[Multi-Frame Images](multi-frame.md)** - Work with animations and multi-page
-  documents
+- **[Multi-Frame Images](multi-frame.md)** - Work with animations and multi-page documents

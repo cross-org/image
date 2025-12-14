@@ -715,9 +715,7 @@ export class JPEGEncoder {
   }
 
   private initQuantizationTables(): void {
-    const scaleFactor = this.quality < 50
-      ? 5000 / this.quality
-      : 200 - this.quality * 2;
+    const scaleFactor = this.quality < 50 ? 5000 / this.quality : 200 - this.quality * 2;
 
     for (let i = 0; i < 64; i++) {
       let lumVal = Math.floor(
@@ -1024,9 +1022,13 @@ export class JPEGEncoder {
     height: number,
     rgba: Uint8Array,
   ): void {
-    // Simplified progressive encoding with 2 scans:
-    // Scan 1: DC coefficients for all components (Ss=0, Se=0)
-    // Scan 2: AC coefficients for all components (Ss=1, Se=63)
+    // Simplified progressive encoding:
+    // Scan 1: Interleaved DC coefficients for all components (Ss=0, Se=0)
+    // Scans 2-4: Non-interleaved AC coefficients (Ss=1, Se=63) per component.
+    //
+    // Note: Some JPEG readers are picky about interleaved AC scans in
+    // progressive images, so we emit AC scans as single-component for broader
+    // compatibility.
 
     // For a more sophisticated progressive JPEG, we would use multiple scans
     // with different spectral selections and successive approximation values.
@@ -1077,7 +1079,7 @@ export class JPEGEncoder {
       }
     }
 
-    // Scan 1: DC-only (all components)
+    // Scan 1: DC-only (interleaved across all components)
     this.writeProgressiveSOS(output, [1, 2, 3], 0, 0, 0, 0);
     const dcScanData = this.encodeProgressiveDCScan(
       yBlocks,
@@ -1088,15 +1090,34 @@ export class JPEGEncoder {
       output.push(dcScanData[i]);
     }
 
-    // Scan 2: AC coefficients (all components)
-    this.writeProgressiveSOS(output, [1, 2, 3], 1, 63, 0, 0);
-    const acScanData = this.encodeProgressiveACScan(
+    // Scan 2: AC coefficients (Y only)
+    this.writeProgressiveSOS(output, [1], 1, 63, 0, 0);
+    const yAcScanData = this.encodeProgressiveACScanSingle(
       yBlocks,
-      cbBlocks,
-      crBlocks,
+      this.acLuminanceHuffman,
     );
-    for (let i = 0; i < acScanData.length; i++) {
-      output.push(acScanData[i]);
+    for (let i = 0; i < yAcScanData.length; i++) {
+      output.push(yAcScanData[i]);
+    }
+
+    // Scan 3: AC coefficients (Cb only)
+    this.writeProgressiveSOS(output, [2], 1, 63, 0, 0);
+    const cbAcScanData = this.encodeProgressiveACScanSingle(
+      cbBlocks,
+      this.acChrominanceHuffman,
+    );
+    for (let i = 0; i < cbAcScanData.length; i++) {
+      output.push(cbAcScanData[i]);
+    }
+
+    // Scan 4: AC coefficients (Cr only)
+    this.writeProgressiveSOS(output, [3], 1, 63, 0, 0);
+    const crAcScanData = this.encodeProgressiveACScanSingle(
+      crBlocks,
+      this.acChrominanceHuffman,
+    );
+    for (let i = 0; i < crAcScanData.length; i++) {
+      output.push(crAcScanData[i]);
     }
   }
 
@@ -1174,21 +1195,15 @@ export class JPEGEncoder {
     return Array.from(bitWriter.getBytes());
   }
 
-  private encodeProgressiveACScan(
-    yBlocks: Int32Array[],
-    cbBlocks: Int32Array[],
-    crBlocks: Int32Array[],
+  private encodeProgressiveACScanSingle(
+    blocks: Int32Array[],
+    acTable: HuffmanTable,
   ): number[] {
-    // Encode only AC coefficients for progressive JPEG
+    // Encode only AC coefficients for progressive JPEG (single component)
     const bitWriter = new BitWriter();
-
-    for (let i = 0; i < yBlocks.length; i++) {
-      // Encode only AC coefficients (skip DC at index 0)
-      this.encodeOnlyAC(yBlocks[i], this.acLuminanceHuffman, bitWriter);
-      this.encodeOnlyAC(cbBlocks[i], this.acChrominanceHuffman, bitWriter);
-      this.encodeOnlyAC(crBlocks[i], this.acChrominanceHuffman, bitWriter);
+    for (let i = 0; i < blocks.length; i++) {
+      this.encodeOnlyAC(blocks[i], acTable, bitWriter);
     }
-
     bitWriter.flush();
     return Array.from(bitWriter.getBytes());
   }
@@ -1211,9 +1226,7 @@ export class JPEGEncoder {
     bitWriter.writeBits(dcTable.codes[size], dcTable.sizes[size]);
 
     if (size > 0) {
-      const magnitude = clampedDiff < 0
-        ? clampedDiff + (1 << size) - 1
-        : clampedDiff;
+      const magnitude = clampedDiff < 0 ? clampedDiff + (1 << size) - 1 : clampedDiff;
       bitWriter.writeBits(magnitude, size);
     }
 
@@ -1250,9 +1263,7 @@ export class JPEGEncoder {
 
         bitWriter.writeBits(acTable.codes[symbol], acTable.sizes[symbol]);
 
-        const magnitude = clampedCoef < 0
-          ? clampedCoef + (1 << size) - 1
-          : clampedCoef;
+        const magnitude = clampedCoef < 0 ? clampedCoef + (1 << size) - 1 : clampedCoef;
         bitWriter.writeBits(magnitude, size);
 
         zeroCount = 0;
@@ -1420,9 +1431,7 @@ export class JPEGEncoder {
 
     // Write magnitude
     if (size > 0) {
-      const magnitude = clampedValue < 0
-        ? clampedValue + (1 << size) - 1
-        : clampedValue;
+      const magnitude = clampedValue < 0 ? clampedValue + (1 << size) - 1 : clampedValue;
       bitWriter.writeBits(magnitude, size);
     }
   }
@@ -1457,9 +1466,7 @@ export class JPEGEncoder {
 
         bitWriter.writeBits(huffTable.codes[symbol], huffTable.sizes[symbol]);
 
-        const magnitude = clampedCoef < 0
-          ? clampedCoef + (1 << size) - 1
-          : clampedCoef;
+        const magnitude = clampedCoef < 0 ? clampedCoef + (1 << size) - 1 : clampedCoef;
         bitWriter.writeBits(magnitude, size);
 
         zeroCount = 0;

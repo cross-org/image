@@ -278,8 +278,7 @@ test("Image: registerFormat", () => {
     name: "dummy",
     mimeType: "image/dummy",
     canDecode: () => false,
-    decode: () =>
-      Promise.resolve({ width: 0, height: 0, data: new Uint8Array() }),
+    decode: () => Promise.resolve({ width: 0, height: 0, data: new Uint8Array() }),
     encode: () => Promise.resolve(new Uint8Array()),
   };
 

@@ -218,9 +218,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
         const disposeOp = chunk.data[24];
         const blendOp = chunk.data[25];
 
-        const delay = delayDen === 0
-          ? delayNum * 10
-          : Math.round((delayNum / delayDen) * 1000);
+        const delay = delayDen === 0 ? delayNum * 10 : Math.round((delayNum / delayDen) * 1000);
 
         let disposal: "none" | "background" | "previous" = "none";
         if (disposeOp === 1) disposal = "background";

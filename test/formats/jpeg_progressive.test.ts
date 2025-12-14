@@ -19,6 +19,88 @@ function hasProgressiveMarker(data: Uint8Array): boolean {
   return false;
 }
 
+function parseSOSHeaders(
+  data: Uint8Array,
+): Array<{ Ns: number; Ss: number; Se: number }> {
+  if (data.length < 4 || data[0] !== 0xff || data[1] !== 0xd8) {
+    throw new Error("Not a JPEG (missing SOI)");
+  }
+
+  const sos: Array<{ Ns: number; Ss: number; Se: number }> = [];
+  let i = 2;
+
+  while (i + 1 < data.length) {
+    // Find next marker (0xFF ..)
+    while (i < data.length && data[i] !== 0xff) i++;
+    if (i + 1 >= data.length) break;
+
+    // Skip fill bytes (0xFF 0xFF ...)
+    while (i + 1 < data.length && data[i] === 0xff && data[i + 1] === 0xff) i++;
+    if (i + 1 >= data.length) break;
+
+    const marker = (data[i] << 8) | data[i + 1];
+    i += 2;
+
+    // Markers without length
+    if (marker === 0xffd8 || marker === 0xffd9) {
+      if (marker === 0xffd9) break;
+      continue;
+    }
+    if (marker >= 0xffd0 && marker <= 0xffd7) {
+      continue;
+    }
+    if (marker === 0xff01) {
+      continue;
+    }
+
+    if (i + 1 >= data.length) break;
+    const length = (data[i] << 8) | data[i + 1];
+    if (length < 2) throw new Error("Invalid segment length");
+
+    // Start of Scan: record header fields, then skip entropy-coded data.
+    if (marker === 0xffda) {
+      // i points at SOS length MSB
+      const ns = data[i + 2];
+      const compsEnd = i + 3 + ns * 2;
+      const ss = data[compsEnd];
+      const se = data[compsEnd + 1];
+      sos.push({ Ns: ns, Ss: ss, Se: se });
+
+      // Move to end of SOS header
+      i += length;
+
+      // Skip entropy-coded data until next marker (0xFF followed by non-0x00)
+      while (i + 1 < data.length) {
+        if (data[i] === 0xff) {
+          const next = data[i + 1];
+          if (next === 0x00) {
+            i += 2;
+            continue;
+          }
+          if (next === 0xff) {
+            i += 1;
+            continue;
+          }
+          // Restart markers can appear inside entropy-coded data
+          if (next >= 0xd0 && next <= 0xd7) {
+            i += 2;
+            continue;
+          }
+          // Found a real marker; leave i at 0xFF so outer loop consumes it.
+          break;
+        }
+        i += 1;
+      }
+
+      continue;
+    }
+
+    i += length;
+  }
+
+  return sos;
+}
+
 test(
   "Progressive JPEG: decoder correctly accumulates coefficients across scans",
   () => {
@@ -95,6 +177,37 @@ test(
     assertEquals(hasVariation, true, "Image should not be all gray");
   },
 );
+
+test("Progressive JPEG: AC scans are non-interleaved (compat)", () => {
+  const width = 16;
+  const height = 16;
+  const data = new Uint8Array(width * height * 4);
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 200;
+    data[i + 1] = 20;
+    data[i + 2] = 100;
+    data[i + 3] = 255;
+  }
+
+  const encoder = new JPEGEncoder({ quality: 85, progressive: true });
+  const encoded = encoder.encode(width, height, data);
+
+  assertEquals(hasProgressiveMarker(encoded), true);
+
+  const scans = parseSOSHeaders(encoded);
+  assertGreater(scans.length, 1);
+
+  // For broad reader compatibility, progressive AC scans should be single-component.
+  for (const scan of scans) {
+    if (scan.Ss > 0) {
+      assertEquals(
+        scan.Ns,
+        1,
+        `Expected Ns=1 for AC scan (Ss=${scan.Ss}, Se=${scan.Se})`,
+      );
+    }
+  }
+});
 
 test("Progressive JPEG: roundtrip preserves image quality", () => {
   // Create a more complex pattern

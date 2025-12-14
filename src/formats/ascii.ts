@@ -35,8 +35,7 @@ export class ASCIIFormat implements ImageFormat {
   // Character sets ordered from darkest to lightest
   private readonly CHARSETS = {
     simple: " .:-=+*#%@",
-    extended:
-      " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+    extended: " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
     blocks: " ░▒▓█",
     detailed:
       " .`-_':,;^=+/\"|)\\<>)iv%xclrs{*}I?!][1taeo7zjLunT#JCwfy325Fh9kP6pqdbVOlS8X$KHEA4D3RZG0MQNWU&%B@",

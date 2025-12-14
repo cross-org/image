@@ -12,7 +12,7 @@ Practical examples of resizing, cropping, compositing, and drawing operations.
 ### Basic Resize
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -26,7 +26,7 @@ await Deno.writeFile("resized.png", await image.encode("png"));
 ### Maintain Aspect Ratio
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -40,7 +40,7 @@ await Deno.writeFile("fitted.png", await image.encode("png"));
 ### Maintain Aspect Ratio (Manual Calculation)
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -58,7 +58,7 @@ await Deno.writeFile("aspect-ratio.png", await image.encode("png"));
 ### Cover Mode (Fill with Crop)
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
@@ -72,7 +72,7 @@ await Deno.writeFile("covered.png", await image.encode("png"));
 ### High-Quality Resize (Bicubic)
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -86,7 +86,7 @@ await Deno.writeFile("high-quality.jpg", await image.encode("jpeg"));
 ### Create Thumbnails
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -100,7 +100,7 @@ await Deno.writeFile("thumb.jpg", await image.encode("jpeg", { quality: 85 }));
 ### Pixel Art Scaling
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("sprite.png");
 const image = await Image.decode(data);
@@ -114,7 +114,7 @@ await Deno.writeFile("scaled-sprite.png", await image.encode("png"));
 ### Responsive Image Sizes
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("original.jpg");
 
@@ -146,7 +146,7 @@ for (const size of sizes) {
 ### Center Crop to Square
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -163,7 +163,7 @@ await Deno.writeFile("square.png", await image.encode("png"));
 ### Extract Region
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -177,7 +177,7 @@ await Deno.writeFile("region.png", await image.encode("png"));
 ### Crop and Resize
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -200,7 +200,7 @@ await Deno.writeFile("cropped-resized.png", await image.encode("png"));
 ### Remove Borders
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("bordered.jpg");
 const image = await Image.decode(data);
@@ -222,7 +222,7 @@ await Deno.writeFile("no-border.png", await image.encode("png"));
 ### Add Watermark
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Load base image
 const photoData = await Deno.readFile("photo.jpg");
@@ -247,7 +247,7 @@ await Deno.writeFile("watermarked.jpg", await photo.encode("jpeg"));
 ### Picture-in-Picture
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const mainData = await Deno.readFile("main.jpg");
 const main = await Image.decode(mainData);
@@ -276,7 +276,7 @@ await Deno.writeFile("pip-result.jpg", await main.encode("jpeg"));
 ### Layer Multiple Images
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create canvas
 const canvas = Image.create(1920, 1080, 255, 255, 255);
@@ -300,7 +300,7 @@ await Deno.writeFile("layered.png", await canvas.encode("png"));
 ### Centered Logo
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const bgData = await Deno.readFile("background.jpg");
 const bg = await Image.decode(bgData);
@@ -321,7 +321,7 @@ await Deno.writeFile("centered-logo.png", await bg.encode("png"));
 ### Draw Rectangles
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create white canvas
 const canvas = Image.create(800, 600, 255, 255, 255);
@@ -338,7 +338,7 @@ await Deno.writeFile("rectangles.png", await canvas.encode("png"));
 ### Create Border
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -362,7 +362,7 @@ await Deno.writeFile("bordered.png", await bordered.encode("png"));
 ### Color Blocks
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const canvas = Image.create(600, 400, 255, 255, 255);
 
@@ -385,7 +385,7 @@ await Deno.writeFile("color-blocks.png", await canvas.encode("png"));
 ### Semi-Transparent Overlay
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -401,7 +401,7 @@ await Deno.writeFile("darkened.png", await image.encode("png"));
 ### Thumbnail with Border
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -428,7 +428,7 @@ await Deno.writeFile("thumb-bordered.png", await bordered.encode("png"));
 ### Photo Collage
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create canvas
 const canvas = Image.create(1200, 800, 240, 240, 240);
@@ -456,7 +456,7 @@ await Deno.writeFile("collage.png", await canvas.encode("png"));
 ### Profile Picture Generator
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("face.jpg");
 const image = await Image.decode(data);
@@ -486,7 +486,7 @@ await Deno.writeFile("profile.png", await bordered.encode("png"));
 ### Batch Resize
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const files = ["photo1.jpg", "photo2.jpg", "photo3.jpg"];
 
@@ -506,7 +506,7 @@ for (const file of files) {
 ### Batch Watermark
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const watermarkData = await Deno.readFile("watermark.png");
 const watermark = await Image.decode(watermarkData);
@@ -537,7 +537,7 @@ for (const file of files) {
 ### Rotate Image
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -551,7 +551,7 @@ await Deno.writeFile("rotated.jpg", await image.encode("jpeg"));
 ### Flip Image
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -565,7 +565,7 @@ await Deno.writeFile("flipped.jpg", await image.encode("jpeg"));
 ### EXIF Orientation Correction
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -586,7 +586,7 @@ await Deno.writeFile("corrected.jpg", await image.encode("jpeg"));
 ### Create Kaleidoscope Effect
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -618,7 +618,7 @@ await Deno.writeFile("kaleidoscope.jpg", await canvas.encode("jpeg"));
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const data = await readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -633,7 +633,7 @@ await writeFile("resized.jpg", output);
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const baseData = await readFile("base.jpg");
 const base = await Image.decode(baseData);
@@ -652,7 +652,7 @@ await writeFile("composited.png", output);
 ### Resize in Bun
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const file = Bun.file("photo.jpg");
 const data = new Uint8Array(await file.arrayBuffer());

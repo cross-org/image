@@ -1,7 +1,7 @@
 # Contributing to @cross/image
 
-Thank you for your interest in contributing to @cross/image! This document
-provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to @cross/image! This document provides guidelines and
+instructions for contributing to the project.
 
 ## Development Setup
 
@@ -101,8 +101,8 @@ This runs:
 
 ### Cross-Runtime Compatibility
 
-This library supports Deno, Node.js (18+), and Bun. Ensure your code works
-across all three runtimes:
+This library supports Deno, Node.js (18+), and Bun. Ensure your code works across all three
+runtimes:
 
 - Avoid runtime-specific APIs where possible
 - Use standard JavaScript/TypeScript features
@@ -188,5 +188,5 @@ When adding support for a new image format:
 
 ## License
 
-By contributing to @cross/image, you agree that your contributions will be
-licensed under the MIT License.
+By contributing to @cross/image, you agree that your contributions will be licensed under the MIT
+License.

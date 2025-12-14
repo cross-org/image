@@ -250,9 +250,7 @@ async function runEncoderTests() {
     console.log("  - Open in a web browser");
     console.log(`  - Use: file ${join(tmpDir, "encoder_test_*.webp")}`);
     console.log(
-      `  - Use: dwebp ${join(tmpDir, "encoder_test_*.webp")} -o ${
-        join(tmpDir, "test_*.png")
-      }`,
+      `  - Use: dwebp ${join(tmpDir, "encoder_test_*.webp")} -o ${join(tmpDir, "test_*.png")}`,
     );
     console.log(
       `  - Use: identify ${join(tmpDir, "encoder_test_*.webp")}  (ImageMagick)`,

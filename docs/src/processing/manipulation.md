@@ -5,8 +5,8 @@ parent: "Image Processing"
 
 # Image Manipulation
 
-Image manipulation operations transform the geometry and structure of images,
-including resizing, cropping, layering, and drawing.
+Image manipulation operations transform the geometry and structure of images, including resizing,
+cropping, layering, and drawing.
 
 ## Resize
 
@@ -35,14 +35,13 @@ interface ResizeOptions {
   - `"bicubic"` - Highest quality cubic interpolation (slowest)
 - `fit` - Fitting mode (default: "stretch")
   - `"stretch"` - Stretch image to fill dimensions (may distort)
-  - `"fit"` / `"contain"` - Fit within dimensions maintaining aspect ratio
-    (letterbox)
+  - `"fit"` / `"contain"` - Fit within dimensions maintaining aspect ratio (letterbox)
   - `"fill"` / `"cover"` - Fill dimensions maintaining aspect ratio (crop)
 
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -129,7 +128,7 @@ crop(x: number, y: number, width: number, height: number): this
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -186,7 +185,7 @@ composite(overlay: Image, x: number, y: number, opacity?: number): this
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Load base image
 const baseData = await Deno.readFile("background.jpg");
@@ -269,7 +268,7 @@ fillRect(
 ### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create white canvas
 const canvas = Image.create(800, 600, 255, 255, 255);
@@ -412,13 +411,12 @@ rotate(degrees: number): this
 
 #### Parameters
 
-- `degrees` - Rotation angle in degrees (positive = clockwise, negative =
-  counter-clockwise)
+- `degrees` - Rotation angle in degrees (positive = clockwise, negative = counter-clockwise)
 
 #### Example
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const image = await Image.decode(await Deno.readFile("photo.jpg"));
 
@@ -490,8 +488,7 @@ await Deno.writeFile("flipped.jpg", await image.encode("jpeg"));
 
 ### Use Cases
 
-- **Orientation correction** - Fix images from cameras with incorrect
-  orientation
+- **Orientation correction** - Fix images from cameras with incorrect orientation
 - **EXIF orientation** - Apply orientation metadata to pixel data
 - **Creative effects** - Kaleidoscope patterns, reflections
 - **Mirroring** - Create symmetrical designs

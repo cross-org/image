@@ -109,8 +109,7 @@ test("DNG: check specific tags", async () => {
   const encoded = await format.encode(imageData);
 
   // Helper to read uint16
-  const readU16 = (offset: number) =>
-    encoded[offset] | (encoded[offset + 1] << 8);
+  const readU16 = (offset: number) => encoded[offset] | (encoded[offset + 1] << 8);
   const readU32 = (offset: number) =>
     encoded[offset] | (encoded[offset + 1] << 8) | (encoded[offset + 2] << 16) |
     (encoded[offset + 3] << 24);

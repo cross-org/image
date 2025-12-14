@@ -1,9 +1,4 @@
-import type {
-  ImageData,
-  ImageDecoderOptions,
-  ImageFormat,
-  ImageMetadata,
-} from "../types.ts";
+import type { ImageData, ImageDecoderOptions, ImageFormat, ImageMetadata } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -222,9 +217,7 @@ export class PPMFormat implements ImageFormat {
 
       if (pixelIndex < pixelCount * 3) {
         throw new Error(
-          `Incomplete PPM pixel data: expected ${
-            pixelCount * 3
-          } values, got ${pixelIndex}`,
+          `Incomplete PPM pixel data: expected ${pixelCount * 3} values, got ${pixelIndex}`,
         );
       }
     }
@@ -247,9 +240,7 @@ export class PPMFormat implements ImageFormat {
     // Validate input
     if (data.length !== width * height * 4) {
       throw new Error(
-        `Data length mismatch: expected ${
-          width * height * 4
-        }, got ${data.length}`,
+        `Data length mismatch: expected ${width * height * 4}, got ${data.length}`,
       );
     }
 

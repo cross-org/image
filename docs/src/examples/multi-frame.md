@@ -12,7 +12,7 @@ Examples of working with animated GIFs, APNGs, and multi-page TIFFs.
 ### Decode GIF Frames
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Decode all frames from animated GIF
 const gifData = await Deno.readFile("animated.gif");
@@ -34,7 +34,7 @@ for (let i = 0; i < multiFrame.frames.length; i++) {
 ### Extract Single Frame
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
@@ -54,7 +54,7 @@ await Deno.writeFile("first-frame.png", await image.encode("png"));
 ### Extract All Frames
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
@@ -74,7 +74,7 @@ for (let i = 0; i < multiFrame.frames.length; i++) {
 ### Create Animated GIF
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create frames
 const frame1 = Image.create(200, 200, 255, 0, 0); // Red
@@ -115,7 +115,7 @@ await Deno.writeFile("animated.gif", gifData);
 ### Process Each Frame
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Load animated GIF
 const gifData = await Deno.readFile("animated.gif");
@@ -153,7 +153,7 @@ await Deno.writeFile("processed.gif", output);
 ### Decode APNG Frames
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Decode all frames from APNG
 const apngData = await Deno.readFile("animated.png");
@@ -173,7 +173,7 @@ for (let i = 0; i < multiFrame.frames.length; i++) {
 ### Create Animated PNG
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create animation frames
 const frames = [];
@@ -202,7 +202,7 @@ await Deno.writeFile("animated.png", apngData);
 ### Convert GIF to APNG
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Load GIF
 const gifData = await Deno.readFile("animated.gif");
@@ -220,7 +220,7 @@ console.log("Converted GIF to APNG");
 ### Decode TIFF Pages
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Decode all pages from multi-page TIFF
 const tiffData = await Deno.readFile("document.tiff");
@@ -238,7 +238,7 @@ for (let i = 0; i < multiPage.frames.length; i++) {
 ### Extract TIFF Pages
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const tiffData = await Deno.readFile("multipage.tiff");
 const multiPage = await Image.decodeFrames(tiffData);
@@ -258,7 +258,7 @@ for (let i = 0; i < multiPage.frames.length; i++) {
 ### Create Multi-Page TIFF
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Create pages
 const page1 = Image.create(800, 600, 255, 255, 255);
@@ -291,7 +291,7 @@ await Deno.writeFile("multipage.tiff", tiffData);
 ### Create Document from Images
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Load individual images
 const files = ["scan1.png", "scan2.png", "scan3.png"];
@@ -328,7 +328,7 @@ console.log(`Created document with ${pages.length} pages`);
 ### Resize All Frames
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
@@ -361,7 +361,7 @@ await Deno.writeFile("resized.gif", output);
 ### Apply Filter to Animation
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
@@ -393,7 +393,7 @@ await Deno.writeFile("grayscale.gif", output);
 ### Adjust Frame Delays
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
@@ -423,7 +423,7 @@ await Deno.writeFile("slowed.gif", output);
 ### Convert Multiple GIFs
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const files = ["anim1.gif", "anim2.gif", "anim3.gif"];
 
@@ -443,7 +443,7 @@ for (const file of files) {
 ### Extract First Frames
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const files = ["anim1.gif", "anim2.gif", "anim3.gif"];
 
@@ -468,7 +468,7 @@ for (const file of files) {
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const gifData = await readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
@@ -487,7 +487,7 @@ await writeFile("first-frame.png", pngData);
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const page1Data = await readFile("page1.png");
 const page1 = await Image.decode(page1Data);
@@ -515,7 +515,7 @@ await writeFile("document.tiff", tiffData);
 ### Process GIF in Bun
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const file = Bun.file("animated.gif");
 const gifData = new Uint8Array(await file.arrayBuffer());

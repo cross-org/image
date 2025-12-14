@@ -12,7 +12,7 @@ Practical examples of using filters for blur, sharpening, and noise reduction.
 ### Simple Blur
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -26,7 +26,7 @@ await Deno.writeFile("blurred.png", await image.encode("png"));
 ### Gaussian Blur
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -40,7 +40,7 @@ await Deno.writeFile("gaussian.png", await image.encode("png"));
 ### Sharpening
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("soft-photo.jpg");
 const image = await Image.decode(data);
@@ -54,7 +54,7 @@ await Deno.writeFile("sharp.png", await image.encode("png"));
 ### Median Filter for Noise Removal
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("noisy-photo.jpg");
 const image = await Image.decode(data);
@@ -72,7 +72,7 @@ await Deno.writeFile("denoised.png", await image.encode("png"));
 Clean up noisy images and restore sharpness:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("noisy-photo.jpg");
 const image = await Image.decode(data);
@@ -88,7 +88,7 @@ await Deno.writeFile("cleaned.png", await image.encode("png"));
 Create dreamy soft focus:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("portrait.jpg");
 const image = await Image.decode(data);
@@ -104,7 +104,7 @@ await Deno.writeFile("soft-focus.png", await image.encode("png"));
 Multiple blur passes for extreme smoothing:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -120,7 +120,7 @@ await Deno.writeFile("smooth.png", await image.encode("png"));
 ### Skin Smoothing
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("portrait.jpg");
 const image = await Image.decode(data);
@@ -139,7 +139,7 @@ await Deno.writeFile("enhanced-portrait.png", await image.encode("png"));
 Complete portrait enhancement workflow:
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("portrait.jpg");
 const image = await Image.decode(data);
@@ -160,7 +160,7 @@ await Deno.writeFile("professional.png", await image.encode("png"));
 ### Sharpen Landscapes
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("landscape.jpg");
 const image = await Image.decode(data);
@@ -176,7 +176,7 @@ await Deno.writeFile("sharp-landscape.png", await image.encode("png"));
 ### Enhance Details
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("landscape.jpg");
 const image = await Image.decode(data);
@@ -194,7 +194,7 @@ await Deno.writeFile("enhanced-landscape.png", await image.encode("png"));
 ### Motion Blur Simulation
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("action.jpg");
 const image = await Image.decode(data);
@@ -208,7 +208,7 @@ await Deno.writeFile("motion-blur.png", await image.encode("png"));
 ### Dreamy Effect
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("romantic.jpg");
 const image = await Image.decode(data);
@@ -224,7 +224,7 @@ await Deno.writeFile("dreamy.png", await image.encode("png"));
 ### High Contrast Sharp
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -241,7 +241,7 @@ await Deno.writeFile("high-contrast.png", await image.encode("png"));
 ### Light Noise Removal
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("slightly-noisy.jpg");
 const image = await Image.decode(data);
@@ -255,7 +255,7 @@ await Deno.writeFile("cleaned-light.png", await image.encode("png"));
 ### Heavy Noise Removal
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("very-noisy.jpg");
 const image = await Image.decode(data);
@@ -272,7 +272,7 @@ await Deno.writeFile("cleaned-heavy.png", await image.encode("png"));
 ### JPEG Artifact Reduction
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("compressed.jpg");
 const image = await Image.decode(data);
@@ -290,7 +290,7 @@ await Deno.writeFile("artifact-reduced.png", await image.encode("png"));
 ### Sharpen All Photos
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const files = ["photo1.jpg", "photo2.jpg", "photo3.jpg"];
 
@@ -310,7 +310,7 @@ for (const file of files) {
 ### Apply Consistent Smoothing
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const files = ["photo1.jpg", "photo2.jpg", "photo3.jpg"];
 
@@ -333,7 +333,7 @@ for (const file of files) {
 ### Testing Different Blur Radii
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 
@@ -355,7 +355,7 @@ for (const radius of radii) {
 ### Testing Different Sharpen Amounts
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("photo.jpg");
 
@@ -379,7 +379,7 @@ for (const amount of amounts) {
 ### Filtered Portrait
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("portrait.jpg");
 const image = await Image.decode(data);
@@ -397,7 +397,7 @@ await Deno.writeFile("filtered-portrait.png", await image.encode("png"));
 ### Filtered Landscape
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 const data = await Deno.readFile("landscape.jpg");
 const image = await Image.decode(data);
@@ -417,7 +417,7 @@ await Deno.writeFile("filtered-landscape.png", await image.encode("png"));
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const data = await readFile("photo.jpg");
 const image = await Image.decode(data);
@@ -432,7 +432,7 @@ await writeFile("sharp.jpg", output);
 
 ```ts
 import { readFile, writeFile } from "node:fs/promises";
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const data = await readFile("noisy.jpg");
 const image = await Image.decode(data);
@@ -448,7 +448,7 @@ await writeFile("clean.jpg", output);
 ### Blur in Bun
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "cross-image";
 
 const file = Bun.file("photo.jpg");
 const data = new Uint8Array(await file.arrayBuffer());

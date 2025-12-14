@@ -180,8 +180,7 @@ test("PAM: decode - data length mismatch", async () => {
 
   // Create PAM with incorrect data length
   const encoder = new TextEncoder();
-  const header =
-    "P7\nWIDTH 2\nHEIGHT 2\nDEPTH 4\nMAXVAL 255\nTUPLTYPE RGB_ALPHA\nENDHDR\n";
+  const header = "P7\nWIDTH 2\nHEIGHT 2\nDEPTH 4\nMAXVAL 255\nTUPLTYPE RGB_ALPHA\nENDHDR\n";
   const headerBytes = encoder.encode(header);
   const wrongLength = new Uint8Array(headerBytes.length + 3); // 3 bytes instead of 16
   wrongLength.set(headerBytes);

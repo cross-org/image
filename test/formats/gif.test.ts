@@ -122,16 +122,12 @@ test("GIF: encode and decode - simple solid color", async () => {
     assertEquals(
       g < MAX_GREEN_BLUE_THRESHOLD,
       true,
-      `Pixel ${
-        i / 4
-      }: Green channel should be < ${MAX_GREEN_BLUE_THRESHOLD}, got ${g}`,
+      `Pixel ${i / 4}: Green channel should be < ${MAX_GREEN_BLUE_THRESHOLD}, got ${g}`,
     );
     assertEquals(
       b < MAX_GREEN_BLUE_THRESHOLD,
       true,
-      `Pixel ${
-        i / 4
-      }: Blue channel should be < ${MAX_GREEN_BLUE_THRESHOLD}, got ${b}`,
+      `Pixel ${i / 4}: Blue channel should be < ${MAX_GREEN_BLUE_THRESHOLD}, got ${b}`,
     );
   }
 });

@@ -6,11 +6,7 @@ import type {
   MultiFrameImageData,
   ResizeOptions,
 } from "./types.ts";
-import {
-  resizeBicubic,
-  resizeBilinear,
-  resizeNearest,
-} from "./utils/resize.ts";
+import { resizeBicubic, resizeBilinear, resizeNearest } from "./utils/resize.ts";
 import {
   adjustBrightness,
   adjustContrast,
@@ -301,9 +297,7 @@ export class Image {
   static getSupportedMetadata(
     format: string,
   ): Array<keyof ImageMetadata> | undefined {
-    const formatHandler = Image.formats.find((f) =>
-      f.name === format.toLowerCase()
-    );
+    const formatHandler = Image.formats.find((f) => f.name === format.toLowerCase());
     if (!formatHandler) {
       throw new Error(`Unknown image format: ${format}`);
     }
@@ -494,9 +488,7 @@ export class Image {
 
     if (data.length !== width * height * 4) {
       throw new Error(
-        `Data length mismatch: expected ${
-          width * height * 4
-        }, got ${data.length}`,
+        `Data length mismatch: expected ${width * height * 4}, got ${data.length}`,
       );
     }
 
@@ -554,8 +546,7 @@ export class Image {
     // Validate new dimensions for security (prevent integer overflow and heap exhaustion)
     validateImageDimensions(width, height);
 
-    const { data: srcData, width: srcWidth, height: srcHeight } =
-      this.imageData;
+    const { data: srcData, width: srcWidth, height: srcHeight } = this.imageData;
 
     // Handle fitting modes
     let targetWidth = width;
