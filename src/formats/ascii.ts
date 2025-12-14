@@ -1,5 +1,5 @@
 import type {
-  ASCIIEncodeOptions,
+  ASCIIEncoderOptions,
   ImageData,
   ImageDecoderOptions,
   ImageFormat,
@@ -135,7 +135,7 @@ export class ASCIIFormat implements ImageFormat {
    */
   encode(
     imageData: ImageData,
-    options: ASCIIEncodeOptions = {},
+    options: ASCIIEncoderOptions = {},
   ): Promise<Uint8Array> {
     const {
       width: targetWidth = 80,

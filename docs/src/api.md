@@ -823,12 +823,12 @@ interface ResizeOptions {
   have letterboxing)
 - `fill` / `cover` - Fill dimensions maintaining aspect ratio (may crop)
 
-### `ASCIIEncodeOptions`
+### `ASCIIEncoderOptions`
 
 Configuration for ASCII art encoding.
 
 ```ts
-interface ASCIIEncodeOptions {
+interface ASCIIEncoderOptions {
   /** Target width in characters (default: 80) */
   width?: number;
   /** Character set to use (default: "simple") */
@@ -847,12 +847,12 @@ interface ASCIIEncodeOptions {
 - `blocks` - 5 block characters (`░▒▓█`) - smooth gradients
 - `detailed` - 92 characters - maximum detail
 
-### `WebPEncodeOptions`
+### `WebPEncoderOptions`
 
 Configuration for WebP encoding.
 
 ```ts
-interface WebPEncodeOptions {
+interface WebPEncoderOptions {
   /** Encoding quality 1-100 (default: 90) */
   quality?: number;
   /** Force lossless encoding even with quality < 100 (default: false) */
@@ -874,12 +874,12 @@ runtime's native WebP encoder is used for better compression. In pure-JS mode
 (Node.js without OffscreenCanvas), VP8L format with quality-based color
 quantization is used.
 
-### `TIFFEncodeOptions`
+### `TIFFEncoderOptions`
 
 Configuration for TIFF encoding.
 
 ```ts
-interface TIFFEncodeOptions {
+interface TIFFEncoderOptions {
   /** Compression method: "none" (default), "lzw", "packbits", or "deflate" */
   compression?: "none" | "lzw" | "packbits" | "deflate";
   /** Encode as grayscale instead of RGB/RGBA (default: false) */
@@ -903,12 +903,12 @@ interface TIFFEncodeOptions {
 - `rgb: true` - RGB without alpha channel (smaller file size if transparency not
   needed)
 
-### `JPEGEncodeOptions`
+### `JPEGEncoderOptions`
 
 Configuration for JPEG encoding.
 
 ```ts
-interface JPEGEncodeOptions {
+interface JPEGEncoderOptions {
   /** Encoding quality (1-100) */
   quality?: number;
   /** Progressive JPEG output (pure-JS encoder only) */

@@ -3,7 +3,7 @@ import type {
   ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
-  WebPEncodeOptions,
+  WebPEncoderOptions,
 } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { readUint32LE } from "../utils/byte_utils.ts";
@@ -138,7 +138,7 @@ export class WebPFormat implements ImageFormat {
    */
   async encode(
     imageData: ImageData,
-    options?: WebPEncodeOptions,
+    options?: WebPEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
     const quality = options?.quality ?? DEFAULT_WEBP_QUALITY;

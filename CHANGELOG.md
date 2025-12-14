@@ -47,10 +47,12 @@ and this project adheres to
 - Per-decoder option types (`JPEGDecoderOptions`, `GIFDecoderOptions`,
   `WebPDecoderOptions`) removed in favor of `ImageDecoderOptions`
 - `Image.encode("jpeg", ...)` now honors `quality` and `progressive` via
-  `JPEGEncodeOptions` (exported from `mod.ts`)
-- `ASCIIOptions` removed; use `ASCIIEncodeOptions`
-- `TIFFEncodeOptions` now exported from `mod.ts` (no longer re-exported from the
-  TIFF format module)
+  `JPEGEncoderOptions` (exported from `mod.ts`)
+- **Breaking**: Renamed `*EncodeOptions` types to `*EncoderOptions` for
+  consistency with `ImageDecoderOptions`
+- `ASCIIOptions` removed; use `ASCIIEncoderOptions`
+- `TIFFEncoderOptions` now exported from `mod.ts` (no longer re-exported from
+  the TIFF format module)
 
 ## [0.3.0] - 2025-12-13
 

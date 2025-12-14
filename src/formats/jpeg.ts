@@ -3,7 +3,7 @@ import type {
   ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
-  JPEGEncodeOptions,
+  JPEGEncoderOptions,
 } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
@@ -124,7 +124,7 @@ export class JPEGFormat implements ImageFormat {
    */
   async encode(
     imageData: ImageData,
-    options?: JPEGEncodeOptions,
+    options?: JPEGEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 

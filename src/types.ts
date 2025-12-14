@@ -149,7 +149,7 @@ export interface ResizeOptions {
 /**
  * Options for ASCII art encoding
  */
-export interface ASCIIEncodeOptions {
+export interface ASCIIEncoderOptions {
   /** Target width in characters (default: 80) */
   width?: number;
   /** Character set to use (default: "simple") */
@@ -163,7 +163,7 @@ export interface ASCIIEncodeOptions {
 /**
  * Options for TIFF encoding.
  */
-export interface TIFFEncodeOptions {
+export interface TIFFEncoderOptions {
   /** Compression method: "none" (default), "lzw", "packbits", or "deflate" */
   compression?: "none" | "lzw" | "packbits" | "deflate";
   /** Encode as grayscale instead of RGB/RGBA (default: false) */
@@ -175,7 +175,7 @@ export interface TIFFEncodeOptions {
 /**
  * Options for WebP encoding
  */
-export interface WebPEncodeOptions {
+export interface WebPEncoderOptions {
   /**
    * Encoding quality (1-100, default: 90)
    * - 100 = lossless (VP8L)
@@ -192,7 +192,7 @@ export interface WebPEncodeOptions {
 /**
  * Options for JPEG encoding.
  */
-export interface JPEGEncodeOptions {
+export interface JPEGEncoderOptions {
   /**
    * Encoding quality (1-100, default depends on encoder backend).
    */

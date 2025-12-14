@@ -4,7 +4,7 @@ import type {
   ImageFormat,
   ImageMetadata,
   MultiFrameImageData,
-  TIFFEncodeOptions,
+  TIFFEncoderOptions,
 } from "../types.ts";
 import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
 import {
@@ -207,7 +207,7 @@ export class TIFFFormat implements ImageFormat {
     options?: unknown,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
-    const opts = options as TIFFEncodeOptions | undefined;
+    const opts = options as TIFFEncoderOptions | undefined;
     const compression = opts?.compression ?? "none";
     const grayscale = opts?.grayscale ?? false;
     const rgb = opts?.rgb ?? false;
@@ -548,7 +548,7 @@ export class TIFFFormat implements ImageFormat {
     imageData: MultiFrameImageData,
     options?: unknown,
   ): Promise<Uint8Array> {
-    const opts = options as TIFFEncodeOptions | undefined;
+    const opts = options as TIFFEncoderOptions | undefined;
     const compression = opts?.compression ?? "none";
 
     if (imageData.frames.length === 0) {

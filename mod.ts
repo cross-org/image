@@ -45,18 +45,20 @@
 
 export { Image } from "./src/image.ts";
 export type {
-  ASCIIEncodeOptions,
   FrameMetadata,
   ImageData,
-  ImageDecoderOptions,
   ImageFormat,
   ImageFrame,
   ImageMetadata,
-  JPEGEncodeOptions,
   MultiFrameImageData,
   ResizeOptions,
-  TIFFEncodeOptions,
-  WebPEncodeOptions,
+  /* Decoder options */
+  ImageDecoderOptions,
+  /* Encoder options */
+  ASCIIEncoderOptions,
+  JPEGEncoderOptions,
+  TIFFEncoderOptions,
+  WebPEncoderOptions,
 } from "./src/types.ts";
 export { PNGFormat } from "./src/formats/png.ts";
 export { APNGFormat } from "./src/formats/apng.ts";
