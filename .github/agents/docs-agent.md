@@ -18,3 +18,6 @@ Follow these instructions:
   references for test snippets.
 - Call out performance/safety considerations (tolerant decoding, memory use,
   format caveats) where relevant.
+- Docs are produced by lumocs (https://github.com/hexagon/lumocs) or
+  (http://lumocs.56k.guru); follow its markdown conventions and front matter
+  structure.

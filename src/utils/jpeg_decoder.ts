@@ -456,18 +456,57 @@ export class JPEGDecoder {
       }
     }
 
-    // Decode MCUs
-    let decodedBlocks = 0;
-    let failedBlocks = 0;
-    let _scanEnded = false; // Flag to indicate end of scan data
+    // Decode entropy-coded data.
+    // JPEG defines different MCU sequencing for interleaved vs non-interleaved scans.
+    // For single-component (non-interleaved) scans, the entropy-coded stream is ordered
+    // as a simple raster over that component's block grid; decoding in interleaved MCU
+    // order can permute blocks and produce artifacts that look like half-width duplication.
+    if (this.scanComponentIds.length === 1) {
+      const componentId = this.scanComponentIds[0];
+      const component = this.components.find((c) => c.id === componentId);
+      if (!component) return;
 
+      const blocksAcross = mcuWidth * component.h;
+      const blocksDown = mcuHeight * component.v;
+
+      for (let blockY = 0; blockY < blocksDown; blockY++) {
+        for (let blockX = 0; blockX < blocksAcross; blockX++) {
+          if (
+            blockY >= component.blocks.length ||
+            blockX >= component.blocks[0].length
+          ) {
+            continue;
+          }
+
+          if (this.options.tolerantDecoding) {
+            try {
+              this.decodeBlock(component, blockY, blockX);
+            } catch (e) {
+              if (e instanceof EndOfScanError) {
+                return;
+              }
+            }
+          } else {
+            try {
+              this.decodeBlock(component, blockY, blockX);
+            } catch (e) {
+              if (e instanceof EndOfScanError) {
+                return;
+              }
+              throw e;
+            }
+          }
+        }
+      }
+
+      return;
+    }
+
+    // Interleaved scan: MCU order with per-component sampling factors.
     outerLoop:
     for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
       for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
-        // Decode all components in this MCU
         for (const component of this.components) {
-          // Skip components not included in this scan
-          // For progressive JPEGs, each scan may only include a subset of components
           if (
             this.scanComponentIds.length > 0 &&
             !this.scanComponentIds.includes(component.id)
@@ -487,31 +526,18 @@ export class JPEGDecoder {
                 if (this.options.tolerantDecoding) {
                   try {
                     this.decodeBlock(component, blockY, blockX);
-                    decodedBlocks++;
                   } catch (e) {
-                    // Check if we've hit the end of scan data (marker found)
-                    // This is normal and means we should stop decoding this scan
                     if (e instanceof EndOfScanError) {
-                      _scanEnded = true;
                       break outerLoop;
                     }
-                    // Tolerant decoding: for other errors, leave block as-is and continue
-                    // This allows partial decoding of corrupted or complex JPEGs
-                    failedBlocks++;
-                    // Block preserves its previous state (zeros on first scan)
                   }
                 } else {
-                  // Non-tolerant mode: decode block, but handle end-of-scan markers gracefully
                   try {
                     this.decodeBlock(component, blockY, blockX);
-                    decodedBlocks++;
                   } catch (e) {
-                    // End of scan is not an error, it's a normal condition
                     if (e instanceof EndOfScanError) {
-                      _scanEnded = true;
                       break outerLoop;
                     }
-                    // For other errors, rethrow
                     throw e;
                   }
                 }
@@ -530,9 +556,14 @@ export class JPEGDecoder {
   ): void {
     const block = component.blocks[blockY][blockX];
 
-    // Check if this block should be skipped due to EOBn (end-of-block run)
-    // EOBn symbols indicate multiple consecutive blocks are all zero in the spectral range
-    if (this.eobRun > 0) {
+    // EOB run handling (progressive JPEG AC scans):
+    // - In first AC scans (Ah=0), an EOB run means the following blocks have no new
+    //   coefficients in the current spectral band and can be skipped entirely.
+    // - In AC refinement scans (Ah>0), blocks in an EOB run STILL contain refinement
+    //   bits for existing non-zero coefficients; skipping would desynchronize the bitstream.
+    const isACScan = this.spectralEnd > 0 && this.spectralStart > 0;
+    const isACRefinementScan = isACScan && this.successiveHigh > 0;
+    if (isACScan && !isACRefinementScan && this.eobRun > 0) {
       this.eobRun--;
       // Block remains as-is (zeros or previous values from earlier scans)
       return;
@@ -627,7 +658,8 @@ export class JPEGDecoder {
         }
       } else {
         const qTable = this.qTables[component.qTable];
-        let successiveACState = 0;
+        const hadEobRunAtStart = this.eobRun > 0;
+        let successiveACState = hadEobRunAtStart ? 4 : 0;
         let successiveACNextValue = 0;
         let runLength = 0;
         let kk = this.spectralStart === 0 ? 1 : this.spectralStart;
@@ -703,11 +735,11 @@ export class JPEGDecoder {
           kk++;
         }
 
-        if (successiveACState === 4 && this.eobRun > 0) {
+        // Only consume one EOB-run block here if we started this block already within
+        // an existing EOB run. If we *encountered* an EOBn symbol in this block, the
+        // run applies to subsequent blocks (per our eobRun convention).
+        if (successiveACState === 4 && hadEobRunAtStart && this.eobRun > 0) {
           this.eobRun--;
-          if (this.eobRun === 0) {
-            successiveACState = 0;
-          }
         }
       }
     }
@@ -768,6 +800,8 @@ export class JPEGDecoder {
           for (const component of this.components) {
             component.pred = 0;
           }
+          // Progressive AC refinement uses EOB runs; restart markers reset EOBRUN as well.
+          this.eobRun = 0;
           // Reset bit stream (restart markers are byte-aligned)
           this.bitBuffer = 0;
           this.bitCount = 0;

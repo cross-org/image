@@ -18,3 +18,6 @@ Follow these instructions:
   cross-runtime compatibility (Deno/Bun/Node 18/20/22).
 - Prefer minimal diffs; do not modify implementation logic unless required to
   fix layout or packaging issues.
+- npm build is done manually with the helpo of dnt through the deno task
+  `build:npm` task on demand. No need to care for npm/package.json etc except
+  for the scripts/build_npm.ts file.
