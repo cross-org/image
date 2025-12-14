@@ -140,6 +140,87 @@ implementation:
 See the [Format Support](formats.md) page for detailed compatibility
 information.
 
+## JPEG Tolerant Decoding
+
+The JPEG decoder enables a tolerant decoding mode by default that keeps
+decoding even when individual blocks fail, filling those areas with neutral
+values instead of throwing. That makes the decoder resilient against complex
+mobile encodings, progressive scans, and partially corrupted files.
+
+**Highlights:**
+
+- Enabled by default; works automatically through `Image.decode()`
+- Supports both baseline and progressive JPEGs, respecting spectral selection
+  and successive approximation
+- Optional `tolerantDecoding` flag lets you opt into strict validation
+- `onWarning` callback can surface non-fatal decode issues for logging
+
+```ts
+import { JPEGDecoder } from "@cross/image/utils/jpeg_decoder";
+
+const decoder = new JPEGDecoder(data, { tolerantDecoding: true });
+const rgba = decoder.decode();
+
+const strictDecoder = new JPEGDecoder(data, { tolerantDecoding: false });
+strictDecoder.decode(); // throws on first error
+```
+
+Find implementation notes in [docs/src/implementation/jpeg-implementation.md](implementation/jpeg-implementation.md).
+
+## Fault-Tolerant Decoding for Other Formats
+
+Several other decoders ship with fault-tolerant defaults as well:
+
+- **GIF** - Skips corrupted frames and keeps valid ones instead of aborting.
+- **WebP VP8L** - Converts corrupted pixels to neutral gray and continues.
+
+Each decoder exposes the same `tolerantDecoding` option plus `onWarning`,
+so you can switch between resilience and strict validation with the same API.
+
+## Metadata Support
+
+@cross/image includes EXIF 3.0-compliant metadata parsing for JPEG, TIFF, WebP,
+and other JPEG-family formats. You can read, set, and preserve rich camera
+information, GPS coordinates, and DPI when saving images.
+
+**Metadata coverage:**
+
+- Basic fields such as titles, descriptions, copyright, and creation dates
+- Camera details like make/model, ISO, exposure time, focal length, and
+  orientation
+- GPS coordinates with full precision plus helper methods like
+  `image.getPosition()`
+- EXIF, IFD0, InteropIFD, and GPS IFD tags across BYTE, ASCII, SHORT, LONG,
+  and RATIONAL types
+
+```ts
+import { Image } from "@cross/image";
+
+const image = await Image.decode(data);
+image.setMetadata({ cameraMake: "Canon", iso: 800 });
+image.setPosition(40.7128, -74.0060);
+const saved = await image.save("jpeg");
+```
+
+## Warning Callbacks
+
+Every decoder exposes an optional `onWarning` callback so you can monitor
+non-fatal issues without printing to `console`. The callback receives a human-
+readable message plus optional details that describe the underlying error.
+
+```ts
+const decoder = new JPEGDecoder(data, {
+  tolerantDecoding: true,
+  onWarning: (message, details) => {
+    myLogger.warn(message, details);
+  },
+});
+decoder.decode();
+```
+
+Use the callback to surface logs, analytics, or recovery strategies while
+keeping tolerant decoding enabled.
+
 ## License
 
 MIT License - see
