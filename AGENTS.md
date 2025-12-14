@@ -97,18 +97,21 @@ Additional checks:
   minimize loops, and benchmark critical paths
 - If CI flips lint_docs=true: run deno doc --lint mod.ts
 - Keep this file lean
-- Keep temporary tests and files in a folder called `local_test/`, which is gitignored
+- Keep temporary tests and files in a folder called `local_test/`, which is
+  gitignored
 
 ## Docs
 
-- Docs reside in docs/src/ and is produced by lumocs (https://github.com/hexagon/lumocs) or
-  (http://lumocs.56k.guru); follow its markdown conventions and front matter
-  structure
+- Docs reside in docs/src/ and is produced by lumocs
+  (https://github.com/hexagon/lumocs) or (http://lumocs.56k.guru); follow its
+  markdown conventions and front matter structure
 - Favor task-based guides with minimal setup, runnable snippets for
   Deno/Bun/Node, and clear capability/limitation notes.
 - Use relative links within docs/, provide descriptive headings, and keep tone
   concise and practical.
-- Keep README.md more dev focused (library developer) and docs/src/index.md more user (library user) focused. Both both should contain the sam typ of project overview.  
+- Keep README.md more dev focused (library developer) and docs/src/index.md more
+  user (library user) focused. Both both should contain the sam typ of project
+  overview.
 - Keep README.md lean.
 - Prefer absolute links to docs/src/ site content when referencing longer
   guides, docs are published at https://cross-image.56k.guru, and use folder
