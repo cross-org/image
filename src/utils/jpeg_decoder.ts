@@ -10,6 +10,17 @@
  */
 
 /**
+ * Custom error class for end-of-scan marker detection
+ * Thrown when a marker is encountered in scan data, indicating the scan has ended
+ */
+class EndOfScanError extends Error {
+  constructor(message: string = "End of scan marker detected") {
+    super(message);
+    this.name = "EndOfScanError";
+  }
+}
+
+/**
  * Options for JPEG decoder
  */
 export interface JPEGDecoderOptions {
@@ -145,6 +156,8 @@ export class JPEGDecoder {
   private spectralEnd: number = 63; // End of spectral selection (Se)
   private successiveHigh: number = 0; // Successive approximation bit high (Ah)
   private successiveLow: number = 0; // Successive approximation bit low (Al)
+  private scanComponentIds: number[] = []; // Component IDs included in current scan
+  private eobRun: number = 0; // Remaining blocks to skip due to EOBn
 
   constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
     this.data = data;
@@ -387,9 +400,14 @@ export class JPEGDecoder {
     const _length = this.readUint16();
     const numComponents = this.data[this.pos++];
 
+    // Track which components are included in this scan
+    this.scanComponentIds = [];
+
     for (let i = 0; i < numComponents; i++) {
       const id = this.data[this.pos++];
       const tables = this.data[this.pos++];
+
+      this.scanComponentIds.push(id);
 
       const component = this.components.find((c) => c.id === id);
       if (component) {
@@ -425,7 +443,8 @@ export class JPEGDecoder {
     this.bitBuffer = 0;
     this.bitCount = 0;
 
-    // Reset DC predictors at the start of each scan (JPEG spec requirement)
+    // Reset DC predictors and EOB run at the start of each scan (JPEG spec requirement)
+    this.eobRun = 0;
     for (const component of this.components) {
       component.pred = 0;
     }
@@ -449,11 +468,22 @@ export class JPEGDecoder {
     // Decode MCUs
     let decodedBlocks = 0;
     let failedBlocks = 0;
+    let _scanEnded = false; // Flag to indicate end of scan data
 
+    outerLoop:
     for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
       for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
         // Decode all components in this MCU
         for (const component of this.components) {
+          // Skip components not included in this scan
+          // For progressive JPEGs, each scan may only include a subset of components
+          if (
+            this.scanComponentIds.length > 0 &&
+            !this.scanComponentIds.includes(component.id)
+          ) {
+            continue;
+          }
+
           for (let v = 0; v < component.v; v++) {
             for (let h = 0; h < component.h; h++) {
               const blockY = mcuY * component.v + v;
@@ -467,16 +497,32 @@ export class JPEGDecoder {
                   try {
                     this.decodeBlock(component, blockY, blockX);
                     decodedBlocks++;
-                  } catch (_e) {
-                    // Tolerant decoding: if we fail, leave block as-is and continue
+                  } catch (e) {
+                    // Check if we've hit the end of scan data (marker found)
+                    // This is normal and means we should stop decoding this scan
+                    if (e instanceof EndOfScanError) {
+                      _scanEnded = true;
+                      break outerLoop;
+                    }
+                    // Tolerant decoding: for other errors, leave block as-is and continue
                     // This allows partial decoding of corrupted or complex JPEGs
                     failedBlocks++;
                     // Block preserves its previous state (zeros on first scan)
                   }
                 } else {
-                  // Non-tolerant mode: throw on first error
-                  this.decodeBlock(component, blockY, blockX);
-                  decodedBlocks++;
+                  // Non-tolerant mode: decode block, but handle end-of-scan markers gracefully
+                  try {
+                    this.decodeBlock(component, blockY, blockX);
+                    decodedBlocks++;
+                  } catch (e) {
+                    // End of scan is not an error, it's a normal condition
+                    if (e instanceof EndOfScanError) {
+                      _scanEnded = true;
+                      break outerLoop;
+                    }
+                    // For other errors, rethrow
+                    throw e;
+                  }
                 }
               }
             }
@@ -492,6 +538,14 @@ export class JPEGDecoder {
     blockX: number,
   ): void {
     const block = component.blocks[blockY][blockX];
+
+    // Check if this block should be skipped due to EOBn (end-of-block run)
+    // EOBn symbols indicate multiple consecutive blocks are all zero in the spectral range
+    if (this.eobRun > 0) {
+      this.eobRun--;
+      // Block remains as-is (zeros or previous values from earlier scans)
+      return;
+    }
 
     // Progressive JPEG support:
     // - Spectral selection (spectralStart, spectralEnd): Defines which DCT coefficients are decoded
@@ -555,11 +609,24 @@ export class JPEGDecoder {
             if (r === 15) {
               k += 16;
             } else {
-              break; // EOB
+              // EOB or EOBn (end of block, possibly with run length)
+              // EOBn is ONLY used in progressive JPEG with spectral selection
+              // For baseline JPEG, (r,0) where r!=0,15 should not occur
+              if (this.isProgressive && r > 0) {
+                // Progressive JPEG: EOBn with additional unsigned bits
+                // Formula: eobRun = (1 << r) - 1 + additionalBits
+                // This specifies how many ADDITIONAL blocks (after current) to skip
+                const additionalBits = this.receiveUnsignedBits(r);
+                this.eobRun = (1 << r) - 1 + additionalBits;
+              }
+              // For both baseline and progressive: end current block
+              break;
             }
           } else {
             k += r;
-            if (k >= 64) break;
+            // Check bounds: if k exceeds spectralEnd, stop decoding
+            // (spectralEnd is guaranteed to be <= 63 per JPEG spec)
+            if (k > this.spectralEnd) break;
             // For successive approximation, shift the coefficient left by Al bits
             const coeff = this.receiveBits(s) << this.successiveLow;
             block[ZIGZAG[k]] = coeff *
@@ -727,7 +794,7 @@ export class JPEGDecoder {
           // Other marker found in scan data - this indicates end of scan
           // Back up to before the marker
           this.pos--;
-          throw new Error("Marker found in scan data");
+          throw new EndOfScanError();
         }
       }
 
@@ -750,6 +817,21 @@ export class JPEGDecoder {
       value = value - (1 << n) + 1;
     }
 
+    return value;
+  }
+
+  private receiveUnsignedBits(n: number): number {
+    // Read n bits as an unsigned integer (no magnitude conversion)
+    // Input validation: n should be between 0 and 16
+    if (n < 0 || n > 16) {
+      throw new Error(`Invalid bit count: ${n} (must be 0-16)`);
+    }
+    if (n === 0) return 0;
+
+    let value = 0;
+    for (let i = 0; i < n; i++) {
+      value = (value << 1) | this.readBit();
+    }
     return value;
   }
 
@@ -822,10 +904,14 @@ export class JPEGDecoder {
       for (let row = 0; row < this.height; row++) {
         for (let col = 0; col < this.width; col++) {
           // Y component
-          const yBlockRow = Math.floor(row / 8);
-          const yBlockCol = Math.floor(col / 8);
-          const yBlockY = row % 8;
-          const yBlockX = col % 8;
+          // Scale pixel position by component sampling factors to get correct block position
+          // This is necessary when component has h>1 or v>1 (e.g., 4:2:0 chroma subsampling)
+          const yRow = Math.floor(row * y.v / maxV);
+          const yCol = Math.floor(col * y.h / maxH);
+          const yBlockRow = Math.floor(yRow / 8);
+          const yBlockCol = Math.floor(yCol / 8);
+          const yBlockY = yRow % 8;
+          const yBlockX = yCol % 8;
 
           let yVal = 0;
           if (yBlockRow < y.blocks.length && yBlockCol < y.blocks[0].length) {
