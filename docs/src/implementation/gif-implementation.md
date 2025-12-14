@@ -15,7 +15,8 @@ nav_order: 4
   animation, GCE (delay and disposal method), and optimized color palettes.
 - **Fault-Tolerant Mode:** enabled by default. Skips corrupted frames instead of
   failing; continues decoding remaining frames even if LZW decompression fails.
-  Can be disabled via `GIFDecoderOptions` for strict validation.
+  Can be disabled by passing `ImageDecoderOptions` with
+  `tolerantDecoding: false` to `Image.decodeFrames()`.
 - **Key files:** `src/formats/gif.ts`, `src/utils/gif_decoder.ts`,
   `src/utils/gif_encoder.ts`, `src/utils/lzw.ts`.
 - **Tests:** `test/formats/gif.test.ts`, `test/formats/gif_tolerant.test.ts`,

@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -48,9 +53,18 @@ export class AVIFFormat implements ImageFormat {
    * @param data Raw AVIF image data
    * @returns Decoded image data with RGBA pixels
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    settings?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid AVIF signature");
+    }
+
+    if (settings?.runtimeDecoding === "never") {
+      throw new Error(
+        "AVIF decoding requires runtime APIs; set runtimeDecoding to 'prefer'",
+      );
     }
 
     // Extract metadata before decoding pixels
@@ -80,7 +94,10 @@ export class AVIFFormat implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded AVIF image bytes
    */
-  async encode(imageData: ImageData): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata: _metadata } = imageData;
 
     // Try to use runtime encoding if available

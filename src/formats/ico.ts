@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { PNGFormat } from "./png.ts";
 import {
@@ -43,7 +48,10 @@ export class ICOFormat implements ImageFormat {
    * @param data Raw ICO image data
    * @returns Decoded image data with RGBA pixels
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    options?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid ICO signature");
     }
@@ -114,7 +122,7 @@ export class ICOFormat implements ImageFormat {
       imageData[3] === 0x47
     ) {
       // It's a PNG, decode it
-      return await this.pngFormat.decode(imageData);
+      return await this.pngFormat.decode(imageData, options);
     }
 
     // Otherwise, it's a BMP without the file header (DIB format)
@@ -218,11 +226,14 @@ export class ICOFormat implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded ICO image bytes
    */
-  async encode(imageData: ImageData): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height } = imageData;
 
     // Encode the image as PNG
-    const pngData = await this.pngFormat.encode(imageData);
+    const pngData = await this.pngFormat.encode(imageData, undefined);
 
     // Create ICO file structure
     // ICONDIR (6 bytes) + ICONDIRENTRY (16 bytes) + PNG data

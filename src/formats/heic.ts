@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -49,9 +54,18 @@ export class HEICFormat implements ImageFormat {
    * @param data Raw HEIC image data
    * @returns Decoded image data with RGBA pixels
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    settings?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid HEIC signature");
+    }
+
+    if (settings?.runtimeDecoding === "never") {
+      throw new Error(
+        "HEIC decoding requires runtime APIs; set runtimeDecoding to 'prefer'",
+      );
     }
 
     // Extract metadata before decoding pixels
@@ -81,7 +95,10 @@ export class HEICFormat implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded HEIC image bytes
    */
-  async encode(imageData: ImageData): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata: _metadata } = imageData;
 
     // Try to use runtime encoding if available

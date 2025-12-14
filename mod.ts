@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { Image } from "@cross/image";
+ * import { Image } from "jsr:@cross/image";
  *
  * // Decode an image
  * const data = await Deno.readFile("input.png");
@@ -26,7 +26,7 @@
  *
  * @example
  * ```ts
- * import { Image } from "@cross/image";
+ * import { Image } from "jsr:@cross/image";
  *
  * // Create a blank canvas
  * const canvas = Image.create(400, 300, 255, 255, 255);
@@ -45,14 +45,17 @@
 
 export { Image } from "./src/image.ts";
 export type {
-  ASCIIOptions,
+  ASCIIEncodeOptions,
   FrameMetadata,
   ImageData,
+  ImageDecoderOptions,
   ImageFormat,
   ImageFrame,
   ImageMetadata,
+  JPEGEncodeOptions,
   MultiFrameImageData,
   ResizeOptions,
+  TIFFEncodeOptions,
   WebPEncodeOptions,
 } from "./src/types.ts";
 export { PNGFormat } from "./src/formats/png.ts";
@@ -60,7 +63,7 @@ export { APNGFormat } from "./src/formats/apng.ts";
 export { JPEGFormat } from "./src/formats/jpeg.ts";
 export { WebPFormat } from "./src/formats/webp.ts";
 export { GIFFormat } from "./src/formats/gif.ts";
-export { type TIFFEncodeOptions, TIFFFormat } from "./src/formats/tiff.ts";
+export { TIFFFormat } from "./src/formats/tiff.ts";
 export { BMPFormat } from "./src/formats/bmp.ts";
 export { ICOFormat } from "./src/formats/ico.ts";
 export { DNGFormat } from "./src/formats/dng.ts";
@@ -70,8 +73,3 @@ export { PPMFormat } from "./src/formats/ppm.ts";
 export { ASCIIFormat } from "./src/formats/ascii.ts";
 export { HEICFormat } from "./src/formats/heic.ts";
 export { AVIFFormat } from "./src/formats/avif.ts";
-
-// Export decoder options for advanced users
-export type { JPEGDecoderOptions } from "./src/utils/jpeg_decoder.ts";
-export type { GIFDecoderOptions } from "./src/utils/gif_decoder.ts";
-export type { WebPDecoderOptions } from "./src/utils/webp_decoder.ts";

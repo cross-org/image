@@ -21,26 +21,7 @@
  */
 
 import { validateImageDimensions } from "./security.ts";
-
-/**
- * Options for WebP decoder
- */
-export interface WebPDecoderOptions {
-  /**
-   * Enable tolerant decoding mode. When enabled, the decoder will continue
-   * decoding even if pixel decoding fails, filling remaining pixels with a
-   * neutral color. This is useful for partially corrupted VP8L images.
-   * @default true
-   */
-  tolerantDecoding?: boolean;
-  /**
-   * Optional callback for handling warnings during decoding.
-   * Called when non-fatal issues occur, such as partial decode in tolerant mode.
-   * @param message - The warning message
-   * @param details - Optional additional context or error information
-   */
-  onWarning?: (message: string, details?: unknown) => void;
-}
+import type { ImageDecoderOptions } from "../types.ts";
 
 // Helper to read little-endian values
 function readUint24LE(data: Uint8Array, offset: number): number {
@@ -178,12 +159,16 @@ class BitReader {
 
 export class WebPDecoder {
   private data: Uint8Array;
-  private options: WebPDecoderOptions;
+  private options: {
+    tolerantDecoding: boolean;
+    onWarning?: (message: string, details?: unknown) => void;
+  };
 
-  constructor(data: Uint8Array, options: WebPDecoderOptions = {}) {
+  constructor(data: Uint8Array, settings: ImageDecoderOptions = {}) {
     this.data = data;
     this.options = {
-      tolerantDecoding: options.tolerantDecoding ?? true,
+      tolerantDecoding: settings.tolerantDecoding ?? true,
+      onWarning: settings.onWarning,
     };
   }
 

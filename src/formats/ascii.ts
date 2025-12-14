@@ -1,6 +1,7 @@
 import type {
-  ASCIIOptions,
+  ASCIIEncodeOptions,
   ImageData,
+  ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
 } from "../types.ts";
@@ -60,7 +61,7 @@ export class ASCIIFormat implements ImageFormat {
    * @param data Raw ASCII art data
    * @returns Decoded image data with grayscale RGBA pixels
    */
-  decode(data: Uint8Array): Promise<ImageData> {
+  decode(data: Uint8Array, _options?: ImageDecoderOptions): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid ASCII art signature");
     }
@@ -134,7 +135,7 @@ export class ASCIIFormat implements ImageFormat {
    */
   encode(
     imageData: ImageData,
-    options: ASCIIOptions = {},
+    options: ASCIIEncodeOptions = {},
   ): Promise<Uint8Array> {
     const {
       width: targetWidth = 80,

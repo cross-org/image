@@ -71,7 +71,10 @@ export class DNGFormat extends TIFFFormat {
    * @param imageData Image data to encode
    * @returns Encoded DNG image bytes
    */
-  override encode(imageData: ImageData): Promise<Uint8Array> {
+  override encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data } = imageData;
 
     // We'll create a Linear DNG (demosaiced RGB)

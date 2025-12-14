@@ -9,6 +9,8 @@
  * For complex or non-standard JPEGs, the ImageDecoder API fallback is preferred.
  */
 
+import type { ImageDecoderOptions } from "../types.ts";
+
 /**
  * Custom error class for end-of-scan marker detection
  * Thrown when a marker is encountered in scan data, indicating the scan has ended
@@ -18,14 +20,6 @@ class EndOfScanError extends Error {
     super(message);
     this.name = "EndOfScanError";
   }
-}
-
-/**
- * Options for JPEG decoder
- */
-export interface JPEGDecoderOptions {
-  tolerantDecoding?: boolean;
-  onWarning?: (message: string, details?: unknown) => void;
 }
 
 /**
@@ -140,7 +134,10 @@ export class JPEGDecoder {
   private restartInterval: number = 0;
   private bitBuffer: number = 0;
   private bitCount: number = 0;
-  private options: JPEGDecoderOptions;
+  private options: {
+    tolerantDecoding: boolean;
+    onWarning?: (message: string, details?: unknown) => void;
+  };
   private isProgressive: boolean = false;
   // Progressive JPEG scan parameters
   private spectralStart: number = 0; // Start of spectral selection (Ss)
@@ -150,11 +147,11 @@ export class JPEGDecoder {
   private scanComponentIds: number[] = []; // Component IDs included in current scan
   private eobRun: number = 0; // Remaining blocks to skip due to EOBn
 
-  constructor(data: Uint8Array, options: JPEGDecoderOptions = {}) {
+  constructor(data: Uint8Array, settings: ImageDecoderOptions = {}) {
     this.data = data;
     this.options = {
-      tolerantDecoding: options.tolerantDecoding ?? true,
-      onWarning: options.onWarning,
+      tolerantDecoding: settings.tolerantDecoding ?? true,
+      onWarning: settings.onWarning,
     };
   }
 

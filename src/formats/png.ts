@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { PNGBase } from "./png_base.ts";
 
@@ -31,7 +36,10 @@ export class PNGFormat extends PNGBase implements ImageFormat {
    * @param data Raw PNG image data
    * @returns Decoded image data with RGBA pixels
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    _options?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid PNG signature");
     }
@@ -118,7 +126,10 @@ export class PNGFormat extends PNGBase implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded PNG image bytes
    */
-  async encode(imageData: ImageData): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 
     // Prepare IHDR chunk

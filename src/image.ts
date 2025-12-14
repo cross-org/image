@@ -1,5 +1,6 @@
 import type {
   ImageData,
+  ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
   MultiFrameImageData,
@@ -230,14 +231,53 @@ export class Image {
    * @param format Optional format hint (e.g., "png", "jpeg", "webp")
    * @returns Image instance
    */
-  static async decode(data: Uint8Array, format?: string): Promise<Image> {
+  static async decode(data: Uint8Array): Promise<Image>;
+  static async decode(data: Uint8Array, format: string): Promise<Image>;
+  static async decode(
+    data: Uint8Array,
+    format: string,
+    options?: ImageDecoderOptions,
+  ): Promise<Image>;
+  static async decode(
+    data: Uint8Array,
+    options?: ImageDecoderOptions,
+  ): Promise<Image>;
+  static async decode(
+    data: Uint8Array,
+    formatOrOptions?: string | ImageDecoderOptions,
+    options?: ImageDecoderOptions,
+  ): Promise<Image> {
+    // Backward-compatible overloads:
+    // - decode(data)
+    // - decode(data, "jpeg")
+    // New:
+    // - decode(data, { tolerantDecoding, onWarning, runtimeDecoding })
+    // - decode(data, "jpeg", { ...options })
+    if (typeof formatOrOptions === "string") {
+      return await Image.decodeWithSettings(data, formatOrOptions, options);
+    }
+
+    return await Image.decodeWithSettings(data, undefined, formatOrOptions);
+  }
+
+  private static async decodeWithSettings(
+    data: Uint8Array,
+    format?: string,
+    settings?: ImageDecoderOptions,
+  ): Promise<Image> {
     const image = new Image();
+
+    const normalizedSettings: ImageDecoderOptions = {
+      tolerantDecoding: settings?.tolerantDecoding ?? true,
+      onWarning: settings?.onWarning,
+      runtimeDecoding: settings?.runtimeDecoding ?? "prefer",
+    };
 
     // Try specified format first
     if (format) {
       const handler = Image.formats.find((f) => f.name === format);
       if (handler && handler.canDecode(data)) {
-        image.imageData = await handler.decode(data);
+        image.imageData = await handler.decode(data, normalizedSettings);
         return image;
       }
     }
@@ -245,7 +285,7 @@ export class Image {
     // Auto-detect format
     for (const handler of Image.formats) {
       if (handler.canDecode(data)) {
-        image.imageData = await handler.decode(data);
+        image.imageData = await handler.decode(data, normalizedSettings);
         return image;
       }
     }
@@ -308,7 +348,7 @@ export class Image {
    * @returns Image instance
    */
   static read(data: Uint8Array, format?: string): Promise<Image> {
-    return Image.decode(data, format);
+    return format ? Image.decode(data, format) : Image.decode(data);
   }
 
   /**
@@ -319,20 +359,63 @@ export class Image {
    */
   static async decodeFrames(
     data: Uint8Array,
-    format?: string,
+  ): Promise<MultiFrameImageData>;
+  static async decodeFrames(
+    data: Uint8Array,
+    format: string,
+  ): Promise<MultiFrameImageData>;
+  static async decodeFrames(
+    data: Uint8Array,
+    format: string,
+    options?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData>;
+  static async decodeFrames(
+    data: Uint8Array,
+    options?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData>;
+  static async decodeFrames(
+    data: Uint8Array,
+    formatOrOptions?: string | ImageDecoderOptions,
+    options?: ImageDecoderOptions,
   ): Promise<MultiFrameImageData> {
+    if (typeof formatOrOptions === "string") {
+      return await Image.decodeFramesWithSettings(
+        data,
+        formatOrOptions,
+        options,
+      );
+    }
+
+    return await Image.decodeFramesWithSettings(
+      data,
+      undefined,
+      formatOrOptions,
+    );
+  }
+
+  private static async decodeFramesWithSettings(
+    data: Uint8Array,
+    format?: string,
+    settings?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData> {
+    const normalizedSettings: ImageDecoderOptions = {
+      tolerantDecoding: settings?.tolerantDecoding ?? true,
+      onWarning: settings?.onWarning,
+      runtimeDecoding: settings?.runtimeDecoding ?? "prefer",
+    };
+
     // Try specified format first
     if (format) {
       const handler = Image.formats.find((f) => f.name === format);
       if (handler && handler.canDecode(data) && handler.decodeFrames) {
-        return await handler.decodeFrames(data);
+        return await handler.decodeFrames(data, normalizedSettings);
       }
     }
 
     // Auto-detect format
     for (const handler of Image.formats) {
       if (handler.canDecode(data) && handler.decodeFrames) {
-        return await handler.decodeFrames(data);
+        return await handler.decodeFrames(data, normalizedSettings);
       }
     }
 
@@ -352,7 +435,7 @@ export class Image {
     data: Uint8Array,
     format?: string,
   ): Promise<MultiFrameImageData> {
-    return Image.decodeFrames(data, format);
+    return format ? Image.decodeFrames(data, format) : Image.decodeFrames(data);
   }
 
   /**
@@ -610,7 +693,10 @@ export class Image {
    * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
-  async encode(format: string, options?: unknown): Promise<Uint8Array> {
+  async encode(
+    format: string,
+    options?: unknown,
+  ): Promise<Uint8Array> {
     if (!this.imageData) throw new Error("No image loaded");
 
     const handler = Image.formats.find((f) => f.name === format);

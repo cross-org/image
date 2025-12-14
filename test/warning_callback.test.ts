@@ -6,9 +6,7 @@
 import { test } from "@cross/test";
 import { assertEquals } from "@std/assert";
 import { GIFDecoder } from "../src/utils/gif_decoder.ts";
-import type { GIFDecoderOptions } from "../src/utils/gif_decoder.ts";
-import type { WebPDecoderOptions } from "../src/utils/webp_decoder.ts";
-import type { JPEGDecoderOptions } from "../src/utils/jpeg_decoder.ts";
+import type { ImageDecoderOptions } from "../src/types.ts";
 
 test("GIFDecoder - onWarning callback is called for corrupted frame", () => {
   // Create a minimal GIF with a corrupted frame
@@ -77,12 +75,12 @@ test("GIFDecoder - onWarning callback is called for corrupted frame", () => {
   }
 });
 
-test("WebPDecoder - onWarning option exists and accepts callback", () => {
+test("WebPDecoder - onWarning setting exists and accepts callback", () => {
   // Just verify the option type is accepted (structural test)
   // We don't test actual warning scenario as it requires complex VP8L corruption
   let warningCalled = false;
 
-  const options: WebPDecoderOptions = {
+  const options: ImageDecoderOptions = {
     tolerantDecoding: true,
     onWarning: (_message: string, _details?: unknown) => {
       warningCalled = true;
@@ -98,11 +96,11 @@ test("WebPDecoder - onWarning option exists and accepts callback", () => {
   assertEquals(warningCalled, true);
 });
 
-test("JPEGDecoder - onWarning option exists and accepts callback", () => {
+test("JPEGDecoder - onWarning setting exists and accepts callback", () => {
   // Just verify the option type is accepted (structural test)
   let warningCalled = false;
 
-  const options: JPEGDecoderOptions = {
+  const options: ImageDecoderOptions = {
     tolerantDecoding: true,
     onWarning: (_message: string, _details?: unknown) => {
       warningCalled = true;
@@ -118,17 +116,17 @@ test("JPEGDecoder - onWarning option exists and accepts callback", () => {
   assertEquals(warningCalled, true);
 });
 
-test("Decoder options - onWarning is optional", () => {
+test("ImageDecoderOptions - onWarning is optional", () => {
   // Verify that decoder options work without onWarning callback
   // Just test the type signature, not actual decoding
 
   // Should accept options without onWarning
-  const options1: GIFDecoderOptions = { tolerantDecoding: true };
+  const options1: ImageDecoderOptions = { tolerantDecoding: true };
   assertEquals(options1.tolerantDecoding, true);
   assertEquals(options1.onWarning, undefined);
 
   // Should accept options with only onWarning
-  const options2: GIFDecoderOptions = {
+  const options2: ImageDecoderOptions = {
     onWarning: () => {
       /* no-op */
     },
@@ -136,14 +134,14 @@ test("Decoder options - onWarning is optional", () => {
   assertEquals(typeof options2.onWarning, "function");
 
   // Should accept empty options
-  const options3: GIFDecoderOptions = {};
+  const options3: ImageDecoderOptions = {};
   assertEquals(options3.onWarning, undefined);
   assertEquals(options3.tolerantDecoding, undefined);
 });
 
-test("Decoder options types - onWarning signature", () => {
+test("ImageDecoderOptions - onWarning signature", () => {
   // Verify the callback signature is correct
-  const callback: NonNullable<GIFDecoderOptions["onWarning"]> = (
+  const callback: NonNullable<ImageDecoderOptions["onWarning"]> = (
     message,
     _details,
   ) => {

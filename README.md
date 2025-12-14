@@ -55,7 +55,7 @@ import { Image } from "cross-image";
 ### Deno
 
 ```ts
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Decode an image (auto-detects format)
 const data = await Deno.readFile("input.png");
@@ -102,6 +102,23 @@ const jpeg = await image.encode("jpeg");
 await writeFile("output.jpg", jpeg);
 ```
 
+### Bun
+
+```ts
+import { Image } from "cross-image";
+
+// Read an image (auto-detects format)
+const data = await Bun.file("input.png").arrayBuffer();
+const image = await Image.decode(new Uint8Array(data));
+
+console.log(`Image size: ${image.width}x${image.height}`);
+
+// Resize the image and save
+image.resize({ width: 800, height: 600 });
+const jpeg = await image.encode("jpeg");
+await Bun.write("output.jpg", jpeg);
+```
+
 ## Supported Formats
 
 | Format | Pure-JS                   | Notes                                                                                          |
@@ -125,6 +142,17 @@ await writeFile("output.jpg", jpeg);
 See the
 [full format support documentation](https://cross-image.56k.guru/formats/) for
 detailed compatibility information.
+
+## Advanced Usage
+
+Most users should stick to the `Image` API (`Image.decode`, `image.encode`,
+etc.).
+
+If you need to work with format handlers directly (e.g. `new PNGFormat()`) or
+register your own `ImageFormat` implementation via `Image.registerFormat(...)`,
+see the API reference section “Exported Format Classes”:
+
+- https://cross-image.56k.guru/api/
 
 ## JPEG Tolerant Decoding
 
@@ -153,31 +181,23 @@ some blocks fail to decode, filling failed blocks with neutral values.
 **Example:**
 
 ```typescript
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
-// Default behavior - tolerant mode enabled
 const data = await Deno.readFile("mobile-photo.jpg");
-const image = await Image.decode(data); // Automatically handles complex JPEGs
+// Default behavior - tolerant decoding enabled
+const image = await Image.decode(data);
 
-// For advanced users: explicitly control tolerant mode via pure JS decoder
-import { JPEGDecoder } from "@cross/image/utils/jpeg_decoder";
+// Strict mode - fail fast on decode errors
+const strictImage = await Image.decode(data, { tolerantDecoding: false });
 
-// Enable tolerant decoding (default)
-const tolerantDecoder = new JPEGDecoder(data, { tolerantDecoding: true });
-const rgba1 = tolerantDecoder.decode();
-
-// Disable for strict validation
-const strictDecoder = new JPEGDecoder(data, { tolerantDecoding: false });
-const rgba2 = strictDecoder.decode(); // Throws on any decoding error
-
-// Optional: receive warnings during decoding
-const decoderWithWarnings = new JPEGDecoder(data, {
+// Optional: receive warnings during partial decode (pure-JS decoder paths)
+const imageWithWarnings = await Image.decode(data, {
   tolerantDecoding: true,
+  runtimeDecoding: "never",
   onWarning: (message, details) => {
     console.log(`JPEG Warning: ${message}`, details);
   },
 });
-const rgba3 = decoderWithWarnings.decode();
 ```
 
 **Note:** When using `Image.decode()`, the library automatically tries
@@ -204,24 +224,26 @@ failure.
 **Example:**
 
 ```typescript
-import { GIFDecoder } from "@cross/image/utils/gif_decoder";
+import { Image } from "jsr:@cross/image";
+
+const data = await Deno.readFile("animated.gif");
 
 // Tolerant mode (default) - skips corrupted frames
-const tolerantDecoder = new GIFDecoder(data, { tolerantDecoding: true });
-const result = tolerantDecoder.decodeAllFrames();
+const tolerantFrames = await Image.decodeFrames(data);
 
 // Strict mode - throws on first corrupted frame
-const strictDecoder = new GIFDecoder(data, { tolerantDecoding: false });
-const strictResult = strictDecoder.decodeAllFrames();
+const strictFrames = await Image.decodeFrames(data, {
+  tolerantDecoding: false,
+});
 
 // Optional: receive warnings when frames are skipped
-const decoderWithWarnings = new GIFDecoder(data, {
+const framesWithWarnings = await Image.decodeFrames(data, {
   tolerantDecoding: true,
+  runtimeDecoding: "never",
   onWarning: (message, details) => {
     console.log(`GIF Warning: ${message}`, details);
   },
 });
-const resultWithWarnings = decoderWithWarnings.decodeAllFrames();
 ```
 
 ### WebP Fault-Tolerant Decoding (VP8L Lossless)
@@ -239,24 +261,25 @@ complete failure.
 **Example:**
 
 ```typescript
-import { WebPDecoder } from "@cross/image/utils/webp_decoder";
+import { Image } from "jsr:@cross/image";
+
+const data = await Deno.readFile("image.webp");
 
 // Tolerant mode (default) - fills bad pixels with gray
-const tolerantDecoder = new WebPDecoder(data, { tolerantDecoding: true });
-const result = tolerantDecoder.decode();
+const tolerantImage = await Image.decode(data);
 
 // Strict mode - throws on first decode error
-const strictDecoder = new WebPDecoder(data, { tolerantDecoding: false });
-const strictResult = strictDecoder.decode();
+const strictImage = await Image.decode(data, { tolerantDecoding: false });
 
 // Optional: receive warnings during partial decode
-const decoderWithWarnings = new WebPDecoder(data, {
+const imageWithWarnings = await Image.decode(data, {
   tolerantDecoding: true,
+  runtimeDecoding: "never",
   onWarning: (message, details) => {
     console.log(`WebP Warning: ${message}`, details);
   },
 });
-const resultWithWarnings = decoderWithWarnings.decode();
+void imageWithWarnings;
 ```
 
 ### When to Use Fault-Tolerant Modes
@@ -278,23 +301,26 @@ const resultWithWarnings = decoderWithWarnings.decode();
 
 ### Warning Callbacks
 
-All decoders support an optional `onWarning` callback that gets invoked when
+Decoding APIs accept an optional `onWarning` callback that gets invoked when
 non-fatal issues occur during decoding. This is useful for logging, monitoring,
 or debugging decoding issues without using `console` methods.
 
 **Example:**
 
 ```typescript
-import { WebPDecoder } from "@cross/image/utils/webp_decoder";
+import { Image } from "jsr:@cross/image";
 
-const decoder = new WebPDecoder(data, {
+const data = await Deno.readFile("input.webp");
+
+const image = await Image.decode(data, {
   tolerantDecoding: true,
+  runtimeDecoding: "never",
   onWarning: (message, details) => {
     // Log to your preferred logging system
     myLogger.warn(message, details);
   },
 });
-const result = decoder.decode();
+void image;
 ```
 
 The callback receives:
@@ -351,7 +377,7 @@ The library implements the EXIF 3.0 specification with:
 ### Example Usage
 
 ```typescript
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Load an image
 const data = await Deno.readFile("photo.jpg");
@@ -397,7 +423,7 @@ data, use `Image.extractMetadata()`. This is particularly useful for:
 - Processing metadata in batch operations
 
 ```typescript
-import { Image } from "@cross/image";
+import { Image } from "jsr:@cross/image";
 
 // Extract metadata without decoding pixels
 const data = await Deno.readFile("large-photo.jpg");
@@ -481,24 +507,12 @@ Image.getSupportedMetadata("avif"); // Full camera metadata + GPS (19 fields)
 
 ## Development
 
-### Running Tests
-
 ```bash
-deno test -A
+deno task precommit
 ```
 
-### Linting and Formatting
-
-```bash
-deno fmt --check
-deno lint
-```
-
-### Type Checking
-
-```bash
-deno check mod.ts
-```
+CI validates cross-runtime compatibility (Deno, Bun, Node). See CONTRIBUTING.md
+for contributor workflow details.
 
 ## License
 

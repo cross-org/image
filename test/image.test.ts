@@ -74,6 +74,29 @@ test("Image: read and save PNG", async () => {
   assertEquals(loaded.data[8], 0); // blue
 });
 
+test("Image: encode JPEG supports quality and progressive", async () => {
+  const image = Image.create(2, 2, 255, 0, 0, 255);
+
+  const encoded = await image.encode("jpeg", {
+    quality: 90,
+    progressive: true,
+  });
+
+  // JPEG SOI marker
+  assertEquals(encoded[0], 0xff);
+  assertEquals(encoded[1], 0xd8);
+
+  // Should contain SOF2 marker (0xFFC2) for progressive JPEG
+  let foundSOF2 = false;
+  for (let i = 0; i < encoded.length - 1; i++) {
+    if (encoded[i] === 0xff && encoded[i + 1] === 0xc2) {
+      foundSOF2 = true;
+      break;
+    }
+  }
+  assertEquals(foundSOF2, true);
+});
+
 test("Image: read - auto-detect format", async () => {
   const data = new Uint8Array([
     255,

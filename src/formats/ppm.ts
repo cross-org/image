@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -49,7 +54,7 @@ export class PPMFormat implements ImageFormat {
    * @param data Raw PPM image data
    * @returns Decoded image data with RGBA pixels
    */
-  decode(data: Uint8Array): Promise<ImageData> {
+  decode(data: Uint8Array, _options?: ImageDecoderOptions): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid PPM signature");
     }
@@ -233,7 +238,10 @@ export class PPMFormat implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded PPM image bytes
    */
-  encode(imageData: ImageData): Promise<Uint8Array> {
+  encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data } = imageData;
 
     // Validate input

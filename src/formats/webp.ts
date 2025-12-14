@@ -1,5 +1,6 @@
 import type {
   ImageData,
+  ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
   WebPEncodeOptions,
@@ -40,7 +41,10 @@ export class WebPFormat implements ImageFormat {
    * @param data Raw WebP image data
    * @returns Decoded image data with RGBA pixels
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    settings?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid WebP signature");
     }
@@ -116,7 +120,7 @@ export class WebPFormat implements ImageFormat {
 
     // For a pure JS implementation, we'd need to implement full WebP decoding
     // which is very complex. Instead, we'll use the browser/runtime's decoder.
-    const rgba = await this.decodeUsingRuntime(data, width, height);
+    const rgba = await this.decodeUsingRuntime(data, width, height, settings);
 
     return {
       width,
@@ -197,9 +201,13 @@ export class WebPFormat implements ImageFormat {
     data: Uint8Array,
     _width: number,
     _height: number,
+    settings?: ImageDecoderOptions,
   ): Promise<Uint8Array> {
     // Try to use ImageDecoder API if available (Deno, modern browsers)
-    if (typeof ImageDecoder !== "undefined") {
+    if (
+      settings?.runtimeDecoding !== "never" &&
+      typeof ImageDecoder !== "undefined"
+    ) {
       try {
         const decoder = new ImageDecoder({ data, type: "image/webp" });
         const result = await decoder.decode();
@@ -226,7 +234,10 @@ export class WebPFormat implements ImageFormat {
     // Fallback to pure JavaScript decoder (VP8L lossless only) with tolerant mode
     try {
       const { WebPDecoder } = await import("../utils/webp_decoder.ts");
-      const decoder = new WebPDecoder(data, { tolerantDecoding: true });
+      const decoder = new WebPDecoder(data, {
+        tolerantDecoding: settings?.tolerantDecoding ?? true,
+        onWarning: settings?.onWarning,
+      });
       const result = decoder.decode();
       return result.data;
     } catch (error) {

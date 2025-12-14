@@ -30,8 +30,8 @@ nav_order: 1
 - **Metadata:** APP0 (JFIF) and APP1 (EXIF) are parsed and written; orientation
   is preserved in metadata but not auto-applied during decode.
 - **Fault-Tolerant Mode:** enabled by default. Continues decoding even if some
-  DCT blocks fail, filling failed blocks with zeros. Can be disabled via
-  `JPEGDecoderOptions` for strict validation.
+  DCT blocks fail, filling failed blocks with zeros. Can be disabled by passing
+  `ImageDecoderOptions` with `tolerantDecoding: false` to `Image.decode()`.
 - **Progressive Support Details:**
   - **Decoding:** Parses spectral selection (Ss, Se) and successive
     approximation (Ah, Al) parameters; preserves DCT coefficient blocks across

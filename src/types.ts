@@ -149,7 +149,7 @@ export interface ResizeOptions {
 /**
  * Options for ASCII art encoding
  */
-export interface ASCIIOptions {
+export interface ASCIIEncodeOptions {
   /** Target width in characters (default: 80) */
   width?: number;
   /** Character set to use (default: "simple") */
@@ -158,6 +158,18 @@ export interface ASCIIOptions {
   aspectRatio?: number;
   /** Whether to invert brightness (default: false) */
   invert?: boolean;
+}
+
+/**
+ * Options for TIFF encoding.
+ */
+export interface TIFFEncodeOptions {
+  /** Compression method: "none" (default), "lzw", "packbits", or "deflate" */
+  compression?: "none" | "lzw" | "packbits" | "deflate";
+  /** Encode as grayscale instead of RGB/RGBA (default: false) */
+  grayscale?: boolean;
+  /** Encode as RGB without alpha channel (default: false, ignored if grayscale is true) */
+  rgb?: boolean;
 }
 
 /**
@@ -178,6 +190,51 @@ export interface WebPEncodeOptions {
 }
 
 /**
+ * Options for JPEG encoding.
+ */
+export interface JPEGEncodeOptions {
+  /**
+   * Encoding quality (1-100, default depends on encoder backend).
+   */
+  quality?: number;
+  /**
+   * Enable progressive JPEG output when using the pure-JS encoder.
+   * Runtime encoders do not currently expose a progressive toggle.
+   */
+  progressive?: boolean;
+}
+
+/**
+ * Common options for decode APIs.
+ *
+ * These options are runtime-agnostic and can be passed to `Image.decode()` and
+ * `Image.decodeFrames()`.
+ */
+export interface ImageDecoderOptions {
+  /**
+   * Controls tolerant decoding in the pure-JS decoders.
+   *
+   * - true (default): try to recover from corruption and continue
+   * - false: strict mode (fail fast)
+   */
+  tolerantDecoding?: boolean;
+
+  /**
+   * Optional warning callback used by pure-JS decoders when non-fatal issues are
+   * encountered.
+   */
+  onWarning?: (message: string, details?: unknown) => void;
+
+  /**
+   * Runtime decoder strategy.
+   *
+   * - "prefer" (default): try runtime decoders first (ImageDecoder/Canvas), then fall back to pure JS
+   * - "never": skip runtime decoders and use pure JS when available
+   */
+  runtimeDecoding?: "prefer" | "never";
+}
+
+/**
  * Image format handler interface
  */
 export interface ImageFormat {
@@ -191,7 +248,7 @@ export interface ImageFormat {
    * @param data Raw image data
    * @returns Decoded image data
    */
-  decode(data: Uint8Array): Promise<ImageData>;
+  decode(data: Uint8Array, options?: ImageDecoderOptions): Promise<ImageData>;
 
   /**
    * Encode image data to bytes
@@ -199,7 +256,10 @@ export interface ImageFormat {
    * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
-  encode(imageData: ImageData, options?: unknown): Promise<Uint8Array>;
+  encode(
+    imageData: ImageData,
+    options?: unknown,
+  ): Promise<Uint8Array>;
 
   /**
    * Check if the given data is in this format
@@ -213,7 +273,10 @@ export interface ImageFormat {
    * @param data Raw image data
    * @returns Decoded multi-frame image data
    */
-  decodeFrames?(data: Uint8Array): Promise<MultiFrameImageData>;
+  decodeFrames?(
+    data: Uint8Array,
+    options?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData>;
 
   /**
    * Encode multi-frame image data to bytes (optional)

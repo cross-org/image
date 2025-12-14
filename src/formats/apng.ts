@@ -1,5 +1,6 @@
 import type {
   ImageData,
+  ImageDecoderOptions,
   ImageFormat,
   ImageFrame,
   ImageMetadata,
@@ -77,8 +78,11 @@ export class APNGFormat extends PNGBase implements ImageFormat {
    * @param data Raw APNG image data
    * @returns Decoded image data with RGBA pixels of first frame
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
-    const frames = await this.decodeFrames(data);
+  async decode(
+    data: Uint8Array,
+    settings?: ImageDecoderOptions,
+  ): Promise<ImageData> {
+    const frames = await this.decodeFrames(data, settings);
     const firstFrame = frames.frames[0];
 
     return {
@@ -94,7 +98,10 @@ export class APNGFormat extends PNGBase implements ImageFormat {
    * @param data Raw APNG image data
    * @returns Decoded multi-frame image data
    */
-  async decodeFrames(data: Uint8Array): Promise<MultiFrameImageData> {
+  async decodeFrames(
+    data: Uint8Array,
+    _settings?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid APNG signature or missing acTL chunk");
     }
@@ -309,7 +316,10 @@ export class APNGFormat extends PNGBase implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded APNG image bytes
    */
-  encode(imageData: ImageData): Promise<Uint8Array> {
+  encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     // For single frame, create a multi-frame with one frame
     const multiFrame: MultiFrameImageData = {
       width: imageData.width,
@@ -323,7 +333,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       metadata: imageData.metadata,
     };
 
-    return this.encodeFrames(multiFrame);
+    return this.encodeFrames(multiFrame, _options);
   }
 
   /**
@@ -331,7 +341,10 @@ export class APNGFormat extends PNGBase implements ImageFormat {
    * @param imageData Multi-frame image data to encode
    * @returns Encoded APNG image bytes
    */
-  async encodeFrames(imageData: MultiFrameImageData): Promise<Uint8Array> {
+  async encodeFrames(
+    imageData: MultiFrameImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, frames, metadata } = imageData;
 
     if (frames.length === 0) {

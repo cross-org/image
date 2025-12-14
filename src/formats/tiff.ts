@@ -1,8 +1,10 @@
 import type {
   ImageData,
+  ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
   MultiFrameImageData,
+  TIFFEncodeOptions,
 } from "../types.ts";
 import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
 import {
@@ -14,18 +16,6 @@ import { validateImageDimensions } from "../utils/security.ts";
 
 // Constants for unit conversions
 const DEFAULT_DPI = 72;
-
-/**
- * Options for TIFF encoding
- */
-export interface TIFFEncodeOptions {
-  /** Compression method: "none" for uncompressed (default), "lzw" for LZW, "packbits" for PackBits RLE, "deflate" for Adobe-style Deflate */
-  compression?: "none" | "lzw" | "packbits" | "deflate";
-  /** Encode as grayscale instead of RGB/RGBA */
-  grayscale?: boolean;
-  /** Encode as RGB without alpha channel (ignored if grayscale is true) */
-  rgb?: boolean;
-}
 
 /**
  * TIFF format handler
@@ -69,7 +59,10 @@ export class TIFFFormat implements ImageFormat {
    * @param data Raw TIFF image data
    * @returns Decoded image data with RGBA pixels of first page
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    _options?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid TIFF signature");
     }
@@ -465,7 +458,10 @@ export class TIFFFormat implements ImageFormat {
   /**
    * Decode all pages from a multi-page TIFF
    */
-  async decodeFrames(data: Uint8Array): Promise<MultiFrameImageData> {
+  async decodeFrames(
+    data: Uint8Array,
+    _options?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid TIFF signature");
     }

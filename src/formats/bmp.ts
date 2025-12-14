@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import {
   readInt32LE,
@@ -38,7 +43,7 @@ export class BMPFormat implements ImageFormat {
    * @param data Raw BMP image data
    * @returns Decoded image data with RGBA pixels
    */
-  decode(data: Uint8Array): Promise<ImageData> {
+  decode(data: Uint8Array, _options?: ImageDecoderOptions): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid BMP signature");
     }
@@ -134,7 +139,10 @@ export class BMPFormat implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded BMP image bytes
    */
-  encode(imageData: ImageData): Promise<Uint8Array> {
+  encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 
     // Calculate sizes

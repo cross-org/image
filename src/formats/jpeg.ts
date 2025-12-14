@@ -1,4 +1,10 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+  JPEGEncodeOptions,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 // Constants for unit conversions
@@ -30,7 +36,10 @@ export class JPEGFormat implements ImageFormat {
    * @param data Raw JPEG image data
    * @returns Decoded image data with RGBA pixels
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    settings?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid JPEG signature");
     }
@@ -98,7 +107,7 @@ export class JPEGFormat implements ImageFormat {
 
     // For a pure JS implementation, we'd need to implement full JPEG decoding
     // which is very complex. Instead, we'll use the browser/runtime's decoder.
-    const rgba = await this.decodeUsingRuntime(data, width, height);
+    const rgba = await this.decodeUsingRuntime(data, width, height, settings);
 
     return {
       width,
@@ -113,11 +122,18 @@ export class JPEGFormat implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded JPEG image bytes
    */
-  async encode(imageData: ImageData): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    options?: JPEGEncodeOptions,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 
+    const requestedQuality = options?.quality;
+    const requestedProgressive = options?.progressive;
+
     // Try to use runtime encoding if available (better quality)
-    if (typeof OffscreenCanvas !== "undefined") {
+    // Note: progressive output is only supported by the pure-JS encoder.
+    if (!requestedProgressive && typeof OffscreenCanvas !== "undefined") {
       try {
         const canvas = new OffscreenCanvas(width, height);
         const ctx = canvas.getContext("2d");
@@ -127,9 +143,13 @@ export class JPEGFormat implements ImageFormat {
           imgData.data.set(imgDataData);
           ctx.putImageData(imgData, 0, 0);
 
+          const quality = requestedQuality === undefined
+            ? 0.9
+            : Math.max(1, Math.min(100, requestedQuality)) / 100;
+
           const blob = await canvas.convertToBlob({
             type: "image/jpeg",
-            quality: 0.9,
+            quality,
           });
           const arrayBuffer = await blob.arrayBuffer();
           const encoded = new Uint8Array(arrayBuffer);
@@ -150,7 +170,10 @@ export class JPEGFormat implements ImageFormat {
     const { JPEGEncoder } = await import("../utils/jpeg_encoder.ts");
     const dpiX = metadata?.dpiX ?? 72;
     const dpiY = metadata?.dpiY ?? 72;
-    const encoder = new JPEGEncoder({ quality: 85 }); // Quality 85, baseline mode
+    const encoder = new JPEGEncoder({
+      quality: requestedQuality,
+      progressive: requestedProgressive,
+    });
     const encoded = encoder.encode(width, height, data, dpiX, dpiY);
 
     // Add EXIF metadata if present
@@ -212,9 +235,13 @@ export class JPEGFormat implements ImageFormat {
     data: Uint8Array,
     _width: number,
     _height: number,
+    settings?: ImageDecoderOptions,
   ): Promise<Uint8Array> {
     // Try to use ImageDecoder API if available (Deno, modern browsers)
-    if (typeof ImageDecoder !== "undefined") {
+    if (
+      settings?.runtimeDecoding !== "never" &&
+      typeof ImageDecoder !== "undefined"
+    ) {
       try {
         const decoder = new ImageDecoder({ data, type: "image/jpeg" });
         const result = await decoder.decode();
@@ -241,7 +268,10 @@ export class JPEGFormat implements ImageFormat {
     // Fallback to pure JavaScript decoder
     try {
       const { JPEGDecoder } = await import("../utils/jpeg_decoder.ts");
-      const decoder = new JPEGDecoder(data);
+      const decoder = new JPEGDecoder(data, {
+        tolerantDecoding: settings?.tolerantDecoding ?? true,
+        onWarning: settings?.onWarning,
+      });
       return decoder.decode();
     } catch (error) {
       throw new Error(

@@ -1,5 +1,6 @@
 import type {
   ImageData,
+  ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
   MultiFrameImageData,
@@ -54,14 +55,20 @@ export class GIFFormat implements ImageFormat {
    * @param data Raw GIF image data
    * @returns Decoded image data with RGBA pixels of first frame
    */
-  async decode(data: Uint8Array): Promise<ImageData> {
+  async decode(
+    data: Uint8Array,
+    settings?: ImageDecoderOptions,
+  ): Promise<ImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid GIF signature");
     }
 
     // Try pure-JS decoder first with tolerant decoding enabled by default
     try {
-      const decoder = new GIFDecoder(data, { tolerantDecoding: true });
+      const decoder = new GIFDecoder(data, {
+        tolerantDecoding: settings?.tolerantDecoding ?? true,
+        onWarning: settings?.onWarning,
+      });
       const result = decoder.decode();
 
       // Validate dimensions for security (prevent integer overflow and heap exhaustion)
@@ -160,7 +167,10 @@ export class GIFFormat implements ImageFormat {
    * @param imageData Image data to encode
    * @returns Encoded GIF image bytes
    */
-  async encode(imageData: ImageData): Promise<Uint8Array> {
+  async encode(
+    imageData: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 
     // Try pure-JS encoder first
@@ -216,13 +226,19 @@ export class GIFFormat implements ImageFormat {
   /**
    * Decode all frames from an animated GIF
    */
-  decodeFrames(data: Uint8Array): Promise<MultiFrameImageData> {
+  decodeFrames(
+    data: Uint8Array,
+    settings?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData> {
     if (!this.canDecode(data)) {
       throw new Error("Invalid GIF signature");
     }
 
     try {
-      const decoder = new GIFDecoder(data, { tolerantDecoding: true });
+      const decoder = new GIFDecoder(data, {
+        tolerantDecoding: settings?.tolerantDecoding ?? true,
+        onWarning: settings?.onWarning,
+      });
       const result = decoder.decodeAllFrames();
 
       // Extract metadata from comment extensions

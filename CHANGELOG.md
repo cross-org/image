@@ -37,10 +37,20 @@ and this project adheres to
 - Tolerant decoding warnings now use optional `onWarning` callbacks instead of
   console output
 - Fallback behavior (pure-JS to runtime APIs) is now silent by default
-- `onWarning` callback option for all decoder options (`JPEGDecoderOptions`,
-  `WebPDecoderOptions`, `GIFDecoderOptions`) to handle non-fatal warnings during
-  decoding
+- `onWarning` callback support for non-fatal decode warnings via
+  `ImageDecoderOptions.onWarning`
 - Documentation for warning callbacks in README.md
+- `Image.decode` and `Image.decodeFrames` now accept `ImageDecoderOptions` for
+  controlling `tolerantDecoding`, `onWarning`, and `runtimeDecoding`
+- Encoding APIs (`Image#encode`, `Image.encodeFrames`, and
+  `ImageFormat.encode*`) no longer accept decode options
+- Per-decoder option types (`JPEGDecoderOptions`, `GIFDecoderOptions`,
+  `WebPDecoderOptions`) removed in favor of `ImageDecoderOptions`
+- `Image.encode("jpeg", ...)` now honors `quality` and `progressive` via
+  `JPEGEncodeOptions` (exported from `mod.ts`)
+- `ASCIIOptions` removed; use `ASCIIEncodeOptions`
+- `TIFFEncodeOptions` now exported from `mod.ts` (no longer re-exported from the
+  TIFF format module)
 
 ## [0.3.0] - 2025-12-13
 

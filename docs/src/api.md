@@ -13,14 +13,24 @@ The main class for working with images.
 
 ### Static Methods
 
-#### `Image.decode(data: Uint8Array, format?: string): Promise<Image>`
+#### `Image.decode(data: Uint8Array, formatOrOptions?: string | ImageDecoderOptions, options?: ImageDecoderOptions): Promise<Image>`
 
 Decode an image from bytes. Automatically detects format if not specified.
+
+Supports these call forms:
+
+- `Image.decode(data)`
+- `Image.decode(data, "jpeg")`
+- `Image.decode(data, { tolerantDecoding, onWarning, runtimeDecoding })`
+- `Image.decode(data, "jpeg", { ...options })`
 
 **Parameters:**
 
 - `data` - Raw image data as Uint8Array
-- `format` - Optional format hint (e.g., "png", "jpeg", "webp")
+- `formatOrOptions` - Optional format hint (e.g., "png", "jpeg", "webp") or an
+  `ImageDecoderOptions` object
+- `options` - Optional `ImageDecoderOptions` (when passing an explicit format
+  string)
 
 **Returns:** Promise that resolves to an Image instance
 
@@ -30,6 +40,9 @@ Decode an image from bytes. Automatically detects format if not specified.
 // Deno
 const data = await Deno.readFile("input.png");
 const image = await Image.decode(data);
+
+// Strict decoding (fail fast)
+const strict = await Image.decode(data, { tolerantDecoding: false });
 
 // Node.js
 // import { readFile } from "node:fs/promises";
@@ -44,14 +57,24 @@ version.
 
 Read an image from bytes. Automatically detects format if not specified.
 
-#### `Image.decodeFrames(data: Uint8Array, format?: string): Promise<MultiFrameImageData>`
+#### `Image.decodeFrames(data: Uint8Array, formatOrOptions?: string | ImageDecoderOptions, options?: ImageDecoderOptions): Promise<MultiFrameImageData>`
 
 Decode all frames from a multi-frame image (animated GIF or multi-page TIFF).
+
+Supports these call forms:
+
+- `Image.decodeFrames(data)`
+- `Image.decodeFrames(data, "gif")`
+- `Image.decodeFrames(data, { tolerantDecoding, onWarning, runtimeDecoding })`
+- `Image.decodeFrames(data, "gif", { ...options })`
 
 **Parameters:**
 
 - `data` - Raw image data as Uint8Array
-- `format` - Optional format hint (e.g., "gif", "tiff")
+- `formatOrOptions` - Optional format hint (e.g., "gif", "tiff") or an
+  `ImageDecoderOptions` object
+- `options` - Optional `ImageDecoderOptions` (when passing an explicit format
+  string)
 
 **Returns:** Promise that resolves to MultiFrameImageData with all frames
 
@@ -61,6 +84,11 @@ Decode all frames from a multi-frame image (animated GIF or multi-page TIFF).
 // Deno
 const gifData = await Deno.readFile("animated.gif");
 const multiFrame = await Image.decodeFrames(gifData);
+
+// Strict decoding (fail fast)
+const strictFrames = await Image.decodeFrames(gifData, {
+  tolerantDecoding: false,
+});
 
 // Node.js
 // import { readFile } from "node:fs/promises";
@@ -279,6 +307,10 @@ options.
 ```ts
 const png = await image.encode("png");
 const jpeg = await image.encode("jpeg", { quality: 90 });
+const progressiveJpeg = await image.encode("jpeg", {
+  quality: 90,
+  progressive: true,
+});
 ```
 
 #### `save(format: string, options?: unknown): Promise<Uint8Array>` ⚠️ Deprecated
@@ -791,12 +823,12 @@ interface ResizeOptions {
   have letterboxing)
 - `fill` / `cover` - Fill dimensions maintaining aspect ratio (may crop)
 
-### `ASCIIOptions`
+### `ASCIIEncodeOptions`
 
 Configuration for ASCII art encoding.
 
 ```ts
-interface ASCIIOptions {
+interface ASCIIEncodeOptions {
   /** Target width in characters (default: 80) */
   width?: number;
   /** Character set to use (default: "simple") */
@@ -848,8 +880,8 @@ Configuration for TIFF encoding.
 
 ```ts
 interface TIFFEncodeOptions {
-  /** Compression method: "none" (default) or "lzw" */
-  compression?: "none" | "lzw";
+  /** Compression method: "none" (default), "lzw", "packbits", or "deflate" */
+  compression?: "none" | "lzw" | "packbits" | "deflate";
   /** Encode as grayscale instead of RGB/RGBA (default: false) */
   grayscale?: boolean;
   /** Encode as RGB without alpha channel (default: false, ignored if grayscale is true) */
@@ -861,6 +893,8 @@ interface TIFFEncodeOptions {
 
 - `none` - Uncompressed TIFF (larger file size, fastest encoding)
 - `lzw` - LZW compression (smaller file size, lossless)
+- `packbits` - PackBits RLE compression (lossless)
+- `deflate` - Deflate compression (lossless)
 
 **Color modes:**
 
@@ -868,6 +902,19 @@ interface TIFFEncodeOptions {
 - `grayscale: true` - Convert to grayscale
 - `rgb: true` - RGB without alpha channel (smaller file size if transparency not
   needed)
+
+### `JPEGEncodeOptions`
+
+Configuration for JPEG encoding.
+
+```ts
+interface JPEGEncodeOptions {
+  /** Encoding quality (1-100) */
+  quality?: number;
+  /** Progressive JPEG output (pure-JS encoder only) */
+  progressive?: boolean;
+}
+```
 
 ### `ImageData`
 
@@ -976,6 +1023,36 @@ interface ImageMetadata {
 }
 ```
 
+### `ImageDecoderOptions`
+
+Common options for the decode APIs.
+
+```ts
+interface ImageDecoderOptions {
+  /**
+   * Controls tolerant decoding in the pure-JS decoders.
+   *
+   * - true (default): try to recover from corruption and continue
+   * - false: strict mode (fail fast)
+   */
+  tolerantDecoding?: boolean;
+
+  /**
+   * Optional warning callback used by pure-JS decoders when non-fatal issues
+   * are encountered.
+   */
+  onWarning?: (message: string, details?: unknown) => void;
+
+  /**
+   * Runtime decoder strategy.
+   *
+   * - "prefer" (default): try runtime decoders first (ImageDecoder/Canvas), then fall back to pure JS
+   * - "never": skip runtime decoders and use pure JS when available
+   */
+  runtimeDecoding?: "prefer" | "never";
+}
+```
+
 ### `ImageFormat`
 
 Interface for custom format handlers.
@@ -988,18 +1065,12 @@ interface ImageFormat {
   readonly mimeType: string;
 
   /**
-   * Check if the given data is in this format
-   * @param data Raw data to check
-   * @returns true if the data matches this format
-   */
-  canDecode(data: Uint8Array): boolean;
-
-  /**
    * Decode image data from bytes
    * @param data Raw image data
+   * @param options Optional `ImageDecoderOptions`
    * @returns Decoded image data
    */
-  decode(data: Uint8Array): Promise<ImageData>;
+  decode(data: Uint8Array, options?: ImageDecoderOptions): Promise<ImageData>;
 
   /**
    * Encode image data to bytes
@@ -1007,14 +1078,28 @@ interface ImageFormat {
    * @param options Optional format-specific encoding options
    * @returns Encoded image bytes
    */
-  encode(imageData: ImageData, options?: unknown): Promise<Uint8Array>;
+  encode(
+    imageData: ImageData,
+    options?: unknown,
+  ): Promise<Uint8Array>;
+
+  /**
+   * Check if the given data is in this format
+   * @param data Raw data to check
+   * @returns true if the data matches this format
+   */
+  canDecode(data: Uint8Array): boolean;
 
   /**
    * Decode all frames from multi-frame image (optional)
    * @param data Raw image data
+   * @param options Optional `ImageDecoderOptions`
    * @returns Decoded multi-frame image data
    */
-  decodeFrames?(data: Uint8Array): Promise<MultiFrameImageData>;
+  decodeFrames?(
+    data: Uint8Array,
+    options?: ImageDecoderOptions,
+  ): Promise<MultiFrameImageData>;
 
   /**
    * Encode multi-frame image data to bytes (optional)
@@ -1031,6 +1116,16 @@ interface ImageFormat {
    * Check if the format supports multiple frames
    */
   supportsMultipleFrames?(): boolean;
+
+  /**
+   * Get the list of metadata fields supported by this format
+   */
+  getSupportedMetadata?(): Array<keyof ImageMetadata>;
+
+  /**
+   * Extract metadata from image data without fully decoding the pixel data
+   */
+  extractMetadata?(data: Uint8Array): Promise<ImageMetadata | undefined>;
 }
 ```
 
@@ -1039,15 +1134,65 @@ interface ImageFormat {
 The library exports format classes that can be used for advanced scenarios:
 
 - `PNGFormat` - PNG format handler
+- `APNGFormat` - Animated PNG format handler
 - `JPEGFormat` - JPEG format handler
 - `WebPFormat` - WebP format handler
 - `GIFFormat` - GIF format handler
 - `TIFFFormat` - TIFF format handler
 - `BMPFormat` - BMP format handler
+- `ICOFormat` - ICO/CUR format handler
 - `DNGFormat` - DNG format handler
 - `PAMFormat` - PAM format handler
 - `PCXFormat` - PCX format handler
+- `PPMFormat` - PPM format handler
 - `ASCIIFormat` - ASCII art format handler
+- `HEICFormat` - HEIC/HEIF format handler
+- `AVIFFormat` - AVIF format handler
 
-These are primarily for internal use and custom format registration. Most users
-should use the `Image` class methods instead.
+Most users should use the `Image` class methods instead. The format classes are
+useful when you want to:
+
+- Use a handler directly (`format.decode(...)`, `format.encode(...)`) without
+  the higher-level `Image` convenience APIs.
+- Register a custom format implementation via `Image.registerFormat(...)`.
+
+### Example: Use a format handler directly
+
+```ts
+import { PNGFormat } from "jsr:@cross/image";
+
+const png = new PNGFormat();
+
+const data = await Deno.readFile("input.png");
+const decoded = await png.decode(data, { tolerantDecoding: false });
+
+// `decoded` is an ImageData structure; you can re-encode it directly.
+const out = await png.encode(decoded);
+await Deno.writeFile("roundtrip.png", out);
+```
+
+### Example: Register a custom format
+
+```ts
+import type { ImageData, ImageFormat } from "jsr:@cross/image";
+import { Image } from "jsr:@cross/image";
+
+class MyFormat implements ImageFormat {
+  readonly name = "myfmt";
+  readonly mimeType = "application/x-myfmt";
+
+  canDecode(data: Uint8Array): boolean {
+    return data.length >= 4 && data[0] === 0x4d && data[1] === 0x59;
+  }
+
+  async decode(_data: Uint8Array): Promise<ImageData> {
+    throw new Error("Not implemented");
+  }
+
+  async encode(_imageData: ImageData): Promise<Uint8Array> {
+    throw new Error("Not implemented");
+  }
+}
+
+Image.registerFormat(new MyFormat());
+```

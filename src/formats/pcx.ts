@@ -1,4 +1,9 @@
-import type { ImageData, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 
 /**
  * PCX format handler
@@ -20,7 +25,7 @@ export class PCXFormat implements ImageFormat {
       data[2] === 1;
   }
 
-  decode(data: Uint8Array): Promise<ImageData> {
+  decode(data: Uint8Array, _options?: ImageDecoderOptions): Promise<ImageData> {
     if (!this.canDecode(data)) {
       return Promise.reject(new Error("Invalid PCX data"));
     }
@@ -132,7 +137,10 @@ export class PCXFormat implements ImageFormat {
     });
   }
 
-  encode(image: ImageData): Promise<Uint8Array> {
+  encode(
+    image: ImageData,
+    _options?: unknown,
+  ): Promise<Uint8Array> {
     const width = image.width;
     const height = image.height;
     const data = image.data;

@@ -4,26 +4,7 @@
  */
 
 import { LZWDecoder } from "./lzw.ts";
-
-/**
- * Options for GIF decoder
- */
-export interface GIFDecoderOptions {
-  /**
-   * Enable tolerant decoding mode. When enabled, the decoder will skip
-   * corrupted frames in multi-frame GIFs instead of failing completely.
-   * For single-frame GIFs, this allows partial frame decoding with LZW errors.
-   * @default true
-   */
-  tolerantDecoding?: boolean;
-  /**
-   * Optional callback for handling warnings during decoding.
-   * Called when non-fatal issues occur, such as skipping corrupted frames.
-   * @param message - The warning message
-   * @param details - Optional additional context or error information
-   */
-  onWarning?: (message: string, details?: unknown) => void;
-}
+import type { ImageDecoderOptions } from "../types.ts";
 
 interface GIFImage {
   width: number;
@@ -44,13 +25,17 @@ interface GIFFrame {
 export class GIFDecoder {
   private data: Uint8Array;
   private pos: number;
-  private options: GIFDecoderOptions;
+  private options: {
+    tolerantDecoding: boolean;
+    onWarning?: (message: string, details?: unknown) => void;
+  };
 
-  constructor(data: Uint8Array, options: GIFDecoderOptions = {}) {
+  constructor(data: Uint8Array, settings: ImageDecoderOptions = {}) {
     this.data = data;
     this.pos = 0;
     this.options = {
-      tolerantDecoding: options.tolerantDecoding ?? true,
+      tolerantDecoding: settings.tolerantDecoding ?? true,
+      onWarning: settings.onWarning,
     };
   }
 
