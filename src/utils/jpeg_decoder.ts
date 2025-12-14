@@ -453,8 +453,8 @@ export class JPEGDecoder {
     // For progressive JPEGs, blocks must be preserved across multiple scans
     // to accumulate coefficients from different spectral bands and bit refinements
     for (const component of this.components) {
-      const blocksAcross = Math.ceil(this.width * component.h / (8 * maxH));
-      const blocksDown = Math.ceil(this.height * component.v / (8 * maxV));
+      const blocksAcross = mcuWidth * component.h;
+      const blocksDown = mcuHeight * component.v;
 
       // Only initialize blocks if they don't exist yet (first scan)
       // Check both for undefined/null and empty array
