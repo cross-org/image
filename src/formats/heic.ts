@@ -1,4 +1,10 @@
-import type { ImageData, ImageDecoderOptions, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  HEICEncoderOptions,
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
 /**
@@ -92,9 +98,11 @@ export class HEICFormat implements ImageFormat {
    */
   async encode(
     imageData: ImageData,
-    _options?: unknown,
+    options?: HEICEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata: _metadata } = imageData;
+
+    const requestedQuality = options?.quality;
 
     // Try to use runtime encoding if available
     if (typeof OffscreenCanvas !== "undefined") {
@@ -107,10 +115,24 @@ export class HEICFormat implements ImageFormat {
           imgData.data.set(imgDataData);
           ctx.putImageData(imgData, 0, 0);
 
+          const quality = requestedQuality === undefined
+            ? undefined
+            : (requestedQuality <= 1
+              ? Math.max(0, Math.min(1, requestedQuality))
+              : Math.max(1, Math.min(100, requestedQuality)) / 100);
+
           // Try to encode as HEIC
           const blob = await canvas.convertToBlob({
             type: "image/heic",
+            ...(quality === undefined ? {} : { quality }),
           });
+
+          if (blob.type !== "image/heic") {
+            throw new Error(
+              `Runtime did not encode HEIC (got '${blob.type || "(empty)"}')`,
+            );
+          }
+
           const arrayBuffer = await blob.arrayBuffer();
           const encoded = new Uint8Array(arrayBuffer);
 

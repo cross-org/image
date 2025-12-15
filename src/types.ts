@@ -205,6 +205,36 @@ export interface JPEGEncoderOptions {
 }
 
 /**
+ * Options for AVIF encoding.
+ *
+ * Note: AVIF encoding is currently delegated to runtime APIs (OffscreenCanvas).
+ * Many runtimes ignore `quality` for AVIF, or may not support AVIF encoding at all.
+ */
+export interface AVIFEncoderOptions {
+  /**
+   * Best-effort encoding quality.
+   *
+   * Accepts either 0-1 (canvas-style) or 1-100 (library-style).
+   */
+  quality?: number;
+}
+
+/**
+ * Options for HEIC encoding.
+ *
+ * Note: HEIC encoding is currently delegated to runtime APIs (OffscreenCanvas).
+ * Many runtimes do not support HEIC encoding.
+ */
+export interface HEICEncoderOptions {
+  /**
+   * Best-effort encoding quality.
+   *
+   * Accepts either 0-1 (canvas-style) or 1-100 (library-style).
+   */
+  quality?: number;
+}
+
+/**
  * Common options for decode APIs.
  *
  * These options are runtime-agnostic and can be passed to `Image.decode()` and

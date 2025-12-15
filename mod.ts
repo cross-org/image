@@ -47,7 +47,9 @@ export { Image } from "./src/image.ts";
 export type {
   /* Encoder options */
   ASCIIEncoderOptions,
+  AVIFEncoderOptions,
   FrameMetadata,
+  HEICEncoderOptions,
   ImageData,
   /* Decoder options */
   ImageDecoderOptions,
