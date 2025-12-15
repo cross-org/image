@@ -75,3 +75,5 @@ export { PPMFormat } from "./src/formats/ppm.ts";
 export { ASCIIFormat } from "./src/formats/ascii.ts";
 export { HEICFormat } from "./src/formats/heic.ts";
 export { AVIFFormat } from "./src/formats/avif.ts";
+
+export { decodeBase64, encodeBase64, parseDataUrl, toDataUrl } from "./src/utils/base64.ts";

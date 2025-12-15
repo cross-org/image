@@ -196,6 +196,25 @@ const imageWithWarnings = await Image.decode(data, {
 ```
 
 **Note:** When using `Image.decode()`, the library automatically tries runtime-optimized decoders
+
+## Base64 / Data URLs
+
+The library includes small utilities for working with base64 and `data:` URLs.
+
+```ts
+import { Image, parseDataUrl, toDataUrl } from "jsr:@cross/image";
+
+const image = Image.create(2, 2, 255, 0, 0);
+const pngBytes = await image.encode("png");
+
+const dataUrl = toDataUrl("image/png", pngBytes);
+const parsed = parseDataUrl(dataUrl);
+
+// parsed.bytes is a Uint8Array containing the PNG
+const roundtrip = await Image.decode(parsed.bytes, "png");
+console.log(roundtrip.width, roundtrip.height);
+```
+
 (ImageDecoder API) first, falling back to the pure JS decoder with tolerant mode for maximum
 compatibility.
 

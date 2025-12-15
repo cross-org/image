@@ -100,6 +100,22 @@ const jpeg = await image.encode("jpeg");
 await writeFile("output.jpg", jpeg);
 ```
 
+## Base64 / Data URLs
+
+Utilities are available for converting bytes to/from base64 data URLs.
+
+```ts
+import { Image, parseDataUrl, toDataUrl } from "jsr:@cross/image";
+
+const image = Image.create(2, 2, 255, 0, 0);
+const pngBytes = await image.encode("png");
+
+const url = toDataUrl("image/png", pngBytes);
+const { bytes } = parseDataUrl(url);
+
+await Image.decode(bytes, "png");
+```
+
 ## Documentation
 
 - **[API Reference](api.md)** - Complete API documentation
