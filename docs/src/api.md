@@ -902,12 +902,33 @@ Configuration for PNG encoding.
 
 ```ts
 interface PNGEncoderOptions {
-  // Reserved for future compression options
+  /** Compression level (0-9, default: 6) */
+  compressionLevel?: number;
 }
 ```
 
-**Note:** PNG encoding currently uses the platform's native compression. Future versions may add
-compression level control.
+**Compression levels:**
+
+- `0` - No filtering, fastest encoding
+- `1-2` - Fast (no filtering)
+- `3-6` - Balanced (Sub filter)
+- `7-9` - Best compression (adaptive filtering per scanline)
+
+The compression level controls PNG filter selection, which significantly affects compression
+efficiency. Higher levels produce smaller files but take longer to encode.
+
+**Example:**
+
+```ts
+// Fast encoding
+const pngFast = await image.encode("png", { compressionLevel: 0 });
+
+// Balanced (default)
+const pngBalanced = await image.encode("png", { compressionLevel: 6 });
+
+// Best compression
+const pngBest = await image.encode("png", { compressionLevel: 9 });
+```
 
 ### `APNGEncoderOptions`
 
@@ -915,11 +936,12 @@ Configuration for APNG (Animated PNG) encoding.
 
 ```ts
 interface APNGEncoderOptions extends PNGEncoderOptions {
-  // Reserved for future APNG-specific options
+  /** Compression level (0-9, default: 6) - inherited from PNGEncoderOptions */
+  compressionLevel?: number;
 }
 ```
 
-**Note:** APNG uses PNG encoding for each frame.
+**Note:** APNG uses PNG encoding for each frame and supports the same compression levels.
 
 ### `GIFEncoderOptions`
 

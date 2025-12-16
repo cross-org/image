@@ -313,11 +313,12 @@ export class APNGFormat extends PNGBase implements ImageFormat {
   /**
    * Encode RGBA image data to APNG format (single frame)
    * @param imageData Image data to encode
+   * @param options Encoding options (compressionLevel 0-9, default 6)
    * @returns Encoded APNG image bytes
    */
   encode(
     imageData: ImageData,
-    _options?: APNGEncoderOptions,
+    options?: APNGEncoderOptions,
   ): Promise<Uint8Array> {
     // For single frame, create a multi-frame with one frame
     const multiFrame: MultiFrameImageData = {
@@ -332,19 +333,26 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       metadata: imageData.metadata,
     };
 
-    return this.encodeFrames(multiFrame, _options);
+    return this.encodeFrames(multiFrame, options);
   }
 
   /**
    * Encode multi-frame image data to APNG format
    * @param imageData Multi-frame image data to encode
+   * @param options Encoding options (compressionLevel 0-9, default 6)
    * @returns Encoded APNG image bytes
    */
   async encodeFrames(
     imageData: MultiFrameImageData,
-    _options?: APNGEncoderOptions,
+    options?: APNGEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, frames, metadata } = imageData;
+    const compressionLevel = options?.compressionLevel ?? 6;
+
+    // Validate compression level
+    if (compressionLevel < 0 || compressionLevel > 9) {
+      throw new Error("Compression level must be between 0 and 9");
+    }
 
     if (frames.length === 0) {
       throw new Error("No frames to encode");
@@ -412,7 +420,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       chunks.push(this.createChunk("fcTL", fctl));
 
       // Filter and compress frame data
-      const filtered = this.filterData(frame.data, frame.width, frame.height);
+      const filtered = this.filterData(frame.data, frame.width, frame.height, compressionLevel);
       const compressed = await this.deflate(filtered);
 
       if (i === 0) {

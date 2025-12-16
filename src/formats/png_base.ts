@@ -180,23 +180,274 @@ export abstract class PNGBase {
   /**
    * Filter PNG data for encoding (using filter type 0 - None)
    */
+  /**
+   * Apply PNG filter to image data based on compression level
+   * @param data Raw RGBA pixel data
+   * @param width Image width
+   * @param height Image height
+   * @param compressionLevel Compression level (0-9, default 6)
+   * @returns Filtered data with filter type byte per scanline
+   */
   protected filterData(
     data: Uint8Array,
     width: number,
     height: number,
+    compressionLevel = 6,
   ): Uint8Array {
-    // Use filter type 0 (None) for simplicity
-    const filtered = new Uint8Array(height * (1 + width * 4));
+    // Choose filtering strategy based on compression level
+    if (compressionLevel <= 2) {
+      // Fast: No filtering
+      return this.applyNoFilter(data, width, height);
+    } else if (compressionLevel <= 6) {
+      // Balanced: Sub filter
+      return this.applySubFilter(data, width, height);
+    } else {
+      // Best: Adaptive filtering (choose best filter per scanline)
+      return this.applyAdaptiveFilter(data, width, height);
+    }
+  }
+
+  /**
+   * Apply filter type 0 (None) - no filtering
+   */
+  private applyNoFilter(
+    data: Uint8Array,
+    width: number,
+    height: number,
+  ): Uint8Array {
+    const bytesPerScanline = width * 4;
+    const filtered = new Uint8Array(height * (1 + bytesPerScanline));
     let pos = 0;
 
     for (let y = 0; y < height; y++) {
       filtered[pos++] = 0; // Filter type: None
-      for (let x = 0; x < width * 4; x++) {
-        filtered[pos++] = data[y * width * 4 + x];
+      const scanlineStart = y * bytesPerScanline;
+      for (let x = 0; x < bytesPerScanline; x++) {
+        filtered[pos++] = data[scanlineStart + x];
       }
     }
 
     return filtered;
+  }
+
+  /**
+   * Apply filter type 1 (Sub) - subtract left pixel
+   */
+  private applySubFilter(
+    data: Uint8Array,
+    width: number,
+    height: number,
+  ): Uint8Array {
+    const bytesPerScanline = width * 4;
+    const filtered = new Uint8Array(height * (1 + bytesPerScanline));
+    let pos = 0;
+
+    for (let y = 0; y < height; y++) {
+      filtered[pos++] = 1; // Filter type: Sub
+      const scanlineStart = y * bytesPerScanline;
+
+      for (let x = 0; x < bytesPerScanline; x++) {
+        const current = data[scanlineStart + x];
+        const left = x >= 4 ? data[scanlineStart + x - 4] : 0;
+        filtered[pos++] = (current - left) & 0xff;
+      }
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Apply filter type 2 (Up) - subtract above pixel
+   */
+  private applyUpFilter(
+    data: Uint8Array,
+    width: number,
+    height: number,
+  ): Uint8Array {
+    const bytesPerScanline = width * 4;
+    const filtered = new Uint8Array(height * (1 + bytesPerScanline));
+    let pos = 0;
+
+    for (let y = 0; y < height; y++) {
+      filtered[pos++] = 2; // Filter type: Up
+      const scanlineStart = y * bytesPerScanline;
+      const prevScanlineStart = (y - 1) * bytesPerScanline;
+
+      for (let x = 0; x < bytesPerScanline; x++) {
+        const current = data[scanlineStart + x];
+        const up = y > 0 ? data[prevScanlineStart + x] : 0;
+        filtered[pos++] = (current - up) & 0xff;
+      }
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Apply filter type 3 (Average) - subtract average of left and above
+   */
+  private applyAverageFilter(
+    data: Uint8Array,
+    width: number,
+    height: number,
+  ): Uint8Array {
+    const bytesPerScanline = width * 4;
+    const filtered = new Uint8Array(height * (1 + bytesPerScanline));
+    let pos = 0;
+
+    for (let y = 0; y < height; y++) {
+      filtered[pos++] = 3; // Filter type: Average
+      const scanlineStart = y * bytesPerScanline;
+      const prevScanlineStart = (y - 1) * bytesPerScanline;
+
+      for (let x = 0; x < bytesPerScanline; x++) {
+        const current = data[scanlineStart + x];
+        const left = x >= 4 ? data[scanlineStart + x - 4] : 0;
+        const up = y > 0 ? data[prevScanlineStart + x] : 0;
+        const avg = Math.floor((left + up) / 2);
+        filtered[pos++] = (current - avg) & 0xff;
+      }
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Apply filter type 4 (Paeth) - Paeth predictor
+   */
+  private applyPaethFilter(
+    data: Uint8Array,
+    width: number,
+    height: number,
+  ): Uint8Array {
+    const bytesPerScanline = width * 4;
+    const filtered = new Uint8Array(height * (1 + bytesPerScanline));
+    let pos = 0;
+
+    for (let y = 0; y < height; y++) {
+      filtered[pos++] = 4; // Filter type: Paeth
+      const scanlineStart = y * bytesPerScanline;
+      const prevScanlineStart = (y - 1) * bytesPerScanline;
+
+      for (let x = 0; x < bytesPerScanline; x++) {
+        const current = data[scanlineStart + x];
+        const left = x >= 4 ? data[scanlineStart + x - 4] : 0;
+        const up = y > 0 ? data[prevScanlineStart + x] : 0;
+        const upLeft = (y > 0 && x >= 4) ? data[prevScanlineStart + x - 4] : 0;
+        const paeth = this.paethPredictor(left, up, upLeft);
+        filtered[pos++] = (current - paeth) & 0xff;
+      }
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Calculate sum of absolute differences for a filtered scanline
+   * Lower values indicate better compression potential
+   */
+  private calculateFilterScore(filtered: Uint8Array): number {
+    let sum = 0;
+    for (let i = 1; i < filtered.length; i++) {
+      const byte = filtered[i];
+      // Penalize larger absolute values
+      sum += byte < 128 ? byte : (256 - byte);
+    }
+    return sum;
+  }
+
+  /**
+   * Apply adaptive filtering - choose best filter per scanline
+   */
+  private applyAdaptiveFilter(
+    data: Uint8Array,
+    width: number,
+    height: number,
+  ): Uint8Array {
+    const bytesPerScanline = width * 4;
+    const filtered = new Uint8Array(height * (1 + bytesPerScanline));
+    let outPos = 0;
+
+    // Try each filter type and choose the best for each scanline
+    const filters = [
+      (y: number) => this.filterScanline(data, y, width, 0), // None
+      (y: number) => this.filterScanline(data, y, width, 1), // Sub
+      (y: number) => this.filterScanline(data, y, width, 2), // Up
+      (y: number) => this.filterScanline(data, y, width, 3), // Average
+      (y: number) => this.filterScanline(data, y, width, 4), // Paeth
+    ];
+
+    for (let y = 0; y < height; y++) {
+      let bestFilter: Uint8Array | null = null;
+      let bestScore = Infinity;
+
+      // Try each filter type
+      for (const filterFn of filters) {
+        const result = filterFn(y);
+        const score = this.calculateFilterScore(result);
+        if (score < bestScore) {
+          bestScore = score;
+          bestFilter = result;
+        }
+      }
+
+      // Copy best filter result
+      if (bestFilter) {
+        filtered.set(bestFilter, outPos);
+        outPos += bestFilter.length;
+      }
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Filter a single scanline with specified filter type
+   */
+  private filterScanline(
+    data: Uint8Array,
+    y: number,
+    width: number,
+    filterType: number,
+  ): Uint8Array {
+    const bytesPerScanline = width * 4;
+    const result = new Uint8Array(1 + bytesPerScanline);
+    result[0] = filterType;
+
+    const scanlineStart = y * bytesPerScanline;
+    const prevScanlineStart = (y - 1) * bytesPerScanline;
+
+    for (let x = 0; x < bytesPerScanline; x++) {
+      const current = data[scanlineStart + x];
+      const left = x >= 4 ? data[scanlineStart + x - 4] : 0;
+      const up = y > 0 ? data[prevScanlineStart + x] : 0;
+      const upLeft = (y > 0 && x >= 4) ? data[prevScanlineStart + x - 4] : 0;
+
+      let filtered: number;
+      switch (filterType) {
+        case 0: // None
+          filtered = current;
+          break;
+        case 1: // Sub
+          filtered = (current - left) & 0xff;
+          break;
+        case 2: // Up
+          filtered = (current - up) & 0xff;
+          break;
+        case 3: // Average
+          filtered = (current - Math.floor((left + up) / 2)) & 0xff;
+          break;
+        case 4: // Paeth
+          filtered = (current - this.paethPredictor(left, up, upLeft)) & 0xff;
+          break;
+        default:
+          filtered = current;
+      }
+
+      result[x + 1] = filtered;
+    }
+
+    return result;
   }
 
   /**

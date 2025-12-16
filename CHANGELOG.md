@@ -9,6 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- PNG encoder now supports `compressionLevel` option (0-9) to control encoding speed vs. file size
+  through adaptive PNG filter selection
 - `PNGEncoderOptions`, `GIFEncoderOptions`, and `APNGEncoderOptions` types exported from `mod.ts`
   for API completeness and consistency
 - GIF encoder now supports `loop` option to control animation loop count (0 = infinite loop, 1+ =

@@ -148,14 +148,21 @@ export interface ResizeOptions {
 
 /**
  * Options for PNG encoding.
- *
- * Note: PNG encoding currently uses the platform's native compression.
- * Future versions may support compression level control.
  */
-// deno-lint-ignore no-empty-interface
 export interface PNGEncoderOptions {
-  // Reserved for future compression options
-  // compressionLevel?: number; // 0-9
+  /**
+   * Compression level (0-9)
+   * - 0: No filtering, fastest
+   * - 1-2: Fast (no filtering)
+   * - 3-6: Balanced (Sub filter)
+   * - 7-9: Best compression (adaptive filtering per scanline)
+   *
+   * Default: 6 (balanced)
+   *
+   * Note: Affects PNG filter selection. The native deflate compression
+   * is used regardless of level.
+   */
+  compressionLevel?: number;
 }
 
 /**

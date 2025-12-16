@@ -125,13 +125,20 @@ export class PNGFormat extends PNGBase implements ImageFormat {
   /**
    * Encode RGBA image data to PNG format
    * @param imageData Image data to encode
+   * @param options Encoding options (compressionLevel 0-9, default 6)
    * @returns Encoded PNG image bytes
    */
   async encode(
     imageData: ImageData,
-    _options?: PNGEncoderOptions,
+    options?: PNGEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
+    const compressionLevel = options?.compressionLevel ?? 6;
+
+    // Validate compression level
+    if (compressionLevel < 0 || compressionLevel > 9) {
+      throw new Error("Compression level must be between 0 and 9");
+    }
 
     // Prepare IHDR chunk
     const ihdr = new Uint8Array(13);
@@ -144,7 +151,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
     ihdr[12] = 0; // interlace method
 
     // Filter and compress image data
-    const filtered = this.filterData(data, width, height);
+    const filtered = this.filterData(data, width, height, compressionLevel);
     const compressed = await this.deflate(filtered);
 
     // Build PNG

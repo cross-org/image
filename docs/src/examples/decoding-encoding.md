@@ -33,7 +33,8 @@ const image = await Image.decode(data, "png");
 
 ### PNG
 
-PNG supports full RGBA with lossless compression.
+PNG supports full RGBA with lossless compression. Compression level controls encoding speed vs. file
+size.
 
 ```ts
 import { Image } from "jsr:@cross/image";
@@ -42,9 +43,17 @@ import { Image } from "jsr:@cross/image";
 const pngData = await Deno.readFile("input.png");
 const image = await Image.decode(pngData);
 
-// Encode as PNG (default options)
+// Encode as PNG (default compression level: 6)
 const output = await image.encode("png");
 await Deno.writeFile("output.png", output);
+
+// Fast encoding (larger file)
+const fast = await image.encode("png", { compressionLevel: 0 });
+await Deno.writeFile("fast.png", fast);
+
+// Best compression (smaller file, slower)
+const best = await image.encode("png", { compressionLevel: 9 });
+await Deno.writeFile("best.png", best);
 ```
 
 ### JPEG
