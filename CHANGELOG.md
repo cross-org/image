@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Documentation: Corrected format support tables to accurately reflect TIFF compression support
+  (PackBits and Deflate are pure-JS, not native-only)
+- Documentation: Added missing ICO format to all format support tables in docs/src/formats.md
+- Documentation: Added missing GIF implementation documentation link
+
 ### Added
 
 - Base64 utilities (`encodeBase64`, `decodeBase64`) and data URL helpers (`toDataUrl`,
