@@ -1,9 +1,8 @@
 # @cross/image
 
-A pure JavaScript, dependency-free, cross-runtime image processing library for
-Deno, Node.js, and Bun. Decode, encode, manipulate, and process images in
-multiple formats including PNG, JPEG, WebP, GIF, and more—all without native
-dependencies.
+A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, and
+Bun. Decode, encode, manipulate, and process images in multiple formats including PNG, JPEG, WebP,
+GIF, and more—all without native dependencies.
 
 📚 **[Full Documentation](https://cross-image.56k.guru/)**
 
@@ -12,12 +11,11 @@ dependencies.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), and Bun
-- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
-  PAM, PPM, PCX, ASCII, HEIC, and AVIF support
+- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM, PPM, PCX, ASCII,
+  HEIC, and AVIF support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
-- 🎛️ **Image processing** - Chainable filters including `brightness`,
-  `contrast`, `saturation`, `hue`, `exposure`, `blur`, `sharpen`, `sepia`, and
-  more
+- 🎛️ **Image processing** - Chainable filters including `brightness`, `contrast`, `saturation`,
+  `hue`, `exposure`, `blur`, `sharpen`, `sepia`, and more
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
 - 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface
@@ -139,27 +137,25 @@ await Bun.write("output.jpg", jpeg);
 | HEIC   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support                                              |
 | AVIF   | 🔌 Runtime                | Requires ImageDecoder/OffscreenCanvas API support                                              |
 
-See the
-[full format support documentation](https://cross-image.56k.guru/formats/) for
-detailed compatibility information.
+See the [full format support documentation](https://cross-image.56k.guru/formats/) for detailed
+compatibility information.
 
 ## Advanced Usage
 
-Most users should stick to the `Image` API (`Image.decode`, `image.encode`,
-etc.).
+Most users should stick to the `Image` API (`Image.decode`, `image.encode`, etc.).
 
-If you need to work with format handlers directly (e.g. `new PNGFormat()`) or
-register your own `ImageFormat` implementation via `Image.registerFormat(...)`,
-see the API reference section “Exported Format Classes”:
+If you need to work with format handlers directly (e.g. `new PNGFormat()`) or register your own
+`ImageFormat` implementation via `Image.registerFormat(...)`, see the API reference section
+“Exported Format Classes”:
 
 - https://cross-image.56k.guru/api/
 
 ## JPEG Tolerant Decoding
 
-The JPEG decoder includes a tolerant decoding mode (enabled by default) that
-gracefully handles partially corrupted images or complex encoding patterns from
-mobile phone cameras. When enabled, the decoder will continue processing even if
-some blocks fail to decode, filling failed blocks with neutral values.
+The JPEG decoder includes a tolerant decoding mode (enabled by default) that gracefully handles
+partially corrupted images or complex encoding patterns from mobile phone cameras. When enabled, the
+decoder will continue processing even if some blocks fail to decode, filling failed blocks with
+neutral values.
 
 **Features:**
 
@@ -167,8 +163,7 @@ some blocks fail to decode, filling failed blocks with neutral values.
 - **Progressive JPEG support** - Decodes both baseline and progressive JPEGs
 - **Configurable** - Can be disabled for strict validation
 - **Fault-tolerant** - Recovers partial image data instead of failing completely
-- **Zero configuration** - Works automatically with the standard
-  `Image.decode()` API
+- **Zero configuration** - Works automatically with the standard `Image.decode()` API
 
 **When to use:**
 
@@ -200,8 +195,7 @@ const imageWithWarnings = await Image.decode(data, {
 });
 ```
 
-**Note:** When using `Image.decode()`, the library automatically tries
-runtime-optimized decoders
+**Note:** When using `Image.decode()`, the library automatically tries runtime-optimized decoders
 
 ## Base64 / Data URLs
 
@@ -221,19 +215,18 @@ const roundtrip = await Image.decode(parsed.bytes, "png");
 console.log(roundtrip.width, roundtrip.height);
 ```
 
-(ImageDecoder API) first, falling back to the pure JS decoder with tolerant mode
-for maximum compatibility.
+(ImageDecoder API) first, falling back to the pure JS decoder with tolerant mode for maximum
+compatibility.
 
 ## Fault-Tolerant Decoding for Other Formats
 
-In addition to JPEG, @cross/image provides fault-tolerant decoding for several
-other formats that commonly encounter corruption or complex encoding patterns:
+In addition to JPEG, @cross/image provides fault-tolerant decoding for several other formats that
+commonly encounter corruption or complex encoding patterns:
 
 ### GIF Fault-Tolerant Decoding
 
-The GIF decoder supports frame-level tolerance for animated GIFs. When enabled
-(default), corrupted frames are skipped instead of causing complete decode
-failure.
+The GIF decoder supports frame-level tolerance for animated GIFs. When enabled (default), corrupted
+frames are skipped instead of causing complete decode failure.
 
 **Features:**
 
@@ -268,9 +261,8 @@ const framesWithWarnings = await Image.decodeFrames(data, {
 
 ### WebP Fault-Tolerant Decoding (VP8L Lossless)
 
-The WebP VP8L (lossless) decoder supports pixel-level tolerance. When enabled
-(default), decoding errors result in gray pixels for remaining data instead of
-complete failure.
+The WebP VP8L (lossless) decoder supports pixel-level tolerance. When enabled (default), decoding
+errors result in gray pixels for remaining data instead of complete failure.
 
 **Features:**
 
@@ -321,9 +313,9 @@ void imageWithWarnings;
 
 ### Warning Callbacks
 
-Decoding APIs accept an optional `onWarning` callback that gets invoked when
-non-fatal issues occur during decoding. This is useful for logging, monitoring,
-or debugging decoding issues without using `console` methods.
+Decoding APIs accept an optional `onWarning` callback that gets invoked when non-fatal issues occur
+during decoding. This is useful for logging, monitoring, or debugging decoding issues without using
+`console` methods.
 
 **Example:**
 
@@ -350,9 +342,8 @@ The callback receives:
 
 ## Metadata Support
 
-@cross/image provides comprehensive EXIF 3.0 compliant metadata support for
-image files, including camera information, GPS coordinates, and InteropIFD
-compatibility markers.
+@cross/image provides comprehensive EXIF 3.0 compliant metadata support for image files, including
+camera information, GPS coordinates, and InteropIFD compatibility markers.
 
 ### Supported Metadata Fields
 
@@ -389,8 +380,7 @@ The library implements the EXIF 3.0 specification with:
 
 - **50+ Exif Sub-IFD tags** for comprehensive camera metadata
 - **30+ IFD0 tags** for image information
-- **InteropIFD support** for format compatibility (R98/sRGB, R03/Adobe RGB,
-  THM/thumbnail)
+- **InteropIFD support** for format compatibility (R98/sRGB, R03/Adobe RGB, THM/thumbnail)
 - **GPS IFD** with proper coordinate conversion
 - All EXIF data types (BYTE, ASCII, SHORT, LONG, RATIONAL, etc.)
 
@@ -434,8 +424,8 @@ console.log(loaded.getPosition()); // { latitude: 40.7128, longitude: -74.0060 }
 
 ### Extracting Metadata Without Decoding
 
-For quickly reading metadata from images without the overhead of decoding pixel
-data, use `Image.extractMetadata()`. This is particularly useful for:
+For quickly reading metadata from images without the overhead of decoding pixel data, use
+`Image.extractMetadata()`. This is particularly useful for:
 
 - Reading EXIF data from large images or photos
 - Extracting metadata from images with unsupported compression
@@ -460,8 +450,7 @@ const metadata2 = await Image.extractMetadata(data); // Detects JPEG
 const metadata3 = await Image.extractMetadata(data, "jpeg");
 ```
 
-This method is significantly faster than full decode when you only need
-metadata, as it:
+This method is significantly faster than full decode when you only need metadata, as it:
 
 - Skips pixel data decompression
 - Only parses metadata chunks/markers
@@ -483,41 +472,35 @@ Image.getSupportedMetadata("avif"); // Full camera metadata + GPS (19 fields)
 
 **Format Highlights:**
 
-- **JPEG**: Most comprehensive EXIF support, including all camera settings and
-  GPS
+- **JPEG**: Most comprehensive EXIF support, including all camera settings and GPS
 - **TIFF**: Full EXIF 3.0 support with IFD structure, InteropIFD compatibility
-- **WebP**: Enhanced XMP implementation with Dublin Core, EXIF, and TIFF
-  namespaces
+- **WebP**: Enhanced XMP implementation with Dublin Core, EXIF, and TIFF namespaces
 - **PNG**: Basic EXIF support via eXIf chunk plus GPS coordinates
-- **HEIC**: Full EXIF metadata extraction including camera settings, GPS, and
-  image info (runtime-dependent encoding)
-- **AVIF**: Full EXIF metadata extraction including camera settings, GPS, and
-  image info (runtime-dependent encoding)
+- **HEIC**: Full EXIF metadata extraction including camera settings, GPS, and image info
+  (runtime-dependent encoding)
+- **AVIF**: Full EXIF metadata extraction including camera settings, GPS, and image info
+  (runtime-dependent encoding)
 
 ## Documentation
 
-- **[API Reference](https://cross-image.56k.guru/api/)** - Complete API
-  documentation
-- **[Format Support](https://cross-image.56k.guru/formats/)** - Supported
-  formats and specifications
-- **[Image Processing](https://cross-image.56k.guru/processing/)** - Filters,
-  manipulation, and color adjustments
-  - [Filters](https://cross-image.56k.guru/processing/filters/) - Blur, sharpen,
-    and noise reduction
-  - [Manipulation](https://cross-image.56k.guru/processing/manipulation/) -
-    Resize, crop, composite, and draw
-  - [Color Adjustments](https://cross-image.56k.guru/processing/color-adjustments/) -
-    Brightness, contrast, saturation, and more
-- **[Examples](https://cross-image.56k.guru/examples/)** - Practical examples
-  for common tasks
+- **[API Reference](https://cross-image.56k.guru/api/)** - Complete API documentation
+- **[Format Support](https://cross-image.56k.guru/formats/)** - Supported formats and specifications
+- **[Image Processing](https://cross-image.56k.guru/processing/)** - Filters, manipulation, and
+  color adjustments
+  - [Filters](https://cross-image.56k.guru/processing/filters/) - Blur, sharpen, and noise reduction
+  - [Manipulation](https://cross-image.56k.guru/processing/manipulation/) - Resize, crop, composite,
+    and draw
+  - [Color Adjustments](https://cross-image.56k.guru/processing/color-adjustments/) - Brightness,
+    contrast, saturation, and more
+- **[Examples](https://cross-image.56k.guru/examples/)** - Practical examples for common tasks
   - [Decoding & Encoding](https://cross-image.56k.guru/examples/decoding-encoding/) -
     Format-specific examples
-  - [Using Filters](https://cross-image.56k.guru/examples/filters/) - Filter
-    workflows and techniques
-  - [Manipulation](https://cross-image.56k.guru/examples/manipulation/) -
-    Resizing, cropping, and compositing
-  - [Multi-Frame Images](https://cross-image.56k.guru/examples/multi-frame/) -
-    Animated GIFs, APNGs, and TIFFs
+  - [Using Filters](https://cross-image.56k.guru/examples/filters/) - Filter workflows and
+    techniques
+  - [Manipulation](https://cross-image.56k.guru/examples/manipulation/) - Resizing, cropping, and
+    compositing
+  - [Multi-Frame Images](https://cross-image.56k.guru/examples/multi-frame/) - Animated GIFs, APNGs,
+    and TIFFs
 - **[JPEG Implementation](https://cross-image.56k.guru/implementation/jpeg-implementation/)** -
   Technical details for JPEG
 - **[WebP Implementation](https://cross-image.56k.guru/implementation/webp-implementation/)** -
@@ -531,8 +514,8 @@ Image.getSupportedMetadata("avif"); // Full camera metadata + GPS (19 fields)
 deno task precommit
 ```
 
-CI validates cross-runtime compatibility (Deno, Bun, Node). See CONTRIBUTING.md
-for contributor workflow details.
+CI validates cross-runtime compatibility (Deno, Bun, Node). See CONTRIBUTING.md for contributor
+workflow details.
 
 ## License
 

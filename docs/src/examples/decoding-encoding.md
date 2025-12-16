@@ -49,8 +49,7 @@ await Deno.writeFile("output.png", output);
 
 ### JPEG
 
-JPEG is best for photographs. Quality setting controls file size vs. image
-quality.
+JPEG is best for photographs. Quality setting controls file size vs. image quality.
 
 ```ts
 import { Image } from "jsr:@cross/image";

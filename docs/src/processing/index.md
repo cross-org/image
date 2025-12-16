@@ -5,9 +5,8 @@ nav_order: 4
 
 # Image Processing
 
-@cross/image provides a comprehensive set of chainable image processing
-operations. All methods modify the image in-place and return `this`, allowing
-you to chain multiple operations together.
+@cross/image provides a comprehensive set of chainable image processing operations. All methods
+modify the image in-place and return `this`, allowing you to chain multiple operations together.
 
 ## Processing Categories
 
@@ -68,8 +67,7 @@ await Deno.writeFile("processed.png", output);
 
 - **Order Matters**: Apply resize operations early to process fewer pixels
 - **Filter Radius**: Larger radii increase processing time significantly
-- **Method Selection**: Nearest neighbor resize is faster but lower quality than
-  bilinear
+- **Method Selection**: Nearest neighbor resize is faster but lower quality than bilinear
 
 ### Optimal Processing Order
 
