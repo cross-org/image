@@ -16,6 +16,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- CMYK color space support with conversion utilities:
+  - `rgbToCmyk()` and `cmykToRgb()` functions for converting individual color values
+  - `rgbaToCmyk()` and `cmykToRgba()` functions for converting entire image data arrays
+  - `Image.toCMYK()` method to convert an image to CMYK representation
+  - `Image.fromCMYK()` static method to create an image from CMYK data
 - PNG encoder now supports `compressionLevel` option (0-9) to control encoding speed vs. file size
   through adaptive PNG filter selection
 - `PNGEncoderOptions`, `GIFEncoderOptions`, and `APNGEncoderOptions` types exported from `mod.ts`

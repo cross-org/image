@@ -545,6 +545,99 @@ await Deno.writeFile("bw.png", await image.encode("png"));
 All color adjustments work in RGB color space. For saturation, the library temporarily converts to
 HSL, adjusts, and converts back to RGB.
 
+## CMYK Color Space Conversion
+
+Convert between RGB and CMYK (Cyan, Magenta, Yellow, Key/Black) color spaces for professional
+printing and color manipulation workflows.
+
+### Converting Individual Colors
+
+```ts
+import { cmykToRgb, rgbToCmyk } from "jsr:@cross/image";
+
+// Convert RGB to CMYK
+const [c, m, y, k] = rgbToCmyk(255, 0, 0); // Red
+console.log({ c, m, y, k }); // { c: 0, m: 1, y: 1, k: 0 }
+
+// Convert CMYK back to RGB
+const [r, g, b] = cmykToRgb(c, m, y, k);
+console.log({ r, g, b }); // { r: 255, g: 0, b: 0 }
+```
+
+### Converting Full Images
+
+```ts
+import { Image } from "jsr:@cross/image";
+
+// Load an image
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Convert to CMYK representation
+const cmykData = image.toCMYK(); // Float32Array with 4 values per pixel
+
+// Create image from CMYK data
+const restored = Image.fromCMYK(cmykData, image.width, image.height);
+
+await Deno.writeFile("output.png", await restored.encode("png"));
+```
+
+### Batch Array Conversion
+
+```ts
+import { cmykToRgba, rgbaToCmyk } from "jsr:@cross/image";
+
+// Convert entire RGBA buffer to CMYK
+const rgbaData = new Uint8Array([255, 0, 0, 255]); // Red pixel
+const cmykData = rgbaToCmyk(rgbaData); // Float32Array
+
+// Convert CMYK buffer back to RGBA
+const rgbaRestored = cmykToRgba(cmykData); // Uint8Array
+```
+
+### Use Cases
+
+- **Pre-press workflows** - Prepare images for professional printing
+- **Color separation** - Generate CMYK plates for printing presses
+- **Print simulation** - Preview how images will appear in CMYK gamut
+- **Color analysis** - Analyze color composition in print color space
+- **Educational tools** - Teach color theory and printing concepts
+
+### CMYK Color Space Details
+
+CMYK is a subtractive color model used in printing:
+
+- **C (Cyan)**: Absorbs red light (0-1)
+- **M (Magenta)**: Absorbs green light (0-1)
+- **Y (Yellow)**: Absorbs blue light (0-1)
+- **K (Key/Black)**: Adds depth and saves ink (0-1)
+
+### Conversion Formulas
+
+**RGB to CMYK:**
+
+```
+K = 1 - max(R, G, B)
+C = (1 - R - K) / (1 - K)
+M = (1 - G - K) / (1 - K)
+Y = (1 - B - K) / (1 - K)
+```
+
+**CMYK to RGB:**
+
+```
+R = 255 × (1 - C) × (1 - K)
+G = 255 × (1 - M) × (1 - K)
+B = 255 × (1 - Y) × (1 - K)
+```
+
+### Notes
+
+- CMYK has a smaller color gamut than RGB
+- Round-trip conversion (RGB → CMYK → RGB) preserves colors within CMYK gamut
+- Black (K) calculation uses the maximum RGB component
+- Pure black in RGB (0,0,0) converts to K=1, C=M=Y=0
+
 ### Performance
 
 All color adjustments are fast operations that process pixels in a single pass. Order doesn't

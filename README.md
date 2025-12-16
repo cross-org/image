@@ -197,6 +197,64 @@ const imageWithWarnings = await Image.decode(data, {
 
 **Note:** When using `Image.decode()`, the library automatically tries runtime-optimized decoders
 
+## CMYK Color Space Support
+
+The library provides utilities for working with CMYK (Cyan, Magenta, Yellow, Key/Black) color space,
+commonly used in professional printing and color manipulation.
+
+### Color Conversion Utilities
+
+```ts
+import { cmykToRgb, rgbToCmyk } from "jsr:@cross/image";
+
+// Convert RGB to CMYK
+const [c, m, y, k] = rgbToCmyk(255, 0, 0); // Red
+console.log({ c, m, y, k }); // { c: 0, m: 1, y: 1, k: 0 }
+
+// Convert CMYK back to RGB
+const [r, g, b] = cmykToRgb(c, m, y, k);
+console.log({ r, g, b }); // { r: 255, g: 0, b: 0 }
+```
+
+### Image-Level CMYK Operations
+
+```ts
+import { Image } from "jsr:@cross/image";
+
+// Load an image and convert to CMYK
+const data = await Deno.readFile("photo.jpg");
+const image = await Image.decode(data);
+
+// Get CMYK representation (Float32Array with 4 values per pixel)
+const cmykData = image.toCMYK();
+
+// Create an image from CMYK data
+const restored = Image.fromCMYK(cmykData, image.width, image.height);
+
+// Save the restored image
+await Deno.writeFile("output.png", await restored.encode("png"));
+```
+
+### Batch Conversion
+
+```ts
+import { cmykToRgba, rgbaToCmyk } from "jsr:@cross/image";
+
+// Convert entire image data to CMYK
+const rgbaData = new Uint8Array([255, 0, 0, 255]); // Red pixel
+const cmykData = rgbaToCmyk(rgbaData);
+
+// Convert CMYK data back to RGBA
+const rgbaRestored = cmykToRgba(cmykData);
+```
+
+**Use Cases:**
+
+- Pre-press and print preparation workflows
+- Color space conversion for professional printing
+- Color analysis and manipulation in CMYK space
+- Educational tools for understanding color models
+
 ## Base64 / Data URLs
 
 The library includes small utilities for working with base64 and `data:` URLs.

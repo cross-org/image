@@ -957,3 +957,120 @@ export function flipVertical(
 
   return result;
 }
+
+/**
+ * Convert RGB color to CMYK color space
+ * @param r Red component (0-255)
+ * @param g Green component (0-255)
+ * @param b Blue component (0-255)
+ * @returns CMYK values: [c (0-1), m (0-1), y (0-1), k (0-1)]
+ */
+export function rgbToCmyk(
+  r: number,
+  g: number,
+  b: number,
+): [number, number, number, number] {
+  // Normalize RGB values to 0-1 range
+  const rNorm = r / 255;
+  const gNorm = g / 255;
+  const bNorm = b / 255;
+
+  // Calculate K (key/black)
+  const k = 1 - Math.max(rNorm, gNorm, bNorm);
+
+  // If K is 1 (pure black), CMY are undefined but conventionally set to 0
+  if (k === 1) {
+    return [0, 0, 0, 1];
+  }
+
+  // Calculate CMY components
+  const c = (1 - rNorm - k) / (1 - k);
+  const m = (1 - gNorm - k) / (1 - k);
+  const y = (1 - bNorm - k) / (1 - k);
+
+  return [c, m, y, k];
+}
+
+/**
+ * Convert CMYK color to RGB color space
+ * @param c Cyan component (0-1)
+ * @param m Magenta component (0-1)
+ * @param y Yellow component (0-1)
+ * @param k Key/Black component (0-1)
+ * @returns RGB values: [r (0-255), g (0-255), b (0-255)]
+ */
+export function cmykToRgb(
+  c: number,
+  m: number,
+  y: number,
+  k: number,
+): [number, number, number] {
+  // Convert CMYK to RGB
+  const r = 255 * (1 - c) * (1 - k);
+  const g = 255 * (1 - m) * (1 - k);
+  const b = 255 * (1 - y) * (1 - k);
+
+  return [
+    Math.round(Math.max(0, Math.min(255, r))),
+    Math.round(Math.max(0, Math.min(255, g))),
+    Math.round(Math.max(0, Math.min(255, b))),
+  ];
+}
+
+/**
+ * Convert RGBA image data to CMYK representation
+ * Returns a Float32Array with 4 values per pixel (C, M, Y, K) in 0-1 range
+ * @param data Image data (RGBA)
+ * @returns CMYK image data as Float32Array (4 values per pixel)
+ */
+export function rgbaToCmyk(data: Uint8Array): Float32Array {
+  const pixelCount = data.length / 4;
+  const result = new Float32Array(pixelCount * 4);
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    const [c, m, y, k] = rgbToCmyk(r, g, b);
+    const outIdx = (i / 4) * 4;
+
+    result[outIdx] = c;
+    result[outIdx + 1] = m;
+    result[outIdx + 2] = y;
+    result[outIdx + 3] = k;
+  }
+
+  return result;
+}
+
+/**
+ * Convert CMYK image data to RGBA representation
+ * @param cmykData CMYK image data (4 values per pixel in 0-1 range)
+ * @param alpha Optional alpha value for all pixels (0-255, default: 255)
+ * @returns RGBA image data
+ */
+export function cmykToRgba(
+  cmykData: Float32Array,
+  alpha = 255,
+): Uint8Array {
+  const pixelCount = cmykData.length / 4;
+  const result = new Uint8Array(pixelCount * 4);
+
+  for (let i = 0; i < cmykData.length; i += 4) {
+    const c = cmykData[i];
+    const m = cmykData[i + 1];
+    const y = cmykData[i + 2];
+    const k = cmykData[i + 3];
+
+    const [r, g, b] = cmykToRgb(c, m, y, k);
+    const outIdx = i;
+
+    result[outIdx] = r;
+    result[outIdx + 1] = g;
+    result[outIdx + 2] = b;
+    result[outIdx + 3] = alpha;
+  }
+
+  return result;
+}
