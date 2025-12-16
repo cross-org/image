@@ -126,11 +126,12 @@ test("APNG: encode with compression level", async () => {
 });
 
 test("PNG: roundtrip with different compression levels preserves data", async () => {
-  // Create a checkerboard pattern
+  // Create a checkerboard pattern with 4x4 blocks
+  const CHECKERBOARD_BLOCK_SHIFT = 2; // Right shift by 2 = divide by 4 (creates 4x4 blocks)
   const image = Image.create(50, 50, 0, 0, 0);
   for (let y = 0; y < 50; y++) {
     for (let x = 0; x < 50; x++) {
-      const isWhite = ((x >> 2) + (y >> 2)) % 2 === 0;
+      const isWhite = ((x >> CHECKERBOARD_BLOCK_SHIFT) + (y >> CHECKERBOARD_BLOCK_SHIFT)) % 2 === 0;
       const color = isWhite ? 255 : 0;
       image.setPixel(x, y, color, color, color, 255);
     }

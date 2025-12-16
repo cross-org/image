@@ -152,10 +152,9 @@ export interface ResizeOptions {
 export interface PNGEncoderOptions {
   /**
    * Compression level (0-9)
-   * - 0: No filtering, fastest
-   * - 1-2: Fast (no filtering)
-   * - 3-6: Balanced (Sub filter)
-   * - 7-9: Best compression (adaptive filtering per scanline)
+   * - 0-2: No filtering (fastest)
+   * - 3-6: Sub filter (balanced, default is 6)
+   * - 7-9: Adaptive filtering per scanline (best compression)
    *
    * Default: 6 (balanced)
    *
