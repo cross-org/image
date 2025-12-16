@@ -1,4 +1,10 @@
-import type { ImageData, ImageDecoderOptions, ImageFormat, ImageMetadata } from "../types.ts";
+import type {
+  ImageData,
+  ImageDecoderOptions,
+  ImageFormat,
+  ImageMetadata,
+  PNGEncoderOptions,
+} from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 import { PNGBase } from "./png_base.ts";
 
@@ -123,7 +129,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
    */
   async encode(
     imageData: ImageData,
-    _options?: unknown,
+    _options?: PNGEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 

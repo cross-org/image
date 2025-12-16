@@ -46,9 +46,11 @@
 export { Image } from "./src/image.ts";
 export type {
   /* Encoder options */
+  APNGEncoderOptions,
   ASCIIEncoderOptions,
   AVIFEncoderOptions,
   FrameMetadata,
+  GIFEncoderOptions,
   HEICEncoderOptions,
   ImageData,
   /* Decoder options */
@@ -58,6 +60,7 @@ export type {
   ImageMetadata,
   JPEGEncoderOptions,
   MultiFrameImageData,
+  PNGEncoderOptions,
   ResizeOptions,
   TIFFEncoderOptions,
   WebPEncoderOptions,

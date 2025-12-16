@@ -1,4 +1,5 @@
 import type {
+  APNGEncoderOptions,
   ImageData,
   ImageDecoderOptions,
   ImageFormat,
@@ -316,7 +317,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
    */
   encode(
     imageData: ImageData,
-    _options?: unknown,
+    _options?: APNGEncoderOptions,
   ): Promise<Uint8Array> {
     // For single frame, create a multi-frame with one frame
     const multiFrame: MultiFrameImageData = {
@@ -341,7 +342,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
    */
   async encodeFrames(
     imageData: MultiFrameImageData,
-    _options?: unknown,
+    _options?: APNGEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, frames, metadata } = imageData;
 

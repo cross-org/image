@@ -147,6 +147,40 @@ export interface ResizeOptions {
 }
 
 /**
+ * Options for PNG encoding.
+ *
+ * Note: PNG encoding currently uses the platform's native compression.
+ * Future versions may support compression level control.
+ */
+// deno-lint-ignore no-empty-interface
+export interface PNGEncoderOptions {
+  // Reserved for future compression options
+  // compressionLevel?: number; // 0-9
+}
+
+/**
+ * Options for APNG (Animated PNG) encoding.
+ *
+ * APNG uses PNG encoding for each frame.
+ */
+export interface APNGEncoderOptions extends PNGEncoderOptions {
+  // Reserved for future APNG-specific options
+}
+
+/**
+ * Options for GIF encoding.
+ */
+export interface GIFEncoderOptions {
+  /**
+   * Loop count for animated GIFs.
+   * - 0 (default): Loop infinitely
+   * - 1+: Loop a specific number of times
+   * - undefined or not set: Loop infinitely (same as 0)
+   */
+  loop?: number;
+}
+
+/**
  * Options for ASCII art encoding
  */
 export interface ASCIIEncoderOptions {

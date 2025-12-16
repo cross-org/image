@@ -1,4 +1,5 @@
 import type {
+  GIFEncoderOptions,
   ImageData,
   ImageDecoderOptions,
   ImageFormat,
@@ -169,14 +170,14 @@ export class GIFFormat implements ImageFormat {
    */
   async encode(
     imageData: ImageData,
-    _options?: unknown,
+    options?: GIFEncoderOptions,
   ): Promise<Uint8Array> {
     const { width, height, data, metadata } = imageData;
 
     // Try pure-JS encoder first
     try {
       const encoder = new GIFEncoder(width, height, data);
-      const encoded = encoder.encode();
+      const encoded = encoder.encode(options);
 
       // Inject metadata if present
       if (metadata && Object.keys(metadata).length > 0) {
@@ -271,7 +272,7 @@ export class GIFFormat implements ImageFormat {
    */
   encodeFrames(
     imageData: MultiFrameImageData,
-    _options?: unknown,
+    options?: GIFEncoderOptions,
   ): Promise<Uint8Array> {
     if (imageData.frames.length === 0) {
       throw new Error("No frames to encode");
@@ -285,7 +286,7 @@ export class GIFFormat implements ImageFormat {
       encoder.addFrame(frame.data, delay);
     }
 
-    return Promise.resolve(encoder.encode());
+    return Promise.resolve(encoder.encode(options));
   }
 
   private mapDisposalMethod(
