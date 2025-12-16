@@ -147,6 +147,46 @@ export interface ResizeOptions {
 }
 
 /**
+ * Options for PNG encoding.
+ */
+export interface PNGEncoderOptions {
+  /**
+   * Compression level (0-9)
+   * - 0-2: No filtering (fastest)
+   * - 3-6: Sub filter (balanced, default is 6)
+   * - 7-9: Adaptive filtering per scanline (best compression)
+   *
+   * Default: 6 (balanced)
+   *
+   * Note: Affects PNG filter selection. The native deflate compression
+   * is used regardless of level.
+   */
+  compressionLevel?: number;
+}
+
+/**
+ * Options for APNG (Animated PNG) encoding.
+ *
+ * APNG uses PNG encoding for each frame.
+ */
+export interface APNGEncoderOptions extends PNGEncoderOptions {
+  // Reserved for future APNG-specific options
+}
+
+/**
+ * Options for GIF encoding.
+ */
+export interface GIFEncoderOptions {
+  /**
+   * Loop count for animated GIFs.
+   * - 0 (default): Loop infinitely
+   * - 1+: Loop a specific number of times
+   * - undefined or not set: Loop infinitely (same as 0)
+   */
+  loop?: number;
+}
+
+/**
  * Options for ASCII art encoding
  */
 export interface ASCIIEncoderOptions {

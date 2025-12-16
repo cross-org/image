@@ -186,12 +186,15 @@ export class GIFEncoder {
     return Math.max(2, bits);
   }
 
-  encode(): Uint8Array {
+  encode(options?: { loop?: number }): Uint8Array {
     if (this.frames.length === 0) {
       throw new Error("No frames to encode");
     }
 
     const output: number[] = [];
+
+    // Get loop count from options (default to 0 = infinite)
+    const loopCount = options?.loop ?? 0;
 
     // Quantize first frame for Global Color Table
     const firstFrame = this.frames[0];
@@ -238,7 +241,7 @@ export class GIFEncoder {
       this.writeString(output, "NETSCAPE2.0");
       output.push(3); // Sub-block Size
       output.push(1); // Loop Indicator (1 = loop)
-      this.writeUint16LE(output, 0); // Loop Count (0 = infinite)
+      this.writeUint16LE(output, loopCount); // Loop Count (0 = infinite, 1+ = specific count)
       output.push(0); // Block Terminator
     }
 

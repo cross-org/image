@@ -112,6 +112,37 @@ const gifData = await Image.encodeFrames("gif", multiFrame);
 await Deno.writeFile("animated.gif", gifData);
 ```
 
+### Control GIF Loop Count
+
+```ts
+import { Image } from "jsr:@cross/image";
+
+// Create frames
+const frame1 = Image.create(200, 200, 255, 0, 0); // Red
+const frame2 = Image.create(200, 200, 0, 0, 255); // Blue
+
+const multiFrame = {
+  width: 200,
+  height: 200,
+  frames: [
+    { width: 200, height: 200, data: frame1.data, frameMetadata: { delay: 500 } },
+    { width: 200, height: 200, data: frame2.data, frameMetadata: { delay: 500 } },
+  ],
+};
+
+// Infinite loop (default)
+const gifInfinite = await Image.encodeFrames("gif", multiFrame);
+await Deno.writeFile("infinite.gif", gifInfinite);
+
+// Loop 3 times then stop
+const gif3Times = await Image.encodeFrames("gif", multiFrame, { loop: 3 });
+await Deno.writeFile("loop-3-times.gif", gif3Times);
+
+// Play once without looping
+const gifOnce = await Image.encodeFrames("gif", multiFrame, { loop: 1 });
+await Deno.writeFile("play-once.gif", gifOnce);
+```
+
 ### Process Each Frame
 
 ```ts

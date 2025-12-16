@@ -896,6 +896,111 @@ interface JPEGEncoderOptions {
 }
 ```
 
+### `PNGEncoderOptions`
+
+Configuration for PNG encoding.
+
+```ts
+interface PNGEncoderOptions {
+  /** Compression level (0-9, default: 6) */
+  compressionLevel?: number;
+}
+```
+
+**Compression levels:**
+
+- `0` - No filtering, fastest encoding
+- `1-2` - Fast (no filtering)
+- `3-6` - Balanced (Sub filter)
+- `7-9` - Best compression (adaptive filtering per scanline)
+
+The compression level controls PNG filter selection, which significantly affects compression
+efficiency. Higher levels produce smaller files but take longer to encode.
+
+**Example:**
+
+```ts
+// Fast encoding
+const pngFast = await image.encode("png", { compressionLevel: 0 });
+
+// Balanced (default)
+const pngBalanced = await image.encode("png", { compressionLevel: 6 });
+
+// Best compression
+const pngBest = await image.encode("png", { compressionLevel: 9 });
+```
+
+### `APNGEncoderOptions`
+
+Configuration for APNG (Animated PNG) encoding.
+
+```ts
+interface APNGEncoderOptions extends PNGEncoderOptions {
+  /** Compression level (0-9, default: 6) - inherited from PNGEncoderOptions */
+  compressionLevel?: number;
+}
+```
+
+**Note:** APNG uses PNG encoding for each frame and supports the same compression levels.
+
+### `GIFEncoderOptions`
+
+Configuration for GIF encoding.
+
+```ts
+interface GIFEncoderOptions {
+  /** Loop count for animated GIFs (0 = infinite, 1+ = specific count) */
+  loop?: number;
+}
+```
+
+**Loop count:**
+
+- `0` (default) - Loop infinitely
+- `1+` - Loop a specific number of times
+- `undefined` - Same as 0 (infinite loop)
+
+**Example:**
+
+```ts
+// Infinite loop (default)
+const gif = await Image.encodeFrames("gif", multiFrame);
+
+// Loop 3 times then stop
+const gifLoopThree = await Image.encodeFrames("gif", multiFrame, { loop: 3 });
+
+// Single play (no loop)
+const gifOnce = await Image.encodeFrames("gif", multiFrame, { loop: 1 });
+```
+
+### `AVIFEncoderOptions`
+
+Configuration for AVIF encoding.
+
+```ts
+interface AVIFEncoderOptions {
+  /** Best-effort encoding quality (0-1 or 1-100) */
+  quality?: number;
+}
+```
+
+**Note:** AVIF encoding is delegated to runtime APIs (OffscreenCanvas). Many runtimes ignore quality
+or may not support AVIF encoding at all.
+
+### `HEICEncoderOptions`
+
+Configuration for HEIC encoding.
+
+```ts
+interface HEICEncoderOptions {
+  /** Best-effort encoding quality (0-1 or 1-100) */
+  quality?: number;
+}
+```
+
+**Note:** HEIC encoding is delegated to runtime APIs (OffscreenCanvas). Many runtimes do not support
+HEIC encoding.
+
 ### `ImageData`
 
 Represents decoded image data.
