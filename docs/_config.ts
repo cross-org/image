@@ -3,7 +3,7 @@ import lumocs from "lumocs/mod.ts";
 
 const site = lume({
   src: "src",
-  location: new URL("https://cross-org.github.io/image/"),
+  location: new URL("https://cross-image.56k.guru/"),
 });
 
 site.use(lumocs());
