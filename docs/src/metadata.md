@@ -5,8 +5,9 @@ nav_order: 6
 
 # Metadata Support
 
-@cross/image provides comprehensive EXIF 3.0 compliant metadata support for image files. Metadata
-can be embedded in and extracted from JPEG, PNG, WebP, TIFF, HEIC, and AVIF formats.
+@cross/image provides comprehensive EXIF 3.0 compliant metadata support for
+image files. Metadata can be embedded in and extracted from JPEG, PNG, WebP,
+TIFF, HEIC, and AVIF formats.
 
 ## Supported Metadata Fields
 
@@ -45,8 +46,9 @@ Available in JPEG, PNG, WebP, TIFF, HEIC, and AVIF via EXIF GPS IFD:
 - **latitude** - Latitude in decimal degrees (-90 to 90)
 - **longitude** - Longitude in decimal degrees (-180 to 180)
 
-GPS coordinates are stored with microsecond precision and automatically converted between decimal
-degrees (API) and DMS (degrees-minutes-seconds) rationals (EXIF storage format).
+GPS coordinates are stored with microsecond precision and automatically
+converted between decimal degrees (API) and DMS (degrees-minutes-seconds)
+rationals (EXIF storage format).
 
 ### DPI Information
 
@@ -131,8 +133,8 @@ console.log(`Physical: ${dims.physicalWidth}" x ${dims.physicalHeight}"`);
 
 ## Format Capability Discovery
 
-Different image formats support different metadata fields. Use `Image.getSupportedMetadata()` to
-check what's available before encoding:
+Different image formats support different metadata fields. Use
+`Image.getSupportedMetadata()` to check what's available before encoding:
 
 ```typescript
 // Check JPEG support
@@ -178,11 +180,13 @@ The library implements comprehensive EXIF 3.0 support:
 
 ### Tag Coverage
 
-- **30+ IFD0 tags** - Basic image information, camera make/model, orientation, software
-- **50+ Exif Sub-IFD tags** - Complete camera settings including ISO, exposure, aperture, focal
-  length, scene type, subject distance, lens specs, and more
+- **30+ IFD0 tags** - Basic image information, camera make/model, orientation,
+  software
+- **50+ Exif Sub-IFD tags** - Complete camera settings including ISO, exposure,
+  aperture, focal length, scene type, subject distance, lens specs, and more
 - **GPS IFD** - Full GPS coordinate support with DMS conversion
-- **InteropIFD** - Format compatibility markers (R98/sRGB, R03/Adobe RGB, THM/thumbnail)
+- **InteropIFD** - Format compatibility markers (R98/sRGB, R03/Adobe RGB,
+  THM/thumbnail)
 
 ### Data Types
 
@@ -210,7 +214,8 @@ All EXIF/TIFF data types are supported:
 **WebP:**
 
 - EXIF chunk for DateTime and GPS
-- XMP chunk with Dublin Core, EXIF, and TIFF namespaces for comprehensive metadata
+- XMP chunk with Dublin Core, EXIF, and TIFF namespaces for comprehensive
+  metadata
 
 **TIFF:**
 
@@ -270,7 +275,7 @@ image.setPosition(45.4215, -75.6972); // Ottawa, Canada
 image.setDPI(300);
 
 // Save as JPEG (best metadata support)
-const jpeg = await image.save("jpeg");
+const jpeg = await image.encode("jpeg");
 await Deno.writeFile("photo_with_metadata.jpg", jpeg);
 
 // Load and verify metadata persisted
@@ -307,17 +312,18 @@ console.log(
 
 ### Date Precision
 
-EXIF DateTime is stored in the format `YYYY:MM:DD HH:MM:SS` with second-level precision.
-Milliseconds are not preserved when saving to EXIF formats.
+EXIF DateTime is stored in the format `YYYY:MM:DD HH:MM:SS` with second-level
+precision. Milliseconds are not preserved when saving to EXIF formats.
 
 ### Text Encoding
 
-All text fields use UTF-8 encoding and support Unicode characters. The library has been tested with
-text fields up to 500+ characters.
+All text fields use UTF-8 encoding and support Unicode characters. The library
+has been tested with text fields up to 500+ characters.
 
 ### GPS Precision
 
-GPS coordinates maintain microsecond precision (6 decimal places) through the conversion between:
+GPS coordinates maintain microsecond precision (6 decimal places) through the
+conversion between:
 
 - **API**: Decimal degrees (e.g., 40.712800)
 - **EXIF**: DMS rationals (40° 42' 46.08" N)
@@ -331,26 +337,32 @@ The API validates coordinate ranges:
 
 ### Metadata Utilities Module
 
-The library includes a modular metadata handling system at `src/utils/metadata/`:
+The library includes a modular metadata handling system at
+`src/utils/metadata/`:
 
-- **exif.ts** - EXIF 3.0 tag definitions, read/write functions, InteropIFD operations
-- **xmp.ts** - XMP packet creation and parsing with namespace support (Dublin Core, EXIF, TIFF)
+- **exif.ts** - EXIF 3.0 tag definitions, read/write functions, InteropIFD
+  operations
+- **xmp.ts** - XMP packet creation and parsing with namespace support (Dublin
+  Core, EXIF, TIFF)
 - **gps.ts** - GPS IFD operations and DMS/decimal conversion
 - **mod.ts** - Module exports
 
-This design makes it easy to extend support to additional metadata formats like IPTC or ICC color
-profiles in the future.
+This design makes it easy to extend support to additional metadata formats like
+IPTC or ICC color profiles in the future.
 
 ## Best Practices
 
-1. **Check format capabilities** - Use `getSupportedMetadata()` before encoding to ensure your
-   metadata will be preserved
-2. **Use JPEG or TIFF for complete metadata** - These formats support the most comprehensive EXIF
-   data
-3. **Set coordinates with `setPosition()`** - This ensures proper validation and formatting
+1. **Check format capabilities** - Use `getSupportedMetadata()` before encoding
+   to ensure your metadata will be preserved
+2. **Use JPEG or TIFF for complete metadata** - These formats support the most
+   comprehensive EXIF data
+3. **Set coordinates with `setPosition()`** - This ensures proper validation and
+   formatting
 4. **Test roundtrips** - Encode and decode to verify metadata persistence
-5. **Be aware of date precision** - EXIF only stores second-level precision, not milliseconds
-6. **Use standard field names** - Stick to the documented metadata field names for compatibility
+5. **Be aware of date precision** - EXIF only stores second-level precision, not
+   milliseconds
+6. **Use standard field names** - Stick to the documented metadata field names
+   for compatibility
 
 ## See Also
 
