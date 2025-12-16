@@ -255,6 +255,35 @@ const rgbaRestored = cmykToRgba(cmykData);
 - Color analysis and manipulation in CMYK space
 - Educational tools for understanding color models
 
+### CMYK TIFF Support
+
+TIFF format has native support for CMYK images:
+
+```ts
+import { Image } from "jsr:@cross/image";
+
+// Decode CMYK TIFF (automatically converted to RGBA)
+const cmykTiff = await Deno.readFile("cmyk-image.tif");
+const image = await Image.decode(cmykTiff); // Automatic CMYK → RGBA conversion
+
+// Encode image as CMYK TIFF
+const output = await image.encode("tiff", { cmyk: true });
+await Deno.writeFile("output-cmyk.tif", output);
+
+// CMYK works with all TIFF compression methods
+const compressed = await image.encode("tiff", {
+  cmyk: true,
+  compression: "lzw", // or "packbits", "deflate", "none"
+});
+```
+
+**Benefits:**
+
+- **Seamless workflow**: CMYK TIFFs decode automatically, no special handling needed
+- **Print-ready output**: Generate CMYK TIFFs for professional printing workflows
+- **Full compression support**: CMYK works with all TIFF compression methods
+- **Industry standard**: TIFF is the preferred format for CMYK images in print production
+
 ## Base64 / Data URLs
 
 The library includes small utilities for working with base64 and `data:` URLs.

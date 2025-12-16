@@ -21,6 +21,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `rgbaToCmyk()` and `cmykToRgba()` functions for converting entire image data arrays
   - `Image.toCMYK()` method to convert an image to CMYK representation
   - `Image.fromCMYK()` static method to create an image from CMYK data
+- TIFF CMYK support:
+  - Automatic decoding of CMYK TIFFs (photometric interpretation 5) with conversion to RGBA
+  - `cmyk: true` encoding option in `TIFFEncoderOptions` to save images in CMYK color space
+  - Works with all TIFF compression methods (uncompressed, LZW, PackBits, Deflate)
 - PNG encoder now supports `compressionLevel` option (0-9) to control encoding speed vs. file size
   through adaptive PNG filter selection
 - `PNGEncoderOptions`, `GIFEncoderOptions`, and `APNGEncoderOptions` types exported from `mod.ts`
