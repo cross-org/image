@@ -210,6 +210,8 @@ export interface TIFFEncoderOptions {
   grayscale?: boolean;
   /** Encode as RGB without alpha channel (default: false, ignored if grayscale is true) */
   rgb?: boolean;
+  /** Encode as CMYK color space (default: false, ignored if grayscale is true) */
+  cmyk?: boolean;
 }
 
 /**

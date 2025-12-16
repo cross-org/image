@@ -14,6 +14,7 @@ import {
   adjustHue,
   adjustSaturation,
   boxBlur,
+  cmykToRgba,
   composite,
   crop,
   fillRect,
@@ -23,6 +24,7 @@ import {
   grayscale,
   invert,
   medianFilter,
+  rgbaToCmyk,
   rotate180,
   rotate270,
   rotate90,
@@ -1230,5 +1232,40 @@ export class Image {
     );
 
     return this;
+  }
+
+  /**
+   * Convert the image to CMYK color space
+   * Returns a Float32Array with 4 values per pixel (C, M, Y, K) in 0-1 range
+   * @returns CMYK image data as Float32Array
+   */
+  toCMYK(): Float32Array {
+    if (!this.imageData) throw new Error("No image loaded");
+
+    return rgbaToCmyk(this.imageData.data);
+  }
+
+  /**
+   * Create an Image from CMYK data
+   * @param cmykData CMYK image data (4 values per pixel in 0-1 range)
+   * @param width Image width
+   * @param height Image height
+   * @param alpha Optional alpha value for all pixels (0-255, default: 255)
+   * @returns New Image instance
+   */
+  static fromCMYK(
+    cmykData: Float32Array,
+    width: number,
+    height: number,
+    alpha = 255,
+  ): Image {
+    const rgbaData = cmykToRgba(cmykData, alpha);
+    const image = new Image();
+    image.imageData = {
+      width,
+      height,
+      data: rgbaData,
+    };
+    return image;
   }
 }

@@ -10,6 +10,7 @@ import { TIFFLZWDecoder, TIFFLZWEncoder } from "../utils/tiff_lzw.ts";
 import { packBitsCompress, packBitsDecompress } from "../utils/tiff_packbits.ts";
 import { deflateCompress, deflateDecompress } from "../utils/tiff_deflate.ts";
 import { validateImageDimensions } from "../utils/security.ts";
+import { cmykToRgb, rgbaToCmyk } from "../utils/image_processing.ts";
 
 // Constants for unit conversions
 const DEFAULT_DPI = 72;
@@ -208,6 +209,7 @@ export class TIFFFormat implements ImageFormat {
     const compression = opts?.compression ?? "none";
     const grayscale = opts?.grayscale ?? false;
     const rgb = opts?.rgb ?? false;
+    const cmyk = opts?.cmyk ?? false;
 
     // Convert RGBA to grayscale if requested
     let sourceData: Uint8Array;
@@ -222,6 +224,15 @@ export class TIFFFormat implements ImageFormat {
         const b = data[i * 4 + 2];
         // Use standard luminance formula
         sourceData[i] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      }
+    } else if (cmyk) {
+      // Convert RGBA to CMYK
+      const cmykData = rgbaToCmyk(data);
+      sourceData = new Uint8Array(width * height * 4);
+      samplesPerPixel = 4;
+      // Convert Float32Array CMYK (0-1) to Uint8Array (0-255)
+      for (let i = 0; i < cmykData.length; i++) {
+        sourceData[i] = Math.round(cmykData[i] * 255);
       }
     } else if (rgb) {
       // Convert RGBA to RGB (strip alpha channel)
@@ -319,8 +330,8 @@ export class TIFFFormat implements ImageFormat {
     // Compression (0x0103) - 1 = uncompressed, 5 = LZW
     this.writeIFDEntry(result, 0x0103, 3, 1, compressionCode);
 
-    // PhotometricInterpretation (0x0106) - 1 = BlackIsZero (grayscale), 2 = RGB
-    this.writeIFDEntry(result, 0x0106, 3, 1, grayscale ? 1 : 2);
+    // PhotometricInterpretation (0x0106) - 1 = BlackIsZero (grayscale), 2 = RGB, 5 = CMYK
+    this.writeIFDEntry(result, 0x0106, 3, 1, grayscale ? 1 : (cmyk ? 5 : 2));
 
     // StripOffsets (0x0111)
     this.writeIFDEntry(result, 0x0111, 4, 1, 8);
@@ -1119,8 +1130,11 @@ export class TIFFFormat implements ImageFormat {
       0x0106,
       isLittleEndian,
     );
-    if (photometric !== 0 && photometric !== 1 && photometric !== 2) {
-      // Support: 0 = WhiteIsZero, 1 = BlackIsZero, 2 = RGB
+    if (
+      photometric !== 0 && photometric !== 1 && photometric !== 2 &&
+      photometric !== 5
+    ) {
+      // Support: 0 = WhiteIsZero, 1 = BlackIsZero, 2 = RGB, 5 = CMYK
       return null;
     }
 
@@ -1134,6 +1148,7 @@ export class TIFFFormat implements ImageFormat {
 
     // For grayscale (photometric 0 or 1), expect 1 sample per pixel
     // For RGB, expect 3 or 4 samples per pixel
+    // For CMYK, expect 4 samples per pixel
     if (!samplesPerPixel) {
       return null;
     }
@@ -1145,6 +1160,11 @@ export class TIFFFormat implements ImageFormat {
 
     if (photometric === 2 && samplesPerPixel !== 3 && samplesPerPixel !== 4) {
       // RGB requires 3 or 4 samples per pixel
+      return null;
+    }
+
+    if (photometric === 5 && samplesPerPixel !== 4) {
+      // CMYK requires 4 samples per pixel
       return null;
     }
 
@@ -1230,6 +1250,32 @@ export class TIFFFormat implements ImageFormat {
           rgba[dstIdx + 3] = 255; // A (opaque)
         }
       }
+    } else if (photometric === 5) {
+      // CMYK image - convert to RGB
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const dstIdx = (y * width + x) * 4;
+
+          if (srcPos + 4 > pixelData.length) {
+            return null; // Not enough data
+          }
+
+          // TIFF stores CMYK in order, values are 0-255
+          // Convert to 0-1 range for conversion
+          const c = pixelData[srcPos++] / 255;
+          const m = pixelData[srcPos++] / 255;
+          const yVal = pixelData[srcPos++] / 255;
+          const k = pixelData[srcPos++] / 255;
+
+          // Convert CMYK to RGB
+          const [r, g, b] = cmykToRgb(c, m, yVal, k);
+
+          rgba[dstIdx] = r; // R
+          rgba[dstIdx + 1] = g; // G
+          rgba[dstIdx + 2] = b; // B
+          rgba[dstIdx + 3] = 255; // A (opaque)
+        }
+      }
     } else {
       // RGB/RGBA image
       for (let y = 0; y < height; y++) {
@@ -1285,8 +1331,11 @@ export class TIFFFormat implements ImageFormat {
       0x0106,
       isLittleEndian,
     );
-    if (photometric !== 0 && photometric !== 1 && photometric !== 2) {
-      // Support: 0 = WhiteIsZero, 1 = BlackIsZero, 2 = RGB
+    if (
+      photometric !== 0 && photometric !== 1 && photometric !== 2 &&
+      photometric !== 5
+    ) {
+      // Support: 0 = WhiteIsZero, 1 = BlackIsZero, 2 = RGB, 5 = CMYK
       return null;
     }
 
@@ -1300,6 +1349,7 @@ export class TIFFFormat implements ImageFormat {
 
     // For grayscale (photometric 0 or 1), expect 1 sample per pixel
     // For RGB, expect 3 or 4 samples per pixel
+    // For CMYK, expect 4 samples per pixel
     if (!samplesPerPixel) {
       return null;
     }
@@ -1311,6 +1361,11 @@ export class TIFFFormat implements ImageFormat {
 
     if (photometric === 2 && samplesPerPixel !== 3 && samplesPerPixel !== 4) {
       // RGB requires 3 or 4 samples per pixel
+      return null;
+    }
+
+    if (photometric === 5 && samplesPerPixel !== 4) {
+      // CMYK requires 4 samples per pixel
       return null;
     }
 
@@ -1393,6 +1448,32 @@ export class TIFFFormat implements ImageFormat {
           rgba[dstIdx] = gray; // R
           rgba[dstIdx + 1] = gray; // G
           rgba[dstIdx + 2] = gray; // B
+          rgba[dstIdx + 3] = 255; // A (opaque)
+        }
+      }
+    } else if (photometric === 5) {
+      // CMYK image - convert to RGB
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const dstIdx = (y * width + x) * 4;
+
+          if (srcPos + 4 > pixelData.length) {
+            return null; // Not enough data
+          }
+
+          // TIFF stores CMYK in order, values are 0-255
+          // Convert to 0-1 range for conversion
+          const c = pixelData[srcPos++] / 255;
+          const m = pixelData[srcPos++] / 255;
+          const yVal = pixelData[srcPos++] / 255;
+          const k = pixelData[srcPos++] / 255;
+
+          // Convert CMYK to RGB
+          const [r, g, b] = cmykToRgb(c, m, yVal, k);
+
+          rgba[dstIdx] = r; // R
+          rgba[dstIdx + 1] = g; // G
+          rgba[dstIdx + 2] = b; // B
           rgba[dstIdx + 3] = 255; // A (opaque)
         }
       }
