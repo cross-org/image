@@ -217,7 +217,7 @@ import { Image } from "jsr:@cross/image";
 const image = await Image.decode(data);
 image.setMetadata({ cameraMake: "Canon", iso: 800 });
 image.setPosition(40.7128, -74.0060);
-const saved = await image.save("jpeg");
+const saved = await image.encode("jpeg");
 ```
 
 ## Warning Callbacks

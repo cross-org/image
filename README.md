@@ -413,7 +413,7 @@ const jpegSupports = Image.getSupportedMetadata("jpeg");
 console.log(jpegSupports); // Includes ISO, camera info, GPS, etc.
 
 // Save with metadata
-const jpeg = await image.save("jpeg");
+const jpeg = await image.encode("jpeg");
 await Deno.writeFile("output.jpg", jpeg);
 
 // Metadata is preserved on reload!

@@ -270,7 +270,7 @@ image.setPosition(45.4215, -75.6972); // Ottawa, Canada
 image.setDPI(300);
 
 // Save as JPEG (best metadata support)
-const jpeg = await image.save("jpeg");
+const jpeg = await image.encode("jpeg");
 await Deno.writeFile("photo_with_metadata.jpg", jpeg);
 
 // Load and verify metadata persisted
