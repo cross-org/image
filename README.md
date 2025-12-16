@@ -507,6 +507,8 @@ Image.getSupportedMetadata("avif"); // Full camera metadata + GPS (19 fields)
   Technical details for WebP
 - **[TIFF Implementation](https://cross-image.56k.guru/implementation/tiff-implementation/)** -
   Technical details for TIFF
+- **[GIF Implementation](https://cross-image.56k.guru/implementation/gif-implementation/)** -
+  Technical details for GIF
 
 ## Development
 
