@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { test } from "@cross/test";
 import { Image } from "../src/image.ts";
 
@@ -24,15 +24,11 @@ test("Image: fromRGBA - create image from raw data", () => {
 test("Image: fromRGBA - wrong data length throws", () => {
   const data = new Uint8Array([255, 0, 0, 255]); // 1 pixel
 
-  try {
-    Image.fromRGBA(2, 2, data); // expects 4 pixels
-    throw new Error("Should have thrown");
-  } catch (e) {
-    assertEquals(
-      (e as Error).message.includes("Data length mismatch"),
-      true,
-    );
-  }
+  assertThrows(
+    () => Image.fromRGBA(2, 2, data), // expects 4 pixels
+    Error,
+    "Data length mismatch",
+  );
 });
 
 test("Image: read and save PNG", async () => {
@@ -248,26 +244,23 @@ test("Image: chaining operations", async () => {
 test("Image: operations on unloaded image throw", () => {
   const image = new Image();
 
-  try {
-    const _width = image.width;
-    throw new Error("Should have thrown");
-  } catch (e) {
-    assertEquals((e as Error).message, "No image loaded");
-  }
+  assertThrows(
+    () => image.width,
+    Error,
+    "No image loaded",
+  );
 
-  try {
-    const _height = image.height;
-    throw new Error("Should have thrown");
-  } catch (e) {
-    assertEquals((e as Error).message, "No image loaded");
-  }
+  assertThrows(
+    () => image.height,
+    Error,
+    "No image loaded",
+  );
 
-  try {
-    const _data = image.data;
-    throw new Error("Should have thrown");
-  } catch (e) {
-    assertEquals((e as Error).message, "No image loaded");
-  }
+  assertThrows(
+    () => image.data,
+    Error,
+    "No image loaded",
+  );
 });
 
 test("Image: registerFormat", () => {
