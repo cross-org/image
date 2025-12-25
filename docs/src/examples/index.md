@@ -5,20 +5,23 @@ nav_order: 5
 
 # Examples
 
-This section provides practical examples of using @cross/image for common image processing tasks.
+This section provides practical examples of using @cross/image for common image
+processing tasks.
 
 ## Quick Links
 
-- **[Decoding & Encoding](decoding-encoding.md)** - Format-specific examples for reading and writing
-  images
+- **[Decoding & Encoding](decoding-encoding.md)** - Format-specific examples for
+  reading and writing images
 - **[Using Filters](filters.md)** - Practical filter examples and workflows
-- **[Manipulation Examples](manipulation.md)** - Resizing, cropping, and compositing
-- **[Multi-Frame Images](multi-frame.md)** - Working with animated GIFs, APNGs, and multi-page TIFFs
+- **[Manipulation Examples](manipulation.md)** - Resizing, cropping, and
+  compositing
+- **[Multi-Frame Images](multi-frame.md)** - Working with animated GIFs, APNGs,
+  and multi-page TIFFs
 
 ## Runtime File I/O
 
-The library operates on `Uint8Array` data. You can use your runtime's native file I/O methods to
-read and write images.
+The library operates on `Uint8Array` data. You can use your runtime's native
+file I/O methods to read and write images.
 
 ### Deno
 
@@ -170,7 +173,9 @@ await Bun.write("output.png", output);
 
 Explore the detailed examples in each section:
 
-- **[Decoding & Encoding](decoding-encoding.md)** - Learn format-specific options
+- **[Decoding & Encoding](decoding-encoding.md)** - Learn format-specific
+  options
 - **[Using Filters](filters.md)** - Apply blur, sharpen, and noise reduction
 - **[Manipulation Examples](manipulation.md)** - Transform and layer images
-- **[Multi-Frame Images](multi-frame.md)** - Work with animations and multi-page documents
+- **[Multi-Frame Images](multi-frame.md)** - Work with animations and multi-page
+  documents

@@ -5,8 +5,8 @@ parent: "Image Processing"
 
 # Image Manipulation
 
-Image manipulation operations transform the geometry and structure of images, including resizing,
-cropping, layering, and drawing.
+Image manipulation operations transform the geometry and structure of images,
+including resizing, cropping, layering, and drawing.
 
 ## Resize
 
@@ -35,7 +35,8 @@ interface ResizeOptions {
   - `"bicubic"` - Highest quality cubic interpolation (slowest)
 - `fit` - Fitting mode (default: "stretch")
   - `"stretch"` - Stretch image to fill dimensions (may distort)
-  - `"fit"` / `"contain"` - Fit within dimensions maintaining aspect ratio (letterbox)
+  - `"fit"` / `"contain"` - Fit within dimensions maintaining aspect ratio
+    (letterbox)
   - `"fill"` / `"cover"` - Fill dimensions maintaining aspect ratio (crop)
 
 ### Example
@@ -411,7 +412,8 @@ rotate(degrees: number): this
 
 #### Parameters
 
-- `degrees` - Rotation angle in degrees (positive = clockwise, negative = counter-clockwise)
+- `degrees` - Rotation angle in degrees (positive = clockwise, negative =
+  counter-clockwise)
 
 #### Example
 
@@ -488,7 +490,8 @@ await Deno.writeFile("flipped.jpg", await image.encode("jpeg"));
 
 ### Use Cases
 
-- **Orientation correction** - Fix images from cameras with incorrect orientation
+- **Orientation correction** - Fix images from cameras with incorrect
+  orientation
 - **EXIF orientation** - Apply orientation metadata to pixel data
 - **Creative effects** - Kaleidoscope patterns, reflections
 - **Mirroring** - Create symmetrical designs

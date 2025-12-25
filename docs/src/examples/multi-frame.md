@@ -125,8 +125,18 @@ const multiFrame = {
   width: 200,
   height: 200,
   frames: [
-    { width: 200, height: 200, data: frame1.data, frameMetadata: { delay: 500 } },
-    { width: 200, height: 200, data: frame2.data, frameMetadata: { delay: 500 } },
+    {
+      width: 200,
+      height: 200,
+      data: frame1.data,
+      frameMetadata: { delay: 500 },
+    },
+    {
+      width: 200,
+      height: 200,
+      data: frame2.data,
+      frameMetadata: { delay: 500 },
+    },
   ],
 };
 
