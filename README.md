@@ -1,9 +1,8 @@
 # @cross/image
 
-A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, 
-Bun and browsers.
-Decode, encode, manipulate, and process images in multiple formats including PNG, JPEG, WebP,
-GIF, and more—all without native dependencies.
+A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, Bun
+and browsers. Decode, encode, manipulate, and process images in multiple formats including PNG,
+JPEG, WebP, GIF, and more—all without native dependencies.
 
 📚 **[Full Documentation](https://cross-image.56k.guru/)**
 
@@ -284,6 +283,79 @@ const compressed = await image.encode("tiff", {
 - **Print-ready output**: Generate CMYK TIFFs for professional printing workflows
 - **Full compression support**: CMYK works with all TIFF compression methods
 - **Industry standard**: TIFF is the preferred format for CMYK images in print production
+
+## JPEG Coefficient Extraction
+
+The library provides advanced APIs for extracting and encoding JPEG quantized DCT coefficients,
+enabling coefficient-domain steganography and other frequency-domain processing techniques.
+
+### Extracting Coefficients
+
+```typescript
+import { Image } from "jsr:@cross/image";
+
+const data = await Deno.readFile("photo.jpg");
+
+// Extract quantized DCT coefficients
+const coefficients = await Image.extractCoefficients(data, "jpeg");
+
+if (coefficients) {
+  console.log(`Image: ${coefficients.width}x${coefficients.height}`);
+  console.log(`Progressive: ${coefficients.isProgressive}`);
+  console.log(`Components: ${coefficients.components.length}`);
+
+  // Access coefficient blocks (Y, Cb, Cr components)
+  for (const comp of coefficients.components) {
+    console.log(`Component ${comp.id}: ${comp.blocks.length} block rows`);
+  }
+}
+```
+
+### Modifying and Re-encoding Coefficients
+
+```typescript
+import { Image } from "jsr:@cross/image";
+
+const data = await Deno.readFile("input.jpg");
+const coefficients = await Image.extractCoefficients(data, "jpeg");
+
+if (coefficients) {
+  // Modify coefficients (e.g., for steganography)
+  for (const comp of coefficients.components) {
+    for (const row of comp.blocks) {
+      for (const block of row) {
+        // Modify AC coefficients (indices 1-63)
+        // DC coefficient is at index 0
+        // block is an Int32Array of 64 quantized DCT values in zigzag order
+      }
+    }
+  }
+
+  // Re-encode to JPEG
+  const encoded = await Image.encodeFromCoefficients(coefficients, "jpeg");
+  await Deno.writeFile("output.jpg", encoded);
+}
+```
+
+### Coefficient Structure
+
+The `JPEGQuantizedCoefficients` type provides:
+
+- `width`, `height` - Image dimensions
+- `isProgressive` - Whether the source was progressive JPEG
+- `components` - Array of Y, Cb, Cr (or grayscale) component data
+- `quantizationTables` - The quantization tables used
+- `mcuWidth`, `mcuHeight` - MCU block dimensions
+
+Each component contains `blocks[][]` where each block is an `Int32Array` of 64 quantized DCT
+coefficients in zigzag order.
+
+**Use Cases:**
+
+- DCT-domain steganography (survives JPEG re-compression)
+- Coefficient analysis and visualization
+- Custom frequency-domain filtering
+- Forensic analysis of JPEG compression artifacts
 
 ## Base64 / Data URLs
 

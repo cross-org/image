@@ -8,10 +8,10 @@ nav_order: 3
 
 - **Decoder:** TIFF 6.0 baseline for little-endian files; supports uncompressed, LZW, PackBits
   (32773), and Deflate (8) compressed RGB/RGBA, CMYK, and grayscale, multi-IFD (multi-page), and
-  common metadata (DPI, description, author, creation date). CMYK images (photometric interpretation
-  5) are automatically converted to RGBA during decoding. Unsupported: tiled TIFFs, multiple strips,
-  palette/indexed color, 16-bit samples. JPEG-compressed (6, 7) strips fall back to the runtime
-  ImageDecoder.
+  common metadata (DPI, description, author, creation date). CMYK images (photometric
+  interpretation 5) are automatically converted to RGBA during decoding. Unsupported: tiled TIFFs,
+  multiple strips, palette/indexed color, 16-bit samples. JPEG-compressed (6, 7) strips fall back to
+  the runtime ImageDecoder.
 - **Encoder:** writes little-endian TIFF 6.0; supports uncompressed, LZW, PackBits, and Deflate
   output, RGB/RGBA, CMYK, and grayscale, multi-page, and standard metadata tags. CMYK encoding
   available via `cmyk: true` option in `TIFFEncoderOptions`. Big-endian output and additional

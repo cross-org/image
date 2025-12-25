@@ -246,6 +246,81 @@ console.log(metadata?.exposureTime); // 0.004
 const metadata2 = await Image.extractMetadata(data, "jpeg");
 ```
 
+#### `Image.extractCoefficients(data: Uint8Array, format?: string, options?: ImageDecoderOptions): Promise<CoefficientData | undefined>`
+
+Extract quantized DCT coefficients from encoded image data. Currently supports JPEG format. This is
+useful for frequency-domain processing and steganography applications.
+
+**Parameters:**
+
+- `data` - Raw image data
+- `format` - Optional format hint (e.g., "jpeg")
+- `options` - Optional decoder options
+
+**Returns:** Promise that resolves to coefficient data, or undefined if extraction fails or format
+is unsupported
+
+**Example:**
+
+```ts
+const data = await Deno.readFile("photo.jpg");
+const coefficients = await Image.extractCoefficients(data, "jpeg");
+
+if (coefficients) {
+  console.log(`Image: ${coefficients.width}x${coefficients.height}`);
+  console.log(`Components: ${coefficients.components.length}`);
+
+  // Access DCT coefficient blocks
+  for (const comp of coefficients.components) {
+    for (const row of comp.blocks) {
+      for (const block of row) {
+        // block is Int32Array[64] in zigzag order
+        const dcCoeff = block[0]; // DC coefficient
+        // block[1..63] are AC coefficients
+      }
+    }
+  }
+}
+```
+
+#### `Image.encodeFromCoefficients(coefficients: CoefficientData, format?: string, options?: unknown): Promise<Uint8Array>`
+
+Encode an image from coefficient data. Currently supports JPEG format. This allows re-encoding
+modified coefficients back to a valid image file.
+
+**Parameters:**
+
+- `coefficients` - Coefficient data (e.g., from `extractCoefficients`)
+- `format` - Optional format hint (auto-detected from coefficient data if not provided)
+- `options` - Optional format-specific encoding options
+
+**Returns:** Promise that resolves to encoded image bytes
+
+**Example:**
+
+```ts
+const data = await Deno.readFile("input.jpg");
+const coefficients = await Image.extractCoefficients(data, "jpeg");
+
+if (coefficients) {
+  // Modify coefficients (e.g., for steganography)
+  for (const comp of coefficients.components) {
+    for (const row of comp.blocks) {
+      for (const block of row) {
+        // Modify AC coefficient LSBs
+        if (block[1] !== 0 && Math.abs(block[1]) > 1) {
+          block[1] = block[1] & ~1; // Clear LSB
+        }
+      }
+    }
+  }
+
+  // Re-encode to JPEG
+  const encoded = await Image.encodeFromCoefficients(coefficients, "jpeg");
+  await Deno.writeFile("output.jpg", encoded);
+}
+```
+
 ### Instance Properties
 
 #### `width: number` (read-only)
@@ -1136,6 +1211,62 @@ interface ImageDecoderOptions {
    */
   runtimeDecoding?: "prefer" | "never";
 }
+```
+
+### `JPEGQuantizedCoefficients`
+
+JPEG quantized DCT coefficients for frequency-domain processing and steganography.
+
+```ts
+interface JPEGQuantizedCoefficients {
+  /** Format identifier */
+  format: "jpeg";
+  /** Image width in pixels */
+  width: number;
+  /** Image height in pixels */
+  height: number;
+  /** Whether the JPEG is progressive */
+  isProgressive: boolean;
+  /** Component data (Y, Cb, Cr for color images) */
+  components: JPEGComponentCoefficients[];
+  /** Quantization tables used (indexed by table ID) */
+  quantizationTables: (Uint8Array | number[])[];
+  /** MCU width (number of 8x8 blocks horizontally) */
+  mcuWidth: number;
+  /** MCU height (number of 8x8 blocks vertically) */
+  mcuHeight: number;
+}
+```
+
+### `JPEGComponentCoefficients`
+
+Coefficients for a single JPEG component (Y, Cb, or Cr).
+
+```ts
+interface JPEGComponentCoefficients {
+  /** Component ID (1=Y, 2=Cb, 3=Cr typically) */
+  id: number;
+  /** Horizontal sampling factor */
+  h: number;
+  /** Vertical sampling factor */
+  v: number;
+  /** Quantization table index */
+  qTable: number;
+  /**
+   * Quantized DCT coefficient blocks
+   * blocks[blockRow][blockCol] contains a 64-element Int32Array in zigzag order
+   * Coefficients are quantized (divided by quantization table values)
+   */
+  blocks: Int32Array[][];
+}
+```
+
+### `CoefficientData`
+
+Union type for coefficient data from different formats. Currently only JPEG is supported.
+
+```ts
+type CoefficientData = JPEGQuantizedCoefficients;
 ```
 
 ### `ImageFormat`

@@ -38,6 +38,15 @@ nav_order: 1
   - **Encoding:** Uses simplified 2-scan progressive approach (DC coefficients Ss=0/Se=0, then AC
     coefficients Ss=1/Se=63); creates valid progressive JPEGs with SOF2 marker; optional via
     `JPEGEncoderOptions.progressive` flag (default: false for baseline mode)
+- **Coefficient Extraction API:** Supports extracting quantized DCT coefficients for
+  frequency-domain processing and steganography via `Image.extractCoefficients()`. Returns
+  `JPEGQuantizedCoefficients` containing component-wise coefficient blocks (64-element Int32Arrays
+  in zigzag order), quantization tables, and image metadata. Coefficients can be modified and
+  re-encoded to JPEG via `Image.encodeFromCoefficients()`. This enables DCT-domain steganography
+  that survives JPEG re-compression, unlike pixel-domain LSB techniques.
+- **Coefficient Encoding:** The encoder supports `encodeFromCoefficients()` which accepts
+  pre-quantized DCT coefficients and performs only entropy coding (Huffman), skipping the forward
+  DCT and quantization steps. This preserves modifications made to coefficients during extraction.
 - **Limitations:** multi-scan AC bands and optimized progressive patterns not implemented (encoder);
   no arithmetic coding; limited CMYK/16-bit support.
 - **Key files:** `src/formats/jpeg.ts`, `src/utils/jpeg_decoder.ts`, `src/utils/jpeg_encoder.ts`.

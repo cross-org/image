@@ -5,10 +5,9 @@ nav_order: 1
 
 # @cross/image
 
-A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, 
-Bun and browsers.
-Decode, encode, manipulate, and process images in multiple formats including PNG, JPEG, WebP,
-GIF, and more—all without native dependencies.
+A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, Bun
+and browsers. Decode, encode, manipulate, and process images in multiple formats including PNG,
+JPEG, WebP, GIF, and more—all without native dependencies.
 
 ## Features
 
