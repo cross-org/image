@@ -7,10 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- JPEG coefficient extraction and encoding API for steganography support:
+  - `Image.extractCoefficients()` - Extract quantized DCT coefficients from JPEG images
+  - `Image.encodeFromCoefficients()` - Re-encode JPEG from modified coefficients
+  - `JPEGFormat.extractCoefficients()` - Format-specific coefficient extraction
+  - `JPEGFormat.encodeFromCoefficients()` - Format-specific coefficient encoding
+  - `JPEGDecoder` now supports `extractCoefficients` option to store quantized values
+  - `JPEGEncoder.encodeFromCoefficients()` - Encode pre-quantized DCT coefficients
+  - New types: `CoefficientData`, `JPEGQuantizedCoefficients`, `JPEGComponentCoefficients`
+
 ### Fixed
 
- - Documentation: Added browser support notes to `README.md` and `docs/src/index.md` to clarify in-browser support.
-  
+- Documentation: Added browser support notes to `README.md` and `docs/src/index.md` to clarify
+  in-browser support.
+
 ## [0.4.1] - 2025-12-16
 
 ### Fixed
