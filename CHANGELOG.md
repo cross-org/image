@@ -17,7 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `JPEGDecoder` now supports `extractCoefficients` option to store quantized values
   - `JPEGEncoder.encodeFromCoefficients()` - Encode pre-quantized DCT coefficients
   - New types: `CoefficientData`, `JPEGQuantizedCoefficients`, `JPEGComponentCoefficients`
-  - Comprehensive tests for coefficient extraction and encoding in `test/formats/jpeg_coefficients.test.ts`
+  - Comprehensive tests for coefficient extraction and encoding in
+    `test/formats/jpeg_coefficients.test.ts`
 
 ### Fixed
 

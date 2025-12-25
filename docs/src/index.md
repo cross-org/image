@@ -5,21 +5,21 @@ nav_order: 1
 
 # @cross/image
 
-A pure JavaScript, dependency-free, cross-runtime image processing library for Deno, Node.js, 
-Bun and browsers.
-Decode, encode, manipulate, and process images in multiple formats including PNG, JPEG, WebP,
-GIF, and more—all without native dependencies.
+A pure JavaScript, dependency-free, cross-runtime image processing library for
+Deno, Node.js, Bun and browsers. Decode, encode, manipulate, and process images
+in multiple formats including PNG, JPEG, WebP, GIF, and more—all without native
+dependencies.
 
 ## Features
 
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), Bun and browsers
-- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM, PPM, PCX, ASCII,
-  HEIC, and AVIF support
+- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG,
+  PAM, PPM, PCX, ASCII, HEIC, and AVIF support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
-- 🎛️ **Image processing** - Chainable filters including `brightness`, `contrast`, `saturation`,
-  `exposure`, `blur`, `sharpen`, `sepia`, and more
+- 🎛️ **Image processing** - Chainable filters including `brightness`,
+  `contrast`, `saturation`, `exposure`, `blur`, `sharpen`, `sepia`, and more
 - 🖌️ **Drawing operations** - Create, fill, and manipulate pixels
 - 🧩 **Multi-frame** - Decode/encode animated GIFs, APNGs and multi-page TIFFs
 - 🔧 **Simple API** - Easy to use, intuitive interface
@@ -122,43 +122,54 @@ await Image.decode(bytes, "png");
 
 - **[API Reference](api.md)** - Complete API documentation
 - **[Format Support](formats.md)** - Supported formats and specifications
-- **[Image Processing](processing/)** - Filters, manipulation, and color adjustments
+- **[Image Processing](processing/)** - Filters, manipulation, and color
+  adjustments
   - [Filters](processing/filters.md) - Blur, sharpen, and noise reduction
-  - [Manipulation](processing/manipulation.md) - Resize, crop, composite, and draw
-  - [Color Adjustments](processing/color-adjustments.md) - Brightness, contrast, saturation, and
-    more
+  - [Manipulation](processing/manipulation.md) - Resize, crop, composite, and
+    draw
+  - [Color Adjustments](processing/color-adjustments.md) - Brightness, contrast,
+    saturation, and more
 - **[Examples](examples/)** - Practical examples for common tasks
-  - [Decoding & Encoding](examples/decoding-encoding.md) - Format-specific examples
+  - [Decoding & Encoding](examples/decoding-encoding.md) - Format-specific
+    examples
   - [Using Filters](examples/filters.md) - Filter workflows and techniques
-  - [Manipulation](examples/manipulation.md) - Resizing, cropping, and compositing
-  - [Multi-Frame Images](examples/multi-frame.md) - Animated GIFs, APNGs, and TIFFs
-- **[JPEG Implementation](implementation/jpeg-implementation.md)** - Technical details for JPEG
-- **[WebP Implementation](implementation/webp-implementation.md)** - Technical details for WebP
+  - [Manipulation](examples/manipulation.md) - Resizing, cropping, and
+    compositing
+  - [Multi-Frame Images](examples/multi-frame.md) - Animated GIFs, APNGs, and
+    TIFFs
+- **[JPEG Implementation](implementation/jpeg-implementation.md)** - Technical
+  details for JPEG
+- **[WebP Implementation](implementation/webp-implementation.md)** - Technical
+  details for WebP
 
 ## Supported Formats
 
-@cross/image supports 15 image formats with varying levels of pure-JS implementation:
+@cross/image supports 15 image formats with varying levels of pure-JS
+implementation:
 
-- **PNG, APNG, BMP, ICO, GIF, DNG, PAM, PPM, PCX, ASCII** - Full pure-JS implementation
+- **PNG, APNG, BMP, ICO, GIF, DNG, PAM, PPM, PCX, ASCII** - Full pure-JS
+  implementation
 - **JPEG** - Pure-JS baseline & progressive DCT
 - **WebP** - Pure-JS lossless, native API for lossy VP8
 - **TIFF** - Pure-JS uncompressed + LZW, native API for other compressions
-- **HEIC, AVIF** - Runtime-based implementation (requires ImageDecoder/OffscreenCanvas API)
+- **HEIC, AVIF** - Runtime-based implementation (requires
+  ImageDecoder/OffscreenCanvas API)
 
-See the [Format Support](formats.md) page for detailed compatibility information.
+See the [Format Support](formats.md) page for detailed compatibility
+information.
 
 ## JPEG Tolerant Decoding
 
-The JPEG decoder enables a tolerant decoding mode by default that keeps decoding even when
-individual blocks fail, filling those areas with neutral values instead of throwing. That makes the
-decoder resilient against complex mobile encodings, progressive scans, and partially corrupted
-files.
+The JPEG decoder enables a tolerant decoding mode by default that keeps decoding
+even when individual blocks fail, filling those areas with neutral values
+instead of throwing. That makes the decoder resilient against complex mobile
+encodings, progressive scans, and partially corrupted files.
 
 **Highlights:**
 
 - Enabled by default; works automatically through `Image.decode()`
-- Supports both baseline and progressive JPEGs, respecting spectral selection and successive
-  approximation
+- Supports both baseline and progressive JPEGs, respecting spectral selection
+  and successive approximation
 - Optional `tolerantDecoding` flag lets you opt into strict validation
 - `onWarning` callback can surface non-fatal decode issues for logging
 
@@ -197,21 +208,24 @@ Several other decoders ship with fault-tolerant defaults as well:
 - **GIF** - Skips corrupted frames and keeps valid ones instead of aborting.
 - **WebP VP8L** - Converts corrupted pixels to neutral gray and continues.
 
-Each decoder exposes the same `tolerantDecoding` option plus `onWarning`, so you can switch between
-resilience and strict validation with the same API.
+Each decoder exposes the same `tolerantDecoding` option plus `onWarning`, so you
+can switch between resilience and strict validation with the same API.
 
 ## Metadata Support
 
-@cross/image includes EXIF 3.0-compliant metadata parsing for JPEG, TIFF, WebP, and other
-JPEG-family formats. You can read, set, and preserve rich camera information, GPS coordinates, and
-DPI when saving images.
+@cross/image includes EXIF 3.0-compliant metadata parsing for JPEG, TIFF, WebP,
+and other JPEG-family formats. You can read, set, and preserve rich camera
+information, GPS coordinates, and DPI when saving images.
 
 **Metadata coverage:**
 
 - Basic fields such as titles, descriptions, copyright, and creation dates
-- Camera details like make/model, ISO, exposure time, focal length, and orientation
-- GPS coordinates with full precision plus helper methods like `image.getPosition()`
-- EXIF, IFD0, InteropIFD, and GPS IFD tags across BYTE, ASCII, SHORT, LONG, and RATIONAL types
+- Camera details like make/model, ISO, exposure time, focal length, and
+  orientation
+- GPS coordinates with full precision plus helper methods like
+  `image.getPosition()`
+- EXIF, IFD0, InteropIFD, and GPS IFD tags across BYTE, ASCII, SHORT, LONG, and
+  RATIONAL types
 
 ```ts
 import { Image } from "jsr:@cross/image";
@@ -224,9 +238,9 @@ const saved = await image.encode("jpeg");
 
 ## Warning Callbacks
 
-Every decoder exposes an optional `onWarning` callback so you can monitor non-fatal issues without
-printing to `console`. The callback receives a human- readable message plus optional details that
-describe the underlying error.
+Every decoder exposes an optional `onWarning` callback so you can monitor
+non-fatal issues without printing to `console`. The callback receives a human-
+readable message plus optional details that describe the underlying error.
 
 ```ts
 import { Image } from "jsr:@cross/image";
@@ -244,12 +258,14 @@ const image = await Image.decode(data, {
 void image;
 ```
 
-Use the callback to surface logs, analytics, or recovery strategies while keeping tolerant decoding
-enabled.
+Use the callback to surface logs, analytics, or recovery strategies while
+keeping tolerant decoding enabled.
 
 ## License
 
-MIT License - see [LICENSE](https://github.com/cross-org/image/blob/main/LICENSE) file for details.
+MIT License - see
+[LICENSE](https://github.com/cross-org/image/blob/main/LICENSE) file for
+details.
 
 ## Contributing
 
