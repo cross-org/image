@@ -1,9 +1,11 @@
 import type {
+  CoefficientData,
   ImageData,
   ImageDecoderOptions,
   ImageFormat,
   ImageMetadata,
   JPEGEncoderOptions,
+  JPEGQuantizedCoefficients,
 } from "../types.ts";
 import { validateImageDimensions } from "../utils/security.ts";
 
@@ -1422,6 +1424,82 @@ export class JPEGFormat implements ImageFormat {
       "dpiX",
       "dpiY",
     ];
+  }
+
+  /**
+   * Extract quantized DCT coefficients from JPEG data
+   * These coefficients can be modified for steganography and re-encoded
+   * @param data Raw JPEG data
+   * @param options Decoder options
+   * @returns JPEGQuantizedCoefficients or undefined if extraction fails
+   */
+  async extractCoefficients(
+    data: Uint8Array,
+    options?: ImageDecoderOptions,
+  ): Promise<JPEGQuantizedCoefficients | undefined> {
+    if (!this.canDecode(data)) {
+      return undefined;
+    }
+
+    try {
+      // Force pure-JS decoding since runtime decoders don't expose coefficients
+      const { JPEGDecoder } = await import("../utils/jpeg_decoder.ts");
+      const decoder = new JPEGDecoder(data, {
+        tolerantDecoding: options?.tolerantDecoding ?? true,
+        onWarning: options?.onWarning,
+        extractCoefficients: true,
+      });
+
+      // Decode to extract coefficients
+      decoder.decode();
+
+      // Get the quantized coefficients
+      return decoder.getQuantizedCoefficients();
+    } catch (error) {
+      if (options?.onWarning) {
+        options.onWarning(`Failed to extract JPEG coefficients: ${error}`, error);
+      }
+      return undefined;
+    }
+  }
+
+  /**
+   * Type guard to check if coefficient data is JPEG format
+   */
+  private isJPEGCoefficients(
+    coeffs: CoefficientData,
+  ): coeffs is JPEGQuantizedCoefficients {
+    return (
+      "format" in coeffs &&
+      coeffs.format === "jpeg" &&
+      "components" in coeffs &&
+      "quantizationTables" in coeffs &&
+      "isProgressive" in coeffs
+    );
+  }
+
+  /**
+   * Encode JPEG from quantized DCT coefficients
+   * Useful for steganography - modify coefficients and re-encode
+   * @param coeffs JPEG quantized coefficients
+   * @param options Encoding options
+   * @returns Encoded JPEG bytes
+   */
+  async encodeFromCoefficients(
+    coeffs: CoefficientData,
+    options?: JPEGEncoderOptions,
+  ): Promise<Uint8Array> {
+    if (!this.isJPEGCoefficients(coeffs)) {
+      throw new Error("Invalid coefficient format for JPEG");
+    }
+
+    const { JPEGEncoder } = await import("../utils/jpeg_encoder.ts");
+    const encoder = new JPEGEncoder({
+      quality: options?.quality,
+      progressive: options?.progressive ?? coeffs.isProgressive,
+    });
+
+    return encoder.encodeFromCoefficients(coeffs, options);
   }
 
   /**

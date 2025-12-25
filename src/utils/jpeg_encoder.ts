@@ -6,6 +6,8 @@
  * For production use with better quality/size, the OffscreenCanvas API is preferred.
  */
 
+import type { JPEGQuantizedCoefficients } from "../types.ts";
+
 // Standard JPEG quantization tables
 const STANDARD_LUMINANCE_QUANT_TABLE = [
   16,
@@ -1476,6 +1478,375 @@ export class JPEGEncoder {
     // Write EOB if there are trailing zeros
     if (zeroCount > 0) {
       bitWriter.writeBits(huffTable.codes[0x00], huffTable.sizes[0x00]);
+    }
+  }
+
+  /**
+   * Encode JPEG from pre-quantized DCT coefficients
+   * Skips DCT and quantization - uses provided coefficients directly
+   * Useful for steganography where coefficients are modified and re-encoded
+   * @param coeffs JPEG quantized coefficients
+   * @param _options Optional encoding options (currently unused)
+   * @returns Encoded JPEG bytes
+   */
+  encodeFromCoefficients(
+    coeffs: JPEGQuantizedCoefficients,
+    _options?: JPEGEncoderOptions,
+  ): Uint8Array {
+    const output: number[] = [];
+    const { width, height, components, quantizationTables, isProgressive } = coeffs;
+
+    // SOI (Start of Image)
+    output.push(0xff, 0xd8);
+
+    // APP0 (JFIF marker) - use default 72 DPI
+    this.writeAPP0(output, 72, 72);
+
+    // DQT (Define Quantization Tables) - use original tables from coefficients
+    this.writeDQTFromCoeffs(output, quantizationTables);
+
+    // SOF (Start of Frame)
+    if (isProgressive) {
+      this.writeSOF2FromCoeffs(output, width, height, components);
+    } else {
+      this.writeSOF0FromCoeffs(output, width, height, components);
+    }
+
+    // DHT (Define Huffman Tables)
+    this.writeDHT(output);
+
+    if (isProgressive) {
+      // Progressive encoding: encode from coefficients
+      this.encodeProgressiveFromCoeffs(output, coeffs);
+    } else {
+      // Baseline encoding: single scan
+      this.writeSOS(output);
+
+      // Encode scan data from coefficients
+      const scanData = this.encodeScanFromCoeffs(coeffs);
+      for (let i = 0; i < scanData.length; i++) {
+        output.push(scanData[i]);
+      }
+    }
+
+    // EOI (End of Image)
+    output.push(0xff, 0xd9);
+
+    return new Uint8Array(output);
+  }
+
+  private writeDQTFromCoeffs(
+    output: number[],
+    quantizationTables: (Uint8Array | number[])[],
+  ): void {
+    // Write each quantization table
+    for (let tableId = 0; tableId < quantizationTables.length; tableId++) {
+      const table = quantizationTables[tableId];
+      if (!table) continue;
+
+      output.push(0xff, 0xdb); // DQT marker
+      output.push(0x00, 0x43); // Length (67 bytes)
+      output.push(tableId); // Table ID, 8-bit precision
+
+      // Write table values in zigzag order
+      for (let i = 0; i < 64; i++) {
+        output.push(table[ZIGZAG[i]] ?? 1);
+      }
+    }
+  }
+
+  private writeSOF0FromCoeffs(
+    output: number[],
+    width: number,
+    height: number,
+    components: JPEGQuantizedCoefficients["components"],
+  ): void {
+    const numComponents = components.length;
+    const length = 8 + numComponents * 3;
+
+    output.push(0xff, 0xc0); // SOF0 marker
+    output.push((length >> 8) & 0xff, length & 0xff);
+    output.push(0x08); // Precision (8 bits)
+    output.push((height >> 8) & 0xff, height & 0xff);
+    output.push((width >> 8) & 0xff, width & 0xff);
+    output.push(numComponents);
+
+    for (const comp of components) {
+      output.push(comp.id);
+      output.push((comp.h << 4) | comp.v);
+      output.push(comp.qTable);
+    }
+  }
+
+  private writeSOF2FromCoeffs(
+    output: number[],
+    width: number,
+    height: number,
+    components: JPEGQuantizedCoefficients["components"],
+  ): void {
+    const numComponents = components.length;
+    const length = 8 + numComponents * 3;
+
+    output.push(0xff, 0xc2); // SOF2 marker (Progressive DCT)
+    output.push((length >> 8) & 0xff, length & 0xff);
+    output.push(0x08); // Precision (8 bits)
+    output.push((height >> 8) & 0xff, height & 0xff);
+    output.push((width >> 8) & 0xff, width & 0xff);
+    output.push(numComponents);
+
+    for (const comp of components) {
+      output.push(comp.id);
+      output.push((comp.h << 4) | comp.v);
+      output.push(comp.qTable);
+    }
+  }
+
+  private encodeScanFromCoeffs(coeffs: JPEGQuantizedCoefficients): number[] {
+    const bitWriter = new BitWriter();
+    const { components } = coeffs;
+
+    // DC predictors for each component
+    const dcPreds = new Map<number, number>();
+    for (const comp of components) {
+      dcPreds.set(comp.id, 0);
+    }
+
+    // Encode MCUs in raster order
+    // For non-subsampled images (1:1:1), each MCU contains one block per component
+    const mcuHeight = coeffs.mcuHeight;
+    const mcuWidth = coeffs.mcuWidth;
+
+    for (let mcuY = 0; mcuY < mcuHeight; mcuY++) {
+      for (let mcuX = 0; mcuX < mcuWidth; mcuX++) {
+        // Encode each component's blocks in this MCU
+        for (const comp of components) {
+          // Handle subsampling: component may have multiple blocks per MCU
+          for (let v = 0; v < comp.v; v++) {
+            for (let h = 0; h < comp.h; h++) {
+              const blockY = mcuY * comp.v + v;
+              const blockX = mcuX * comp.h + h;
+
+              if (
+                blockY < comp.blocks.length &&
+                blockX < comp.blocks[0].length
+              ) {
+                const block = comp.blocks[blockY][blockX];
+
+                // Get the block in zigzag order for encoding
+                const zigzagBlock = new Int32Array(64);
+                for (let i = 0; i < 64; i++) {
+                  zigzagBlock[i] = block[ZIGZAG[i]];
+                }
+
+                // Encode DC coefficient
+                const prevDC = dcPreds.get(comp.id) ?? 0;
+                const dcHuffman = comp.id === 1
+                  ? this.dcLuminanceHuffman
+                  : this.dcChrominanceHuffman;
+                const acHuffman = comp.id === 1
+                  ? this.acLuminanceHuffman
+                  : this.acChrominanceHuffman;
+
+                // DC coefficient is at index 0 of the block (already in zigzag order from decoder)
+                const dc = block[0];
+                const dcDiff = dc - prevDC;
+                this.encodeDC(dcDiff, dcHuffman, bitWriter);
+                dcPreds.set(comp.id, dc);
+
+                // Encode AC coefficients (indices 1-63 in zigzag order)
+                this.encodeACFromCoeffs(block, acHuffman, bitWriter);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    bitWriter.flush();
+    return Array.from(bitWriter.getBytes());
+  }
+
+  private encodeACFromCoeffs(
+    block: Int32Array,
+    huffTable: HuffmanTable,
+    bitWriter: BitWriter,
+  ): void {
+    let zeroCount = 0;
+
+    // Block is stored with DC at index 0, and AC at indices corresponding to zigzag positions
+    // We need to iterate in zigzag order for AC coefficients (indices 1-63)
+    for (let i = 1; i < 64; i++) {
+      const coef = block[ZIGZAG[i]];
+
+      if (coef === 0) {
+        zeroCount++;
+      } else {
+        // Write any pending zero runs
+        while (zeroCount >= 16) {
+          bitWriter.writeBits(huffTable.codes[0xf0], huffTable.sizes[0xf0]);
+          zeroCount -= 16;
+        }
+
+        // Clamp coefficient
+        const maxAC = 1023;
+        const clampedCoef = Math.max(-maxAC, Math.min(maxAC, coef));
+
+        const absCoef = Math.abs(clampedCoef);
+        const size = Math.floor(Math.log2(absCoef)) + 1;
+        const symbol = (zeroCount << 4) | size;
+
+        bitWriter.writeBits(huffTable.codes[symbol], huffTable.sizes[symbol]);
+
+        const magnitude = clampedCoef < 0 ? clampedCoef + (1 << size) - 1 : clampedCoef;
+        bitWriter.writeBits(magnitude, size);
+
+        zeroCount = 0;
+      }
+    }
+
+    // Write EOB if there are trailing zeros
+    if (zeroCount > 0) {
+      bitWriter.writeBits(huffTable.codes[0x00], huffTable.sizes[0x00]);
+    }
+  }
+
+  private encodeProgressiveFromCoeffs(
+    output: number[],
+    coeffs: JPEGQuantizedCoefficients,
+  ): void {
+    const { components } = coeffs;
+
+    // Pre-extract blocks for each component (already quantized)
+    const componentBlocks: Map<number, Int32Array[]> = new Map();
+    for (const comp of components) {
+      const blocks: Int32Array[] = [];
+      for (const row of comp.blocks) {
+        for (const block of row) {
+          blocks.push(block);
+        }
+      }
+      componentBlocks.set(comp.id, blocks);
+    }
+
+    // Scan 1: DC-only (interleaved across all components)
+    this.writeProgressiveSOS(
+      output,
+      components.map((c) => c.id),
+      0,
+      0,
+      0,
+      0,
+    );
+    const dcScanData = this.encodeProgressiveDCScanFromCoeffs(
+      componentBlocks,
+      components,
+    );
+    for (let i = 0; i < dcScanData.length; i++) {
+      output.push(dcScanData[i]);
+    }
+
+    // Scan 2+: AC coefficients (one scan per component)
+    for (const comp of components) {
+      this.writeProgressiveSOS(output, [comp.id], 1, 63, 0, 0);
+      const blocks = componentBlocks.get(comp.id) ?? [];
+      const acHuffman = comp.id === 1 ? this.acLuminanceHuffman : this.acChrominanceHuffman;
+      const acScanData = this.encodeProgressiveACScanFromCoeffs(
+        blocks,
+        acHuffman,
+      );
+      for (let i = 0; i < acScanData.length; i++) {
+        output.push(acScanData[i]);
+      }
+    }
+  }
+
+  private encodeProgressiveDCScanFromCoeffs(
+    componentBlocks: Map<number, Int32Array[]>,
+    components: JPEGQuantizedCoefficients["components"],
+  ): number[] {
+    const bitWriter = new BitWriter();
+    const dcPreds = new Map<number, number>();
+    for (const comp of components) {
+      dcPreds.set(comp.id, 0);
+    }
+
+    // Get number of blocks (should be same for all components in interleaved scan)
+    const numBlocks = componentBlocks.get(components[0].id)?.length ?? 0;
+
+    for (let i = 0; i < numBlocks; i++) {
+      for (const comp of components) {
+        const blocks = componentBlocks.get(comp.id);
+        if (!blocks || i >= blocks.length) continue;
+
+        const block = blocks[i];
+        const dc = block[0]; // DC coefficient at index 0
+        const prevDC = dcPreds.get(comp.id) ?? 0;
+
+        const dcHuffman = comp.id === 1 ? this.dcLuminanceHuffman : this.dcChrominanceHuffman;
+
+        this.encodeOnlyDC(dc, prevDC, dcHuffman, bitWriter);
+        dcPreds.set(comp.id, dc);
+      }
+    }
+
+    bitWriter.flush();
+    return Array.from(bitWriter.getBytes());
+  }
+
+  private encodeProgressiveACScanFromCoeffs(
+    blocks: Int32Array[],
+    acHuffman: HuffmanTable,
+  ): number[] {
+    const bitWriter = new BitWriter();
+
+    for (const block of blocks) {
+      this.encodeOnlyACFromCoeffs(block, acHuffman, bitWriter);
+    }
+
+    bitWriter.flush();
+    return Array.from(bitWriter.getBytes());
+  }
+
+  private encodeOnlyACFromCoeffs(
+    block: Int32Array,
+    acTable: HuffmanTable,
+    bitWriter: BitWriter,
+  ): void {
+    let zeroCount = 0;
+
+    // Iterate AC coefficients in zigzag order (indices 1-63)
+    for (let i = 1; i < 64; i++) {
+      const coef = block[ZIGZAG[i]];
+      const clampedCoef = Math.max(-1023, Math.min(1023, coef));
+
+      if (clampedCoef === 0) {
+        zeroCount++;
+        if (zeroCount === 16) {
+          bitWriter.writeBits(acTable.codes[0xf0], acTable.sizes[0xf0]);
+          zeroCount = 0;
+        }
+      } else {
+        while (zeroCount >= 16) {
+          bitWriter.writeBits(acTable.codes[0xf0], acTable.sizes[0xf0]);
+          zeroCount -= 16;
+        }
+
+        const absCoef = Math.abs(clampedCoef);
+        const size = Math.floor(Math.log2(absCoef)) + 1;
+        const symbol = (zeroCount << 4) | size;
+
+        bitWriter.writeBits(acTable.codes[symbol], acTable.sizes[symbol]);
+
+        const magnitude = clampedCoef < 0 ? clampedCoef + (1 << size) - 1 : clampedCoef;
+        bitWriter.writeBits(magnitude, size);
+
+        zeroCount = 0;
+      }
+    }
+
+    // Write EOB if there are trailing zeros
+    if (zeroCount > 0) {
+      bitWriter.writeBits(acTable.codes[0x00], acTable.sizes[0x00]);
     }
   }
 }
