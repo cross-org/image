@@ -5,13 +5,12 @@ nav_order: 3
 
 # Format Support
 
-This page details the image formats supported by @cross/image, their features,
-and runtime compatibility.
+This page details the image formats supported by @cross/image, their features, and runtime
+compatibility.
 
 ## Format Support Matrix
 
-This table shows which image formats are supported and their implementation
-status:
+This table shows which image formats are supported and their implementation status:
 
 | Format | Read | Write | Pure-JS Decode            | Pure-JS Encode            | Native API Decode | Native API Encode  | Notes                                                                                                                                           |
 | ------ | ---- | ----- | ------------------------- | ------------------------- | ----------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,8 +36,7 @@ status:
 - ⚠️ **Limited support** - Partial implementation with restrictions
 - ❌ **Not supported** - Feature not available in pure-JS, requires native APIs
 - **Pure-JS** - Works in all JavaScript runtimes without native dependencies
-- **Native API** - Uses runtime APIs like ImageDecoder (decode) or
-  OffscreenCanvas (encode)
+- **Native API** - Uses runtime APIs like ImageDecoder (decode) or OffscreenCanvas (encode)
 
 ## Format Specifications Supported
 
@@ -137,9 +135,8 @@ This table shows which format standards and variants are supported:
 | HEIC   | ✅       | ⚠️ Runtime  | ✅          | ✅  | Requires ImageDecoder API support                                  |
 | AVIF   | ✅       | ⚠️ Runtime  | ✅          | ✅  | Requires ImageDecoder API support                                  |
 
-**Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP,
-ICO, GIF, ASCII, PCX, PPM or DNG formats which have complete pure-JS
-implementations.
+**Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP, ICO, GIF, ASCII, PCX,
+PPM or DNG formats which have complete pure-JS implementations.
 
 ## Implementation Details
 

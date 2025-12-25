@@ -27,10 +27,9 @@ Supports these call forms:
 **Parameters:**
 
 - `data` - Raw image data as Uint8Array
-- `formatOrOptions` - Optional format hint (e.g., "png", "jpeg", "webp") or an
-  `ImageDecoderOptions` object
-- `options` - Optional `ImageDecoderOptions` (when passing an explicit format
-  string)
+- `formatOrOptions` - Optional format hint (e.g., "png", "jpeg", "webp") or an `ImageDecoderOptions`
+  object
+- `options` - Optional `ImageDecoderOptions` (when passing an explicit format string)
 
 **Returns:** Promise that resolves to an Image instance
 
@@ -52,8 +51,7 @@ const strict = await Image.decode(data, { tolerantDecoding: false });
 
 #### `Image.read(data: Uint8Array, format?: string): Promise<Image>` ⚠️ Deprecated
 
-**Deprecated:** Use `decode()` instead. This method will be removed in a future
-version.
+**Deprecated:** Use `decode()` instead. This method will be removed in a future version.
 
 Read an image from bytes. Automatically detects format if not specified.
 
@@ -71,10 +69,8 @@ Supports these call forms:
 **Parameters:**
 
 - `data` - Raw image data as Uint8Array
-- `formatOrOptions` - Optional format hint (e.g., "gif", "tiff") or an
-  `ImageDecoderOptions` object
-- `options` - Optional `ImageDecoderOptions` (when passing an explicit format
-  string)
+- `formatOrOptions` - Optional format hint (e.g., "gif", "tiff") or an `ImageDecoderOptions` object
+- `options` - Optional `ImageDecoderOptions` (when passing an explicit format string)
 
 **Returns:** Promise that resolves to MultiFrameImageData with all frames
 
@@ -100,8 +96,7 @@ console.log(`Number of frames: ${multiFrame.frames.length}`);
 
 #### `Image.readFrames(data: Uint8Array, format?: string): Promise<MultiFrameImageData>` ⚠️ Deprecated
 
-**Deprecated:** Use `decodeFrames()` instead. This method will be removed in a
-future version.
+**Deprecated:** Use `decodeFrames()` instead. This method will be removed in a future version.
 
 Read all frames from a multi-frame image (animated GIF or multi-page TIFF).
 
@@ -127,8 +122,7 @@ const tiffData = await Image.encodeFrames("tiff", multiPageTiff, {
 
 #### `Image.saveFrames(format: string, imageData: MultiFrameImageData, options?: unknown): Promise<Uint8Array>` ⚠️ Deprecated
 
-**Deprecated:** Use `encodeFrames()` instead. This method will be removed in a
-future version.
+**Deprecated:** Use `encodeFrames()` instead. This method will be removed in a future version.
 
 Save multi-frame image data to bytes in the specified format.
 
@@ -208,8 +202,8 @@ Get supported metadata fields for a specific format.
 
 - `format` - Format name (e.g., "jpeg", "png", "webp")
 
-**Returns:** Array of supported metadata field names, or undefined if format
-doesn't support metadata
+**Returns:** Array of supported metadata field names, or undefined if format doesn't support
+metadata
 
 **Example:**
 
@@ -225,17 +219,17 @@ console.log(pngFields);
 
 #### `Image.extractMetadata(data: Uint8Array, format?: string): Promise<ImageMetadata | undefined>`
 
-Extract metadata from image data without fully decoding the pixel data. This is
-useful for quickly reading EXIF, XMP, or other metadata from images that may
-have unsupported features or compression methods.
+Extract metadata from image data without fully decoding the pixel data. This is useful for quickly
+reading EXIF, XMP, or other metadata from images that may have unsupported features or compression
+methods.
 
 **Parameters:**
 
 - `data` - Raw image data
 - `format` - Optional format hint (e.g., "jpeg", "png", "webp")
 
-**Returns:** Promise that resolves to metadata extracted from the image, or
-undefined if extraction fails or format is unsupported
+**Returns:** Promise that resolves to metadata extracted from the image, or undefined if extraction
+fails or format is unsupported
 
 **Example:**
 
@@ -254,9 +248,8 @@ const metadata2 = await Image.extractMetadata(data, "jpeg");
 
 #### `Image.extractCoefficients(data: Uint8Array, format?: string, options?: ImageDecoderOptions): Promise<CoefficientData | undefined>`
 
-Extract quantized DCT coefficients from encoded image data. Currently supports
-JPEG format. This is useful for frequency-domain processing and steganography
-applications.
+Extract quantized DCT coefficients from encoded image data. Currently supports JPEG format. This is
+useful for frequency-domain processing and steganography applications.
 
 **Parameters:**
 
@@ -264,8 +257,8 @@ applications.
 - `format` - Optional format hint (e.g., "jpeg")
 - `options` - Optional decoder options
 
-**Returns:** Promise that resolves to coefficient data, or undefined if
-extraction fails or format is unsupported
+**Returns:** Promise that resolves to coefficient data, or undefined if extraction fails or format
+is unsupported
 
 **Example:**
 
@@ -292,14 +285,13 @@ if (coefficients) {
 
 #### `Image.encodeFromCoefficients(coefficients: CoefficientData, format?: string, options?: unknown): Promise<Uint8Array>`
 
-Encode an image from coefficient data. Currently supports JPEG format. This
-allows re-encoding modified coefficients back to a valid image file.
+Encode an image from coefficient data. Currently supports JPEG format. This allows re-encoding
+modified coefficients back to a valid image file.
 
 **Parameters:**
 
 - `coefficients` - Coefficient data (e.g., from `extractCoefficients`)
-- `format` - Optional format hint (auto-detected from coefficient data if not
-  provided)
+- `format` - Optional format hint (auto-detected from coefficient data if not provided)
 - `options` - Optional format-specific encoding options
 
 **Returns:** Promise that resolves to encoded image bytes
@@ -369,8 +361,7 @@ image.resize({ width: 400, height: 300, method: "nearest" });
 
 #### `encode(format: string, options?: unknown): Promise<Uint8Array>`
 
-Encode image to bytes in the specified format with optional format-specific
-options.
+Encode image to bytes in the specified format with optional format-specific options.
 
 **Parameters:**
 
@@ -392,11 +383,9 @@ const progressiveJpeg = await image.encode("jpeg", {
 
 #### `save(format: string, options?: unknown): Promise<Uint8Array>` ⚠️ Deprecated
 
-**Deprecated:** Use `encode()` instead. This method will be removed in a future
-version.
+**Deprecated:** Use `encode()` instead. This method will be removed in a future version.
 
-Save image to bytes in the specified format with optional format-specific
-options.
+Save image to bytes in the specified format with optional format-specific options.
 
 #### `clone(): Image`
 
@@ -417,8 +406,7 @@ Set or update image metadata. Returns `this` for method chaining.
 **Parameters:**
 
 - `metadata` - Metadata to set or merge
-- `merge` - If true (default), merges with existing metadata. If false, replaces
-  it.
+- `merge` - If true (default), merges with existing metadata. If false, replaces it.
 
 **Returns:** `this` for chaining
 
@@ -453,8 +441,7 @@ Set GPS position in metadata. Returns `this` for method chaining.
 
 Get physical dimensions from metadata.
 
-**Returns:** Object with DPI and physical dimensions, or undefined if not
-available
+**Returns:** Object with DPI and physical dimensions, or undefined if not available
 
 #### `setDPI(dpiX: number, dpiY?: number): this`
 
@@ -545,8 +532,7 @@ Adjust the color saturation of the image.
 
 **Parameters:**
 
-- `amount` - Saturation adjustment (-1 to 1, where 0 is no change, -1 is
-  grayscale)
+- `amount` - Saturation adjustment (-1 to 1, where 0 is no change, -1 is grayscale)
 
 **Returns:** `this` for chaining
 
@@ -564,9 +550,8 @@ Adjust the hue of the image by rotating the color wheel.
 
 **Parameters:**
 
-- `degrees` - Hue rotation in degrees. Any value is accepted and wraps at 360
-  degrees. Positive values rotate clockwise, negative values rotate
-  counter-clockwise. 0 means no change.
+- `degrees` - Hue rotation in degrees. Any value is accepted and wraps at 360 degrees. Positive
+  values rotate clockwise, negative values rotate counter-clockwise. 0 means no change.
 
 **Returns:** `this` for chaining
 
@@ -611,8 +596,7 @@ image.grayscale(); // Convert to black and white
 
 #### `sepia(): this`
 
-Apply a sepia tone effect to the image, giving it a warm, brownish, vintage
-appearance.
+Apply a sepia tone effect to the image, giving it a warm, brownish, vintage appearance.
 
 **Returns:** `this` for chaining
 
@@ -641,14 +625,14 @@ image.blur(3); // Stronger blur effect
 
 #### `gaussianBlur(radius?: number, sigma?: number): this`
 
-Apply a Gaussian blur filter to the image. Gaussian blur provides more natural,
-edge-preserving results compared to box blur.
+Apply a Gaussian blur filter to the image. Gaussian blur provides more natural, edge-preserving
+results compared to box blur.
 
 **Parameters:**
 
 - `radius` - Blur radius (default: 1)
-- `sigma` - Optional standard deviation for the Gaussian kernel. If not
-  provided, calculated from radius (radius / 3)
+- `sigma` - Optional standard deviation for the Gaussian kernel. If not provided, calculated from
+  radius (radius / 3)
 
 **Returns:** `this` for chaining
 
@@ -666,8 +650,7 @@ Apply a sharpening filter to enhance edges and details in the image.
 
 **Parameters:**
 
-- `amount` - Sharpening amount (0 to 1, default: 0.5). Higher values create
-  stronger sharpening.
+- `amount` - Sharpening amount (0 to 1, default: 0.5). Higher values create stronger sharpening.
 
 **Returns:** `this` for chaining
 
@@ -681,13 +664,13 @@ image.sharpen(0.8); // Strong sharpening
 
 #### `medianFilter(radius?: number): this`
 
-Apply a median filter to reduce noise, especially effective for salt-and-pepper
-noise while preserving edges.
+Apply a median filter to reduce noise, especially effective for salt-and-pepper noise while
+preserving edges.
 
 **Parameters:**
 
-- `radius` - Filter radius (default: 1). Higher values provide stronger noise
-  reduction but slower processing.
+- `radius` - Filter radius (default: 1). Higher values provide stronger noise reduction but slower
+  processing.
 
 **Returns:** `this` for chaining
 
@@ -751,8 +734,7 @@ Get the color of a pixel at the specified position.
 - `x` - X position
 - `y` - Y position
 
-**Returns:** Object with r, g, b, a components (0-255) or undefined if out of
-bounds
+**Returns:** Object with r, g, b, a components (0-255) or undefined if out of bounds
 
 **Example:**
 
@@ -789,13 +771,12 @@ image.setPixel(51, 100, 0, 255, 0, 128); // Set pixel to semi-transparent green
 
 #### `rotate(degrees: number): this`
 
-Rotate the image by the specified angle in degrees. Rotations are rounded to the
-nearest 90-degree increment.
+Rotate the image by the specified angle in degrees. Rotations are rounded to the nearest 90-degree
+increment.
 
 **Parameters:**
 
-- `degrees` - Rotation angle in degrees (positive = clockwise, negative =
-  counter-clockwise)
+- `degrees` - Rotation angle in degrees (positive = clockwise, negative = counter-clockwise)
 
 **Returns:** `this` for chaining
 
@@ -896,8 +877,7 @@ interface ResizeOptions {
 **Fitting modes:**
 
 - `stretch` - Stretch image to fill dimensions (may distort) (default)
-- `fit` / `contain` - Fit image within dimensions maintaining aspect ratio (may
-  have letterboxing)
+- `fit` / `contain` - Fit image within dimensions maintaining aspect ratio (may have letterboxing)
 - `fill` / `cover` - Fill dimensions maintaining aspect ratio (may crop)
 
 ### `ASCIIEncoderOptions`
@@ -946,10 +926,9 @@ interface WebPEncoderOptions {
 - `30-49` - Lower quality with heavy quantization
 - `1-29` - Low quality with very heavy quantization
 
-**Note:** When OffscreenCanvas is available (Deno, modern browsers, Bun), the
-runtime's native WebP encoder is used for better compression. In pure-JS mode
-(Node.js without OffscreenCanvas), VP8L format with quality-based color
-quantization is used.
+**Note:** When OffscreenCanvas is available (Deno, modern browsers, Bun), the runtime's native WebP
+encoder is used for better compression. In pure-JS mode (Node.js without OffscreenCanvas), VP8L
+format with quality-based color quantization is used.
 
 ### `TIFFEncoderOptions`
 
@@ -977,8 +956,7 @@ interface TIFFEncoderOptions {
 
 - Default: RGBA with alpha channel
 - `grayscale: true` - Convert to grayscale
-- `rgb: true` - RGB without alpha channel (smaller file size if transparency not
-  needed)
+- `rgb: true` - RGB without alpha channel (smaller file size if transparency not needed)
 
 ### `JPEGEncoderOptions`
 
@@ -1011,9 +989,8 @@ interface PNGEncoderOptions {
 - `3-6` - Balanced (Sub filter)
 - `7-9` - Best compression (adaptive filtering per scanline)
 
-The compression level controls PNG filter selection, which significantly affects
-compression efficiency. Higher levels produce smaller files but take longer to
-encode.
+The compression level controls PNG filter selection, which significantly affects compression
+efficiency. Higher levels produce smaller files but take longer to encode.
 
 **Example:**
 
@@ -1039,8 +1016,7 @@ interface APNGEncoderOptions extends PNGEncoderOptions {
 }
 ```
 
-**Note:** APNG uses PNG encoding for each frame and supports the same
-compression levels.
+**Note:** APNG uses PNG encoding for each frame and supports the same compression levels.
 
 ### `GIFEncoderOptions`
 
@@ -1083,8 +1059,8 @@ interface AVIFEncoderOptions {
 }
 ```
 
-**Note:** AVIF encoding is delegated to runtime APIs (OffscreenCanvas). Many
-runtimes ignore quality or may not support AVIF encoding at all.
+**Note:** AVIF encoding is delegated to runtime APIs (OffscreenCanvas). Many runtimes ignore quality
+or may not support AVIF encoding at all.
 
 ### `HEICEncoderOptions`
 
@@ -1097,8 +1073,8 @@ interface HEICEncoderOptions {
 }
 ```
 
-**Note:** HEIC encoding is delegated to runtime APIs (OffscreenCanvas). Many
-runtimes do not support HEIC encoding.
+**Note:** HEIC encoding is delegated to runtime APIs (OffscreenCanvas). Many runtimes do not support
+HEIC encoding.
 
 ### `ImageData`
 
@@ -1239,8 +1215,7 @@ interface ImageDecoderOptions {
 
 ### `JPEGQuantizedCoefficients`
 
-JPEG quantized DCT coefficients for frequency-domain processing and
-steganography.
+JPEG quantized DCT coefficients for frequency-domain processing and steganography.
 
 ```ts
 interface JPEGQuantizedCoefficients {
@@ -1288,8 +1263,7 @@ interface JPEGComponentCoefficients {
 
 ### `CoefficientData`
 
-Union type for coefficient data from different formats. Currently only JPEG is
-supported.
+Union type for coefficient data from different formats. Currently only JPEG is supported.
 
 ```ts
 type CoefficientData = JPEGQuantizedCoefficients;
@@ -1391,11 +1365,11 @@ The library exports format classes that can be used for advanced scenarios:
 - `HEICFormat` - HEIC/HEIF format handler
 - `AVIFFormat` - AVIF format handler
 
-Most users should use the `Image` class methods instead. The format classes are
-useful when you want to:
+Most users should use the `Image` class methods instead. The format classes are useful when you want
+to:
 
-- Use a handler directly (`format.decode(...)`, `format.encode(...)`) without
-  the higher-level `Image` convenience APIs.
+- Use a handler directly (`format.decode(...)`, `format.encode(...)`) without the higher-level
+  `Image` convenience APIs.
 - Register a custom format implementation via `Image.registerFormat(...)`.
 
 ### Example: Use a format handler directly

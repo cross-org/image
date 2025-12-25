@@ -5,14 +5,12 @@ parent: "Image Processing"
 
 # Color Adjustments
 
-Color adjustment operations modify pixel colors to achieve effects like
-brightening, increasing contrast, adjusting saturation, and converting to
-grayscale.
+Color adjustment operations modify pixel colors to achieve effects like brightening, increasing
+contrast, adjusting saturation, and converting to grayscale.
 
 ## Brightness
 
-Adjust the overall brightness of an image by adding or subtracting from all RGB
-channels.
+Adjust the overall brightness of an image by adding or subtracting from all RGB channels.
 
 ### Signature
 
@@ -63,8 +61,7 @@ await Deno.writeFile("adjusted.png", output);
 
 ## Contrast
 
-Adjust the difference between light and dark areas by scaling RGB values around
-midpoint.
+Adjust the difference between light and dark areas by scaling RGB values around midpoint.
 
 ### Signature
 
@@ -176,8 +173,8 @@ await Deno.writeFile("saturated.png", output);
 
 ## Hue
 
-Rotate the color wheel to shift all hues in the image. This changes the overall
-color cast while preserving saturation and luminance relationships.
+Rotate the color wheel to shift all hues in the image. This changes the overall color cast while
+preserving saturation and luminance relationships.
 
 ### Signature
 
@@ -261,8 +258,8 @@ image
 
 ## Exposure
 
-Photographic exposure adjustment simulating camera exposure compensation.
-Applies exponential scaling to mimic real exposure.
+Photographic exposure adjustment simulating camera exposure compensation. Applies exponential
+scaling to mimic real exposure.
 
 ### Signature
 
@@ -359,9 +356,8 @@ Uses perceptually weighted formula (ITU-R BT.601 standard):
 L = 0.299R + 0.587G + 0.114B
 ```
 
-This preserves perceived brightness better than simple averaging. Note that
-modern displays may use different coefficients (like ITU-R BT.709), but this
-standard provides good results for general use.
+This preserves perceived brightness better than simple averaging. Note that modern displays may use
+different coefficients (like ITU-R BT.709), but this standard provides good results for general use.
 
 ### Alternatives
 
@@ -546,13 +542,13 @@ await Deno.writeFile("bw.png", await image.encode("png"));
 
 ## Color Space Notes
 
-All color adjustments work in RGB color space. For saturation, the library
-temporarily converts to HSL, adjusts, and converts back to RGB.
+All color adjustments work in RGB color space. For saturation, the library temporarily converts to
+HSL, adjusts, and converts back to RGB.
 
 ## CMYK Color Space Conversion
 
-Convert between RGB and CMYK (Cyan, Magenta, Yellow, Key/Black) color spaces for
-professional printing and color manipulation workflows.
+Convert between RGB and CMYK (Cyan, Magenta, Yellow, Key/Black) color spaces for professional
+printing and color manipulation workflows.
 
 ### Converting Individual Colors
 
@@ -644,5 +640,5 @@ B = 255 × (1 - Y) × (1 - K)
 
 ### Performance
 
-All color adjustments are fast operations that process pixels in a single pass.
-Order doesn't significantly affect performance.
+All color adjustments are fast operations that process pixels in a single pass. Order doesn't
+significantly affect performance.
