@@ -1,4 +1,5 @@
 import type {
+  CoefficientData,
   ImageData,
   ImageDecoderOptions,
   ImageFormat,
@@ -334,6 +335,95 @@ export class Image {
     }
 
     return undefined;
+  }
+
+  /**
+   * Extract coefficients from encoded image data
+   * For JPEG, this returns quantized DCT coefficients that can be modified for steganography
+   * and re-encoded using encodeFromCoefficients()
+   * @param data Raw image data
+   * @param format Optional format hint (e.g., "jpeg")
+   * @param options Optional decoder options
+   * @returns Format-specific coefficient structure or undefined if not supported
+   *
+   * @example
+   * ```ts
+   * // Extract JPEG coefficients for steganography
+   * const coeffs = await Image.extractCoefficients(jpegData, "jpeg");
+   * if (coeffs) {
+   *   // Modify coefficients for steganography...
+   *   const modified = await Image.encodeFromCoefficients(coeffs, "jpeg");
+   * }
+   * ```
+   */
+  static async extractCoefficients(
+    data: Uint8Array,
+    format?: string,
+    options?: ImageDecoderOptions,
+  ): Promise<CoefficientData | undefined> {
+    // Try specified format first
+    if (format) {
+      const handler = Image.formats.find((f) => f.name === format);
+      if (handler && handler.canDecode(data) && handler.extractCoefficients) {
+        return await handler.extractCoefficients(data, options);
+      }
+    }
+
+    // Auto-detect format
+    for (const handler of Image.formats) {
+      if (handler.canDecode(data) && handler.extractCoefficients) {
+        return await handler.extractCoefficients(data, options);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Encode image from coefficients
+   * For JPEG, accepts quantized DCT coefficients and produces a valid JPEG file
+   * Useful for steganography where coefficients are extracted, modified, and re-encoded
+   * @param coeffs Format-specific coefficient structure
+   * @param format Optional format hint (auto-detected from coeffs.format if available)
+   * @param options Optional format-specific encoding options
+   * @returns Encoded image bytes
+   *
+   * @example
+   * ```ts
+   * // Re-encode modified JPEG coefficients
+   * const coeffs = await Image.extractCoefficients(jpegData, "jpeg");
+   * // Modify coefficients...
+   * const encoded = await Image.encodeFromCoefficients(coeffs, "jpeg");
+   * ```
+   */
+  static async encodeFromCoefficients(
+    coeffs: CoefficientData,
+    format?: string,
+    options?: unknown,
+  ): Promise<Uint8Array> {
+    // Detect format from coefficient structure or use provided format
+    const detectedFormat = format ??
+      (coeffs as { format?: string }).format;
+
+    if (!detectedFormat) {
+      throw new Error(
+        "Format must be specified or present in coefficient data",
+      );
+    }
+
+    const handler = Image.formats.find((f) => f.name === detectedFormat);
+
+    if (!handler) {
+      throw new Error(`Unknown format: ${detectedFormat}`);
+    }
+
+    if (!handler.encodeFromCoefficients) {
+      throw new Error(
+        `Format ${detectedFormat} does not support encoding from coefficients`,
+      );
+    }
+
+    return await handler.encodeFromCoefficients(coeffs, options);
   }
 
   /**

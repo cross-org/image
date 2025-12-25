@@ -49,6 +49,8 @@ export type {
   APNGEncoderOptions,
   ASCIIEncoderOptions,
   AVIFEncoderOptions,
+  /* Coefficient types for steganography */
+  CoefficientData,
   FrameMetadata,
   GIFEncoderOptions,
   HEICEncoderOptions,
@@ -58,7 +60,9 @@ export type {
   ImageFormat,
   ImageFrame,
   ImageMetadata,
+  JPEGComponentCoefficients,
   JPEGEncoderOptions,
+  JPEGQuantizedCoefficients,
   MultiFrameImageData,
   PNGEncoderOptions,
   ResizeOptions,

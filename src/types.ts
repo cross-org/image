@@ -1,4 +1,53 @@
 /**
+ * JPEG quantized DCT coefficients for steganography and advanced processing
+ * Contains the frequency-domain representation of the image
+ */
+export interface JPEGQuantizedCoefficients {
+  /** Format identifier */
+  format: "jpeg";
+  /** Image width in pixels */
+  width: number;
+  /** Image height in pixels */
+  height: number;
+  /** Whether the JPEG is progressive */
+  isProgressive: boolean;
+  /** Component data (Y, Cb, Cr for color images) */
+  components: JPEGComponentCoefficients[];
+  /** Quantization tables used (indexed by table ID) */
+  quantizationTables: (Uint8Array | number[])[];
+  /** MCU width (number of 8x8 blocks horizontally) */
+  mcuWidth: number;
+  /** MCU height (number of 8x8 blocks vertically) */
+  mcuHeight: number;
+}
+
+/**
+ * Coefficients for a single JPEG component (Y, Cb, or Cr)
+ */
+export interface JPEGComponentCoefficients {
+  /** Component ID (1=Y, 2=Cb, 3=Cr typically) */
+  id: number;
+  /** Horizontal sampling factor */
+  h: number;
+  /** Vertical sampling factor */
+  v: number;
+  /** Quantization table index */
+  qTable: number;
+  /**
+   * Quantized DCT coefficient blocks
+   * blocks[blockRow][blockCol] contains a 64-element array in zigzag order
+   * Coefficients are quantized (divided by quantization table values)
+   */
+  blocks: Int32Array[][];
+}
+
+/**
+ * Union type for coefficient data from different formats
+ * Currently only JPEG is supported, but this allows for future extension
+ */
+export type CoefficientData = JPEGQuantizedCoefficients;
+
+/**
  * Image metadata
  */
 export interface ImageMetadata {
@@ -380,4 +429,29 @@ export interface ImageFormat {
    * @returns Metadata extracted from the image, or undefined if extraction fails
    */
   extractMetadata?(data: Uint8Array): Promise<ImageMetadata | undefined>;
+
+  /**
+   * Extract coefficients from encoded image data (optional)
+   * For JPEG, this returns quantized DCT coefficients
+   * Useful for steganography and advanced image processing
+   * @param data Raw image data
+   * @param options Decoder options
+   * @returns Format-specific coefficient structure or undefined if not supported
+   */
+  extractCoefficients?(
+    data: Uint8Array,
+    options?: ImageDecoderOptions,
+  ): Promise<CoefficientData | undefined>;
+
+  /**
+   * Encode image from coefficients (optional)
+   * For JPEG, accepts quantized DCT coefficients and produces a valid JPEG
+   * @param coeffs Format-specific coefficient structure
+   * @param options Format-specific encoding options
+   * @returns Encoded image bytes
+   */
+  encodeFromCoefficients?(
+    coeffs: CoefficientData,
+    options?: unknown,
+  ): Promise<Uint8Array>;
 }

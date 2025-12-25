@@ -9,7 +9,11 @@
  * For complex or non-standard JPEGs, the ImageDecoder API fallback is preferred.
  */
 
-import type { ImageDecoderOptions } from "../types.ts";
+import type {
+  ImageDecoderOptions,
+  JPEGComponentCoefficients,
+  JPEGQuantizedCoefficients,
+} from "../types.ts";
 
 /**
  * Custom error class for end-of-scan marker detection
@@ -122,6 +126,17 @@ const ZIGZAG = [
   63,
 ];
 
+/**
+ * Extended decoder options including coefficient extraction
+ */
+interface JPEGDecoderOptions extends ImageDecoderOptions {
+  /**
+   * When true, stores quantized DCT coefficients for later retrieval
+   * via getQuantizedCoefficients(). Coefficients are stored in zigzag order.
+   */
+  extractCoefficients?: boolean;
+}
+
 export class JPEGDecoder {
   private data: Uint8Array;
   private pos: number = 0;
@@ -137,6 +152,7 @@ export class JPEGDecoder {
   private options: {
     tolerantDecoding: boolean;
     onWarning?: (message: string, details?: unknown) => void;
+    extractCoefficients: boolean;
   };
   private isProgressive: boolean = false;
   // Progressive JPEG scan parameters
@@ -146,12 +162,15 @@ export class JPEGDecoder {
   private successiveLow: number = 0; // Successive approximation bit low (Al)
   private scanComponentIds: number[] = []; // Component IDs included in current scan
   private eobRun: number = 0; // Remaining blocks to skip due to EOBn
+  // Storage for quantized coefficients (when extractCoefficients is true)
+  private quantizedCoefficients: JPEGQuantizedCoefficients | null = null;
 
-  constructor(data: Uint8Array, settings: ImageDecoderOptions = {}) {
+  constructor(data: Uint8Array, settings: JPEGDecoderOptions = {}) {
     this.data = data;
     this.options = {
       tolerantDecoding: settings.tolerantDecoding ?? true,
       onWarning: settings.onWarning,
+      extractCoefficients: settings.extractCoefficients ?? false,
     };
   }
 
@@ -215,7 +234,8 @@ export class JPEGDecoder {
     // For progressive JPEGs, perform IDCT on all blocks after all scans are complete
     // This ensures that frequency-domain coefficients from multiple scans are properly
     // accumulated before transformation to spatial domain
-    if (this.isProgressive) {
+    // Skip IDCT when extracting coefficients - we want the quantized DCT values
+    if (this.isProgressive && !this.options.extractCoefficients) {
       for (const component of this.components) {
         if (component.blocks) {
           for (const row of component.blocks) {
@@ -227,8 +247,72 @@ export class JPEGDecoder {
       }
     }
 
+    // If extracting coefficients, store them before converting to RGB
+    if (this.options.extractCoefficients) {
+      this.storeQuantizedCoefficients();
+    }
+
     // Convert YCbCr to RGB
     return this.convertToRGB();
+  }
+
+  /**
+   * Get the quantized DCT coefficients after decoding
+   * Only available if extractCoefficients option was set to true
+   * @returns JPEGQuantizedCoefficients or undefined if not available
+   */
+  getQuantizedCoefficients(): JPEGQuantizedCoefficients | undefined {
+    return this.quantizedCoefficients ?? undefined;
+  }
+
+  /**
+   * Store quantized coefficients in the output structure
+   * Called after decoding when extractCoefficients is true
+   */
+  private storeQuantizedCoefficients(): void {
+    // Calculate MCU dimensions
+    const maxH = Math.max(...this.components.map((c) => c.h));
+    const maxV = Math.max(...this.components.map((c) => c.v));
+    const mcuWidth = Math.ceil(this.width / (8 * maxH));
+    const mcuHeight = Math.ceil(this.height / (8 * maxV));
+
+    // Build component coefficients
+    const componentCoeffs: JPEGComponentCoefficients[] = this.components.map(
+      (comp) => ({
+        id: comp.id,
+        h: comp.h,
+        v: comp.v,
+        qTable: comp.qTable,
+        blocks: comp.blocks.map((row) =>
+          row.map((block) => {
+            // Convert to Int32Array if not already
+            if (block instanceof Int32Array) {
+              return block;
+            }
+            return new Int32Array(block);
+          })
+        ),
+      }),
+    );
+
+    // Copy quantization tables
+    const qTables = this.qTables.map((table) => {
+      if (table instanceof Uint8Array) {
+        return new Uint8Array(table);
+      }
+      return new Uint8Array(table);
+    });
+
+    this.quantizedCoefficients = {
+      format: "jpeg",
+      width: this.width,
+      height: this.height,
+      isProgressive: this.isProgressive,
+      components: componentCoeffs,
+      quantizationTables: qTables,
+      mcuWidth,
+      mcuHeight,
+    };
   }
 
   private readMarker(): number {
@@ -594,14 +678,23 @@ export class JPEGDecoder {
         component.pred += dcDiff;
         // For successive approximation, shift the coefficient left by Al bits
         const coeff = component.pred << this.successiveLow;
-        block[0] = coeff * this.qTables[component.qTable][0];
+        // When extracting coefficients, store quantized value without dequantization
+        if (this.options.extractCoefficients) {
+          block[0] = coeff;
+        } else {
+          block[0] = coeff * this.qTables[component.qTable][0];
+        }
       } else {
         // DC refinement scan: add a refinement bit
         const bit = this.readBit();
         if (bit) {
           // Add the refinement bit at position Al
           const refinement = 1 << this.successiveLow;
-          block[0] += refinement * this.qTables[component.qTable][0];
+          if (this.options.extractCoefficients) {
+            block[0] += refinement;
+          } else {
+            block[0] += refinement * this.qTables[component.qTable][0];
+          }
         }
       }
     }
@@ -648,8 +741,13 @@ export class JPEGDecoder {
             if (k > this.spectralEnd) break;
             // For successive approximation, shift the coefficient left by Al bits
             const coeff = this.receiveBits(s) << this.successiveLow;
-            block[ZIGZAG[k]] = coeff *
-              this.qTables[component.qTable][ZIGZAG[k]];
+            // When extracting coefficients, store quantized value without dequantization
+            if (this.options.extractCoefficients) {
+              block[ZIGZAG[k]] = coeff;
+            } else {
+              block[ZIGZAG[k]] = coeff *
+                this.qTables[component.qTable][ZIGZAG[k]];
+            }
             k++;
           }
         }
@@ -695,7 +793,10 @@ export class JPEGDecoder {
               if (current !== 0) {
                 const bit = this.readBit();
                 if (bit) {
-                  const refinement = (1 << this.successiveLow) * qTable[z];
+                  // When extracting coefficients, don't dequantize
+                  const refinement = this.options.extractCoefficients
+                    ? (1 << this.successiveLow)
+                    : (1 << this.successiveLow) * qTable[z];
                   block[z] += direction * refinement;
                 }
               } else {
@@ -709,12 +810,16 @@ export class JPEGDecoder {
               if (current !== 0) {
                 const bit = this.readBit();
                 if (bit) {
-                  const refinement = (1 << this.successiveLow) * qTable[z];
+                  // When extracting coefficients, don't dequantize
+                  const refinement = this.options.extractCoefficients
+                    ? (1 << this.successiveLow)
+                    : (1 << this.successiveLow) * qTable[z];
                   block[z] += direction * refinement;
                 }
               } else {
                 const newCoeff = successiveACNextValue << this.successiveLow;
-                block[z] = newCoeff * qTable[z];
+                // When extracting coefficients, don't dequantize
+                block[z] = this.options.extractCoefficients ? newCoeff : newCoeff * qTable[z];
                 successiveACState = 0;
               }
               break;
@@ -722,7 +827,10 @@ export class JPEGDecoder {
               if (current !== 0) {
                 const bit = this.readBit();
                 if (bit) {
-                  const refinement = (1 << this.successiveLow) * qTable[z];
+                  // When extracting coefficients, don't dequantize
+                  const refinement = this.options.extractCoefficients
+                    ? (1 << this.successiveLow)
+                    : (1 << this.successiveLow) * qTable[z];
                   block[z] += direction * refinement;
                 }
               }
@@ -744,7 +852,8 @@ export class JPEGDecoder {
     // Perform IDCT only for baseline JPEGs
     // For progressive JPEGs, IDCT is deferred until all scans are complete
     // to preserve frequency-domain coefficients for accumulation across scans
-    if (!this.isProgressive) {
+    // Skip IDCT when extracting coefficients - we want the quantized DCT values
+    if (!this.isProgressive && !this.options.extractCoefficients) {
       this.idct(block);
     }
   }
