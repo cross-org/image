@@ -7,11 +7,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Fixed
-
-- PNG and TIFF deflate compression/decompression now works on Bun runtime by adding fallbacks to
-  Bun's native zlib APIs when CompressionStream/DecompressionStream are unavailable
-
 ## [0.4.2] - 2025-12-25
 
 ### Added
