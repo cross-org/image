@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Animated GIF encoding with partial frames and transparency: Fixed issues where animated GIFs with
+  partial frames (frames smaller than canvas positioned at offset) produced corrupted output on
+  round-trip encoding. Frame position (left, top) and dimensions are now correctly preserved, alpha
+  channel transparency is properly handled, and disposal methods from input are preserved
+
 ## [0.4.2] - 2025-12-25
 
 ### Added
