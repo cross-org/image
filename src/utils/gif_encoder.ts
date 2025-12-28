@@ -11,21 +11,56 @@ interface RGBColor {
   b: number;
 }
 
+interface GIFFrameData {
+  data: Uint8Array;
+  delay: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  disposal: number;
+}
+
 export class GIFEncoder {
-  private width: number;
-  private height: number;
-  private frames: { data: Uint8Array; delay: number }[] = [];
+  private canvasWidth: number;
+  private canvasHeight: number;
+  private frames: GIFFrameData[] = [];
 
   constructor(width: number, height: number, data?: Uint8Array) {
-    this.width = width;
-    this.height = height;
+    this.canvasWidth = width;
+    this.canvasHeight = height;
     if (data) {
       this.addFrame(data);
     }
   }
 
-  addFrame(data: Uint8Array, delay: number = 0): void {
-    this.frames.push({ data, delay });
+  /**
+   * Add a frame with optional metadata for partial frame support
+   */
+  addFrame(
+    data: Uint8Array,
+    delay: number = 0,
+    options?: {
+      left?: number;
+      top?: number;
+      width?: number;
+      height?: number;
+      disposal?: number;
+    },
+  ): void {
+    const pixelCount = data.length / 4;
+    const frameWidth = options?.width ?? this.canvasWidth;
+    const frameHeight = options?.height ?? Math.ceil(pixelCount / frameWidth);
+
+    this.frames.push({
+      data,
+      delay,
+      left: options?.left ?? 0,
+      top: options?.top ?? 0,
+      width: frameWidth,
+      height: frameHeight,
+      disposal: options?.disposal ?? 0,
+    });
   }
 
   private writeBytes(output: number[], bytes: Uint8Array | number[]): void {
@@ -57,58 +92,77 @@ export class GIFEncoder {
   }
 
   /**
-   * Quantize RGBA image to 256 colors using median cut algorithm
+   * Quantize RGBA image to 256 colors with transparency support
    */
   private quantize(
     data: Uint8Array,
-  ): { palette: Uint8Array; indexed: Uint8Array } {
-    // Simple quantization: collect unique colors and build palette
+    frameWidth: number,
+    frameHeight: number,
+  ): {
+    palette: Uint8Array;
+    indexed: Uint8Array;
+    hasTransparency: boolean;
+    transparentIndex: number;
+  } {
+    // Check for transparent pixels (alpha < 128)
+    let hasTransparency = false;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 128) {
+        hasTransparency = true;
+        break;
+      }
+    }
+
     const colorMap = new Map<string, number>();
     const colors: RGBColor[] = [];
+    const transparentIndex = 0;
 
-    // Color quantization parameters for 8-bit palette (256 colors)
-    // R/G: 8 levels (0-7) using 3 bits, B: 4 levels (0-3) using 2 bits (8*8*4=256)
-    const RG_LEVELS = 7; // Max level for R/G (8 total levels: 0-7)
-    const B_LEVELS = 3; // Max level for B (4 total levels: 0-3)
-    const rgStep = 255 / RG_LEVELS; // Step size for R/G quantization
-    const bStep = 255 / B_LEVELS; // Step size for B quantization
+    // Reserve index 0 for transparency if needed
+    if (hasTransparency) {
+      colors.push({ r: 0, g: 0, b: 0 });
+    }
 
-    // Collect unique colors
+    // Color quantization parameters
+    const RG_LEVELS = 7;
+    const B_LEVELS = 3;
+    const rgStep = 255 / RG_LEVELS;
+    const bStep = 255 / B_LEVELS;
+    const maxColors = hasTransparency ? 255 : 256;
+
+    // Collect unique colors from opaque pixels only
     for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue; // Skip transparent
+
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
       const key = `${r},${g},${b}`;
 
-      if (!colorMap.has(key) && colors.length < 256) {
+      if (!colorMap.has(key) && colors.length < maxColors) {
         colorMap.set(key, colors.length);
         colors.push({ r, g, b });
       }
     }
 
-    // Track if color reduction was applied
     let useColorReduction = false;
 
-    // If we have too many colors, use simple color reduction
-    if (colors.length >= 256) {
-      // Downsample colors to 256 by reducing color depth
+    // If too many colors, reduce color depth
+    if (colors.length >= maxColors) {
       colorMap.clear();
-      colors.length = 0;
+      colors.length = hasTransparency ? 1 : 0;
       useColorReduction = true;
 
       for (let i = 0; i < data.length; i += 4) {
-        // Reduce color depth: 3 bits for R/G channels, 2 bits for B channel
-        // This gives us 8 bits total = 256 possible colors
+        if (data[i + 3] < 128) continue;
+
         const r = this.quantizeChannel(data[i], RG_LEVELS, rgStep);
         const g = this.quantizeChannel(data[i + 1], RG_LEVELS, rgStep);
         const b = this.quantizeChannel(data[i + 2], B_LEVELS, bStep);
         const key = `${r},${g},${b}`;
 
-        if (!colorMap.has(key)) {
-          if (colors.length < 256) {
-            colorMap.set(key, colors.length);
-            colors.push({ r, g, b });
-          }
+        if (!colorMap.has(key) && colors.length < maxColors) {
+          colorMap.set(key, colors.length);
+          colors.push({ r, g, b });
         }
       }
     }
@@ -127,14 +181,19 @@ export class GIFEncoder {
       palette[i * 3 + 2] = colors[i].b;
     }
 
-    // Create indexed data
-    const indexed = new Uint8Array(this.width * this.height);
-    for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+    // Create indexed data using frame dimensions
+    const indexed = new Uint8Array(frameWidth * frameHeight);
+    for (let i = 0, j = 0; i < data.length && j < indexed.length; i += 4, j++) {
+      // Handle transparent pixels
+      if (data[i + 3] < 128) {
+        indexed[j] = transparentIndex;
+        continue;
+      }
+
       let r = data[i];
       let g = data[i + 1];
       let b = data[i + 2];
 
-      // Apply color reduction if it was used for building the palette
       if (useColorReduction) {
         r = this.quantizeChannel(r, RG_LEVELS, rgStep);
         g = this.quantizeChannel(g, RG_LEVELS, rgStep);
@@ -143,15 +202,14 @@ export class GIFEncoder {
 
       const key = `${r},${g},${b}`;
 
-      // Try fast O(1) lookup first
       if (colorMap.has(key)) {
         indexed[j] = colorMap.get(key)!;
       } else {
-        // Fallback: find closest color in palette (shouldn't happen often)
+        // Find closest color
         let minDist = Infinity;
-        let bestIdx = 0;
+        let bestIdx = hasTransparency ? 1 : 0;
 
-        for (let k = 0; k < colors.length; k++) {
+        for (let k = hasTransparency ? 1 : 0; k < colors.length; k++) {
           const dr = r - colors[k].r;
           const dg = g - colors[k].g;
           const db = b - colors[k].b;
@@ -167,7 +225,7 @@ export class GIFEncoder {
       }
     }
 
-    return { palette, indexed };
+    return { palette, indexed, hasTransparency, transparentIndex };
   }
 
   private nextPowerOf2(n: number): number {
@@ -192,15 +250,16 @@ export class GIFEncoder {
     }
 
     const output: number[] = [];
-
-    // Get loop count from options (default to 0 = infinite)
     const loopCount = options?.loop ?? 0;
 
     // Quantize first frame for Global Color Table
     const firstFrame = this.frames[0];
-    const { palette: globalPalette, indexed: firstIndexed } = this.quantize(
+    const firstResult = this.quantize(
       firstFrame.data,
+      firstFrame.width,
+      firstFrame.height,
     );
+    const globalPalette = firstResult.palette;
     const paletteSize = globalPalette.length / 3;
     const bitsPerColor = this.getBitsPerColor(paletteSize);
 
@@ -208,26 +267,15 @@ export class GIFEncoder {
     this.writeString(output, "GIF89a");
 
     // Logical Screen Descriptor
-    this.writeUint16LE(output, this.width);
-    this.writeUint16LE(output, this.height);
+    this.writeUint16LE(output, this.canvasWidth);
+    this.writeUint16LE(output, this.canvasHeight);
 
-    // Packed field:
-    // - Global Color Table Flag (1 bit): 1
-    // - Color Resolution (3 bits): bitsPerColor - 1
-    // - Sort Flag (1 bit): 0
-    // - Size of Global Color Table (3 bits): bitsPerColor - 1
     const packed = 0x80 | ((bitsPerColor - 1) << 4) | (bitsPerColor - 1);
     output.push(packed);
-
-    // Background Color Index
-    output.push(0);
-
-    // Pixel Aspect Ratio
-    output.push(0);
+    output.push(0); // Background Color Index
+    output.push(0); // Pixel Aspect Ratio
 
     // Global Color Table
-    // The GCT size is 2^(n+1) where n is the value in the packed field
-    // So we need to write that many colors, padding if necessary
     const gctSize = 1 << bitsPerColor;
     const paddedPalette = new Uint8Array(gctSize * 3);
     paddedPalette.set(globalPalette);
@@ -235,14 +283,11 @@ export class GIFEncoder {
 
     // Netscape Application Extension (Looping)
     if (this.frames.length > 1) {
-      output.push(0x21); // Extension Introducer
-      output.push(0xff); // Application Extension Label
-      output.push(11); // Block Size
+      output.push(0x21, 0xff, 11);
       this.writeString(output, "NETSCAPE2.0");
-      output.push(3); // Sub-block Size
-      output.push(1); // Loop Indicator (1 = loop)
-      this.writeUint16LE(output, loopCount); // Loop Count (0 = infinite, 1+ = specific count)
-      output.push(0); // Block Terminator
+      output.push(3, 1);
+      this.writeUint16LE(output, loopCount);
+      output.push(0);
     }
 
     // Encode frames
@@ -252,81 +297,68 @@ export class GIFEncoder {
       let useLocalPalette = false;
       let localPalette: Uint8Array | null = null;
       let localBitsPerColor = bitsPerColor;
+      let hasTransparency: boolean;
+      let transparentIndex: number;
 
       if (i === 0) {
-        indexed = firstIndexed;
+        indexed = firstResult.indexed;
+        hasTransparency = firstResult.hasTransparency;
+        transparentIndex = firstResult.transparentIndex;
       } else {
-        // Quantize subsequent frames
-        // For simplicity, we use a Local Color Table for each frame to ensure colors are correct
-        const result = this.quantize(frame.data);
+        const result = this.quantize(frame.data, frame.width, frame.height);
         indexed = result.indexed;
         localPalette = result.palette;
         useLocalPalette = true;
-
-        const localPaletteSize = localPalette.length / 3;
-        localBitsPerColor = this.getBitsPerColor(localPaletteSize);
+        hasTransparency = result.hasTransparency;
+        transparentIndex = result.transparentIndex;
+        localBitsPerColor = this.getBitsPerColor(localPalette.length / 3);
       }
 
       // Graphic Control Extension
-      output.push(0x21); // Extension Introducer
-      output.push(0xf9); // Graphic Control Label
-      output.push(4); // Byte Size
+      output.push(0x21, 0xf9, 4);
 
-      // Packed Field
-      // Reserved (3 bits)
-      // Disposal Method (3 bits): 2 (Restore to background) - usually safe for animation
-      // User Input Flag (1 bit): 0
-      // Transparent Color Flag (1 bit): 0
-      output.push(0x08); // Disposal method 2 (Restore to background)
+      // Packed: disposal method + transparency flag
+      const disposal = frame.disposal & 0x07;
+      const gcePacked = (disposal << 2) | (hasTransparency ? 1 : 0);
+      output.push(gcePacked);
 
-      // Delay Time (1/100ths of a second)
-      // Default to 10 (100ms) if not specified
+      // Delay time
       const delay = frame.delay > 0 ? Math.round(frame.delay / 10) : 10;
       this.writeUint16LE(output, delay);
 
-      // Transparent Color Index
-      output.push(0);
-
+      // Transparent color index
+      output.push(hasTransparency ? transparentIndex : 0);
       output.push(0); // Block Terminator
 
       // Image Descriptor
-      output.push(0x2c); // Image Separator
-      this.writeUint16LE(output, 0); // Left
-      this.writeUint16LE(output, 0); // Top
-      this.writeUint16LE(output, this.width);
-      this.writeUint16LE(output, this.height);
+      output.push(0x2c);
+      this.writeUint16LE(output, frame.left);
+      this.writeUint16LE(output, frame.top);
+      this.writeUint16LE(output, frame.width);
+      this.writeUint16LE(output, frame.height);
 
-      // Packed Field
       if (useLocalPalette && localPalette) {
-        // LCT Flag: 1
-        // Interlace: 0
-        // Sort: 0
-        // Reserved: 0
-        // Size of LCT: localBitsPerColor - 1
         const lctPacked = 0x80 | (localBitsPerColor - 1);
         output.push(lctPacked);
 
-        // Write Local Color Table
         const lctSize = 1 << localBitsPerColor;
         const paddedLct = new Uint8Array(lctSize * 3);
         paddedLct.set(localPalette);
         this.writeBytes(output, paddedLct);
       } else {
-        output.push(0); // No LCT
+        output.push(0);
       }
 
-      // LZW Minimum Code Size
+      // LZW compression
       const minCodeSize = Math.max(
         2,
         useLocalPalette ? localBitsPerColor : bitsPerColor,
       );
       output.push(minCodeSize);
 
-      // Compress image data with LZW
       const encoder = new LZWEncoder(minCodeSize);
       const compressed = encoder.compress(indexed);
 
-      // Write compressed data in sub-blocks (max 255 bytes per block)
       for (let k = 0; k < compressed.length; k += 255) {
         const blockSize = Math.min(255, compressed.length - k);
         output.push(blockSize);
@@ -338,9 +370,7 @@ export class GIFEncoder {
       output.push(0); // Block Terminator
     }
 
-    // Trailer
-    output.push(0x3b);
-
+    output.push(0x3b); // Trailer
     return new Uint8Array(output);
   }
 }

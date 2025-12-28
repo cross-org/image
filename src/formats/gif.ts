@@ -281,12 +281,32 @@ export class GIFFormat implements ImageFormat {
     const encoder = new GIFEncoder(imageData.width, imageData.height);
 
     for (const frame of imageData.frames) {
-      // Get delay from metadata (default to 100ms if not set)
       const delay = frame.frameMetadata?.delay ?? 100;
-      encoder.addFrame(frame.data, delay);
+      encoder.addFrame(frame.data, delay, {
+        left: frame.frameMetadata?.left ?? 0,
+        top: frame.frameMetadata?.top ?? 0,
+        width: frame.width,
+        height: frame.height,
+        disposal: this.mapDisposalMethodToNumber(frame.frameMetadata?.disposal),
+      });
     }
 
     return Promise.resolve(encoder.encode(options));
+  }
+
+  private mapDisposalMethodToNumber(
+    disposal?: "none" | "background" | "previous",
+  ): number {
+    switch (disposal) {
+      case "none":
+        return 1;
+      case "background":
+        return 2;
+      case "previous":
+        return 3;
+      default:
+        return 0;
+    }
   }
 
   private mapDisposalMethod(
