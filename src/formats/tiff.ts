@@ -1071,7 +1071,7 @@ export class TIFFFormat implements ImageFormat {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         bitmap.close();
 
-        return new Uint8Array(imageData.data.buffer);
+        return new Uint8Array(imageData.data);
       } catch (error) {
         throw new Error(`TIFF decoding failed: ${error}`);
       }
