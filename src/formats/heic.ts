@@ -184,7 +184,7 @@ export class HEICFormat implements ImageFormat {
         return {
           width: canvas.width,
           height: canvas.height,
-          rgba: new Uint8Array(imageData.data.buffer),
+          rgba: new Uint8Array(imageData.data),
         };
       } catch (error) {
         throw new Error(`HEIC decoding with ImageDecoder failed: ${error}`);

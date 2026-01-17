@@ -261,7 +261,7 @@ export class JPEGFormat implements ImageFormat {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         bitmap.close();
 
-        return new Uint8Array(imageData.data.buffer);
+        return new Uint8Array(imageData.data);
       } catch (_error) {
         // ImageDecoder API failed, fall through to pure JS decoder
       }
