@@ -110,8 +110,8 @@ export abstract class PNGBase {
       // Convert to RGBA
       for (let x = 0; x < width; x++) {
         const outIdx = (y * width + x) * 4;
-        if (bitDepth < 8) {
-          // Sub-byte grayscale: multiple pixels packed per byte
+        if (bitDepth < 8 && (colorType === 0 || colorType === 3)) {
+          // Sub-byte grayscale or indexed-color: multiple pixels packed per byte
           const pixelsPerByte = 8 / bitDepth;
           const byteIndex = Math.floor(x / pixelsPerByte);
           const bitShift = bitDepth * (pixelsPerByte - 1 - (x % pixelsPerByte));
