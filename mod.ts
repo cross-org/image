@@ -87,3 +87,5 @@ export { AVIFFormat } from "./src/formats/avif.ts";
 
 export { decodeBase64, encodeBase64, parseDataUrl, toDataUrl } from "./src/utils/base64.ts";
 export { cmykToRgb, cmykToRgba, rgbaToCmyk, rgbToCmyk } from "./src/utils/image_processing.ts";
+export { Cron, CronIterator } from "./src/cron.ts";
+export type { CronOptions } from "./src/cron.ts";

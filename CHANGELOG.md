@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `Cron` class: stateless 5-field cron expression scheduler with `next(from?)` and
+  `enumerate(startAt?)` methods.
+- `CronIterator` class: stateful ECMAScript-compliant iterator/iterable returned by
+  `Cron.enumerate()`. Supports `next()`, `peek()`, `reset()`, `[Symbol.iterator]()`, `for…of`, and
+  destructuring. Respects `stopAt` and `maxRuns` options.
+- `CronOptions` type exported from the public API.
+
 ## [0.4.3] - 2025-12-28
 
 ### Fixed
