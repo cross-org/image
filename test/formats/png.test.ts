@@ -500,3 +500,96 @@ test("PNG: indexed color (type 3) - 1-bit depth", async () => {
     assertEquals(decoded.data[i * 4 + 3], 255); // A
   }
 });
+
+test("PNG: indexed color (type 3) - missing PLTE chunk throws", async () => {
+  const format = new PNGFormat();
+  const helper = new PNGTestHelper();
+
+  // Build an indexed PNG without a PLTE chunk
+  const ihdr = new Uint8Array(13);
+  helper.writeU32(ihdr, 0, 2);
+  helper.writeU32(ihdr, 4, 1);
+  ihdr[8] = 8; // bitDepth
+  ihdr[9] = 3; // color type: indexed
+
+  // scanline: filter=0, then 2 indices
+  const rawData = new Uint8Array([0, 0, 1]);
+  const compressed = await helper.compress(rawData);
+
+  const chunks: Uint8Array[] = [
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    helper.buildChunk("IHDR", ihdr),
+    // PLTE intentionally omitted
+    helper.buildChunk("IDAT", compressed),
+    helper.buildChunk("IEND", new Uint8Array(0)),
+  ];
+
+  await assertRejects(
+    async () => await format.decode(helper.concatArrays(chunks)),
+    Error,
+    "PLTE chunk",
+  );
+});
+
+test("PNG: indexed color (type 3) - PLTE length not divisible by 3 throws", async () => {
+  const format = new PNGFormat();
+  const helper = new PNGTestHelper();
+
+  const ihdr = new Uint8Array(13);
+  helper.writeU32(ihdr, 0, 1);
+  helper.writeU32(ihdr, 4, 1);
+  ihdr[8] = 8;
+  ihdr[9] = 3;
+
+  // Invalid PLTE: 5 bytes (not a multiple of 3)
+  const badPlte = new Uint8Array([255, 0, 0, 0, 255]);
+
+  const rawData = new Uint8Array([0, 0]);
+  const compressed = await helper.compress(rawData);
+
+  const chunks: Uint8Array[] = [
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    helper.buildChunk("IHDR", ihdr),
+    helper.buildChunk("PLTE", badPlte),
+    helper.buildChunk("IDAT", compressed),
+    helper.buildChunk("IEND", new Uint8Array(0)),
+  ];
+
+  await assertRejects(
+    async () => await format.decode(helper.concatArrays(chunks)),
+    Error,
+    "multiple of 3",
+  );
+});
+
+test("PNG: indexed color (type 3) - out-of-range palette index throws", async () => {
+  const format = new PNGFormat();
+  const helper = new PNGTestHelper();
+
+  const ihdr = new Uint8Array(13);
+  helper.writeU32(ihdr, 0, 1);
+  helper.writeU32(ihdr, 4, 1);
+  ihdr[8] = 8;
+  ihdr[9] = 3;
+
+  // Palette with only 2 colors (indices 0 and 1)
+  const plte = new Uint8Array([255, 0, 0, 0, 255, 0]);
+
+  // Pixel references index 5 which is out of range
+  const rawData = new Uint8Array([0, 5]);
+  const compressed = await helper.compress(rawData);
+
+  const chunks: Uint8Array[] = [
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    helper.buildChunk("IHDR", ihdr),
+    helper.buildChunk("PLTE", plte),
+    helper.buildChunk("IDAT", compressed),
+    helper.buildChunk("IEND", new Uint8Array(0)),
+  ];
+
+  await assertRejects(
+    async () => await format.decode(helper.concatArrays(chunks)),
+    Error,
+    "out of range",
+  );
+});
