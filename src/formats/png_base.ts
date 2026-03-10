@@ -71,6 +71,7 @@ export abstract class PNGBase {
 
   /**
    * Unfilter PNG scanlines and convert to RGBA
+   * @param palette RGBA palette for indexed color (color type 3): flat array [R,G,B,A, R,G,B,A, ...]
    */
   protected unfilterAndConvert(
     data: Uint8Array,
@@ -78,10 +79,19 @@ export abstract class PNGBase {
     height: number,
     bitDepth: number,
     colorType: number,
+    palette?: Uint8Array,
   ): Uint8Array {
     const rgba = new Uint8Array(width * height * 4);
     const bytesPerPixel = this.getBytesPerPixel(colorType, bitDepth);
-    const scanlineLength = width * bytesPerPixel;
+
+    // For indexed color with sub-byte bit depths, scanline bytes != width * bytesPerPixel
+    const scanlineLength = colorType === 3 && bitDepth < 8
+      ? Math.ceil(width * bitDepth / 8)
+      : width * bytesPerPixel;
+
+    // Filter prediction uses bytesPerPixel=1 for sub-byte bit depths
+    const filterBpp = bitDepth < 8 ? 1 : bytesPerPixel;
+
     let dataPos = 0;
     const scanlines: Uint8Array[] = [];
 
@@ -97,7 +107,7 @@ export abstract class PNGBase {
         scanline,
         y > 0 ? scanlines[y - 1] : null,
         filterType,
-        bytesPerPixel,
+        filterBpp,
       );
 
       scanlines.push(scanline);
@@ -121,6 +131,29 @@ export abstract class PNGBase {
           rgba[outIdx + 1] = gray;
           rgba[outIdx + 2] = gray;
           rgba[outIdx + 3] = 255;
+        } else if (colorType === 3) { // Indexed (palette)
+          let index: number;
+          if (bitDepth === 8) {
+            index = scanline[x];
+          } else {
+            // Unpack sub-byte pixel index from packed scanline byte
+            const byteIdx = Math.floor((x * bitDepth) / 8);
+            const bitShift = 8 - bitDepth - ((x * bitDepth) % 8);
+            const mask = (1 << bitDepth) - 1;
+            index = (scanline[byteIdx] >> bitShift) & mask;
+          }
+          if (palette) {
+            rgba[outIdx] = palette[index * 4];
+            rgba[outIdx + 1] = palette[index * 4 + 1];
+            rgba[outIdx + 2] = palette[index * 4 + 2];
+            rgba[outIdx + 3] = palette[index * 4 + 3];
+          } else {
+            // No palette: treat index as grayscale value
+            rgba[outIdx] = index;
+            rgba[outIdx + 1] = index;
+            rgba[outIdx + 2] = index;
+            rgba[outIdx + 3] = 255;
+          }
         } else {
           throw new Error(`Unsupported PNG color type: ${colorType}`);
         }
