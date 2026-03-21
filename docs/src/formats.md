@@ -21,7 +21,10 @@ This table shows which image formats are supported and their implementation stat
 | DNG    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | Linear DNG (Uncompressed RGBA)                                                                                                                  |
 | PAM    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | Netpbm PAM (Portable Arbitrary Map)                                                                                                             |
 | PPM    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | Netpbm PPM (Portable PixMap) P3/P6 formats                                                                                                      |
+| PGM    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | Netpbm PGM (Portable GrayMap) P2/P5 formats                                                                                                     |
+| PBM    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | Netpbm PBM (Portable BitMap) P1/P4 formats                                                                                                      |
 | PCX    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | ZSoft PCX (RLE compressed)                                                                                                                      |
+| QOI    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | Quite OK Image — fast lossless format                                                                                                           |
 | ASCII  | ✅   | ✅    | ✅ Full                   | ✅ Full                   | N/A               | N/A                | Text-based ASCII art representation                                                                                                             |
 | JPEG   | ✅   | ✅    | ⚠️ Baseline & Progressive | ⚠️ Baseline & Progressive | ✅ ImageDecoder   | ✅ OffscreenCanvas | Pure-JS decode: baseline & progressive (spectral selection + successive approximation). Encode: baseline (native) + basic progressive (pure-JS) |
 | GIF    | ✅   | ✅    | ✅ Full                   | ✅ Full                   | ✅ ImageDecoder   | ✅ OffscreenCanvas | Complete pure-JS implementation                                                                                                                 |
@@ -100,6 +103,22 @@ This table shows which format standards and variants are supported:
 |        | - P6 (Binary) format                 | ✅ Full           | Pure-JS        |
 |        | - Comments in header                 | ✅ Full           | Pure-JS        |
 |        | - Maxval scaling (1-255)             | ✅ Full           | Pure-JS        |
+| PGM    | Netpbm PGM (Portable GrayMap)        | ✅ Full           | Pure-JS        |
+|        | - P2 (ASCII) format                  | ✅ Full           | Pure-JS        |
+|        | - P5 (Binary) format                 | ✅ Full           | Pure-JS        |
+|        | - Comments in header                 | ✅ Full           | Pure-JS        |
+|        | - Maxval scaling (1-255)             | ✅ Full           | Pure-JS        |
+|        | - Encode: RGB to grayscale via luma  | ✅ Full           | Pure-JS        |
+| PBM    | Netpbm PBM (Portable BitMap)         | ✅ Full           | Pure-JS        |
+|        | - P1 (ASCII) format                  | ✅ Full           | Pure-JS        |
+|        | - P4 (Binary) format, packed bits    | ✅ Full           | Pure-JS        |
+|        | - Row padding to byte boundary       | ✅ Full           | Pure-JS        |
+|        | - Encode: luma threshold at 128      | ✅ Full           | Pure-JS        |
+| QOI    | QOI (Quite OK Image)                 | ✅ Full           | Pure-JS        |
+|        | - RGBA channels                      | ✅ Full           | Pure-JS        |
+|        | - RUN encoding                       | ✅ Full           | Pure-JS        |
+|        | - INDEX (color cache)                | ✅ Full           | Pure-JS        |
+|        | - DIFF / LUMA delta encoding         | ✅ Full           | Pure-JS        |
 | PCX    | ZSoft PCX Version 5 (3.0)            | ✅ Full           | Pure-JS        |
 |        | - 24-bit RGB (3 planes)              | ✅ Full           | Pure-JS        |
 |        | - 8-bit Palette (1 plane)            | ✅ Decode only    | Pure-JS        |
@@ -126,7 +145,10 @@ This table shows which format standards and variants are supported:
 | DNG    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
 | PAM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
 | PPM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
+| PGM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
+| PBM    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
 | PCX    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
+| QOI    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
 | ASCII  | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
 | GIF    | ✅       | ✅          | ✅          | ✅  | Pure-JS works everywhere                                           |
 | JPEG   | ✅       | ✅          | ✅          | ✅  | Pure-JS baseline & progressive DCT with spectral selection         |
@@ -136,7 +158,7 @@ This table shows which format standards and variants are supported:
 | AVIF   | ✅       | ⚠️ Runtime  | ✅          | ✅  | Requires ImageDecoder API support                                  |
 
 **Note**: For maximum compatibility across all runtimes, use PNG, APNG, BMP, ICO, GIF, ASCII, PCX,
-PPM or DNG formats which have complete pure-JS implementations.
+PPM, PGM, PBM, QOI or DNG formats which have complete pure-JS implementations.
 
 ## Implementation Details
 
