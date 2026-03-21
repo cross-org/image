@@ -333,3 +333,86 @@ test("QOI: getSupportedMetadata", () => {
   const format = new QOIFormat();
   assertEquals(format.getSupportedMetadata(), []);
 });
+
+test("QOI: encode and decode - wraparound DIFF (255 to 0 and 0 to 255)", async () => {
+  const format = new QOIFormat();
+
+  // Pixel transitions that wrap around byte boundaries:
+  // prev {0,0,0,255} (initial) → {0,0,0,255} same → then transitions with wraparound
+  const imageData = {
+    width: 4,
+    height: 1,
+    data: new Uint8Array([
+      255,
+      255,
+      255,
+      255, // first pixel
+      0,
+      0,
+      0,
+      255, // 255→0: wraparound diff of +1 per channel
+      255,
+      255,
+      255,
+      255, // 0→255: wraparound diff of -1 per channel
+      1,
+      1,
+      1,
+      255, // 255→1: wraparound diff of +2... wait, that's outside DIFF range
+    ]),
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.width, 4);
+  assertEquals(decoded.height, 1);
+  for (let i = 0; i < 4; i++) {
+    assertEquals(decoded.data[i * 4], imageData.data[i * 4], `pixel ${i} R`);
+    assertEquals(decoded.data[i * 4 + 1], imageData.data[i * 4 + 1], `pixel ${i} G`);
+    assertEquals(decoded.data[i * 4 + 2], imageData.data[i * 4 + 2], `pixel ${i} B`);
+    assertEquals(decoded.data[i * 4 + 3], imageData.data[i * 4 + 3], `pixel ${i} A`);
+  }
+
+  // The wraparound transitions (255→0 and 0→255) should use DIFF encoding,
+  // producing a smaller file than if they fell through to RGB
+  // Header (14) + first pixel as RGB (4) + two DIFFs (2) + one RGB or LUMA + end (8)
+  // Without wraparound fix: 14 + 4 + 4 + 4 + 4 + 8 = much larger (all RGB)
+  // With wraparound: should be noticeably smaller
+});
+
+test("QOI: encode uses DIFF for byte-wraparound transitions", async () => {
+  const format = new QOIFormat();
+
+  // Two pixels: {254,254,254,255} → {0,0,0,255}
+  // With wraparound: diff = +2 per channel → outside DIFF range [-2,1]
+  // {255,255,255,255} → {0,0,0,255}: diff = +1 → inside DIFF range
+  const imageData = {
+    width: 2,
+    height: 1,
+    data: new Uint8Array([
+      255,
+      255,
+      255,
+      255,
+      0,
+      0,
+      0,
+      255,
+    ]),
+  };
+
+  const encoded = await format.encode(imageData);
+  const decoded = await format.decode(encoded);
+
+  assertEquals(decoded.data[0], 255);
+  assertEquals(decoded.data[4], 0);
+  assertEquals(decoded.data[5], 0);
+  assertEquals(decoded.data[6], 0);
+  assertEquals(decoded.data[7], 255);
+
+  // Encoding: header(14) + RGB for {255,255,255,255}(4) + DIFF for +1(1) + end(8) = 27
+  // Without wraparound: header(14) + RGB(4) + RGB(4) + end(8) = 30
+  // The DIFF encoding should make this smaller
+  assertEquals(encoded.length <= 27, true, `Expected compact encoding, got ${encoded.length}`);
+});

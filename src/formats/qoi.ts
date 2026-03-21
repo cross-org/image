@@ -249,18 +249,20 @@ export class QOIFormat implements ImageFormat {
       ) {
         out[offset++] = QOI_OP_INDEX | hash;
       } else if (a === prevA) {
-        const dr = (r - prevR) | 0;
-        const dg = (g - prevG) | 0;
-        const db = (b - prevB) | 0;
+        // Compute channel diffs with byte-wrapping (matching C signed char behavior).
+        // The QOI spec mandates wraparound: e.g. going from 255 to 0 is a diff of +1.
+        const vr = (((r - prevR) & 0xff) ^ 0x80) - 0x80;
+        const vg = (((g - prevG) & 0xff) ^ 0x80) - 0x80;
+        const vb = (((b - prevB) & 0xff) ^ 0x80) - 0x80;
 
-        if (dr >= -2 && dr <= 1 && dg >= -2 && dg <= 1 && db >= -2 && db <= 1) {
-          out[offset++] = QOI_OP_DIFF | ((dr + 2) << 4) | ((dg + 2) << 2) | (db + 2);
+        if (vr >= -2 && vr <= 1 && vg >= -2 && vg <= 1 && vb >= -2 && vb <= 1) {
+          out[offset++] = QOI_OP_DIFF | ((vr + 2) << 4) | ((vg + 2) << 2) | (vb + 2);
         } else {
-          const dgR = dr - dg;
-          const dgB = db - dg;
-          if (dg >= -32 && dg <= 31 && dgR >= -8 && dgR <= 7 && dgB >= -8 && dgB <= 7) {
-            out[offset++] = QOI_OP_LUMA | (dg + 32);
-            out[offset++] = ((dgR + 8) << 4) | (dgB + 8);
+          const vgR = vr - vg;
+          const vgB = vb - vg;
+          if (vg >= -32 && vg <= 31 && vgR >= -8 && vgR <= 7 && vgB >= -8 && vgB <= 7) {
+            out[offset++] = QOI_OP_LUMA | (vg + 32);
+            out[offset++] = ((vgR + 8) << 4) | (vgB + 8);
           } else {
             out[offset++] = QOI_OP_RGB;
             out[offset++] = r;
