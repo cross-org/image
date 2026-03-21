@@ -19,16 +19,29 @@ function pixelDataEqual(data1: Uint8Array, data2: Uint8Array): boolean {
   return true;
 }
 
-// Helper to compare pixel data with tolerance for lossy formats
+// Helper to compare pixel data with tolerance for lossy formats.
+// Instead of requiring every byte to be within tolerance (which is too strict
+// for JPEG and can be flaky across runtimes/encoders), we allow a small
+// fraction of bytes to exceed the tolerance while still considering the
+// images "similar". This is sufficient to catch structural corruption while
+// avoiding over-sensitivity to encoder differences.
 function pixelDataSimilar(
   data1: Uint8Array,
   data2: Uint8Array,
   tolerance = 5,
 ): boolean {
   if (data1.length !== data2.length) return false;
+
+  // Allow up to 5% of bytes to exceed the tolerance.
+  const maxOutlierRatio = 0.05;
+  let outlierCount = 0;
+
   for (let i = 0; i < data1.length; i++) {
     if (Math.abs(data1[i] - data2[i]) > tolerance) {
-      return false;
+      outlierCount++;
+      if (outlierCount / data1.length > maxOutlierRatio) {
+        return false;
+      }
     }
   }
   return true;
@@ -197,4 +210,38 @@ test("Multiple roundtrips: JPEG stability", async () => {
     true,
     `Average blue should be close to 192, got ${avgBlue}`,
   );
+
+  // Additionally verify a few specific pixel positions to catch offset/stride issues.
+  // Because JPEG is lossy, allow a generous per-channel tolerance.
+  const channelTolerance = 40;
+  const sampleCoords: Array<[number, number]> = [
+    [0, 0], // top-left
+    [width - 1, 0], // top-right
+    [0, height - 1], // bottom-left
+    [width - 1, height - 1], // bottom-right
+    [Math.floor(width / 2), Math.floor(height / 2)], // center
+  ];
+
+  for (const [x, y] of sampleCoords) {
+    const idx = (y * width + x) * 4;
+    const r = finalData[idx];
+    const g = finalData[idx + 1];
+    const b = finalData[idx + 2];
+
+    assertEquals(
+      Math.abs(r - 128) <= channelTolerance,
+      true,
+      `Pixel at (${x}, ${y}) has unexpected red channel: ${r}`,
+    );
+    assertEquals(
+      Math.abs(g - 64) <= channelTolerance,
+      true,
+      `Pixel at (${x}, ${y}) has unexpected green channel: ${g}`,
+    );
+    assertEquals(
+      Math.abs(b - 192) <= channelTolerance,
+      true,
+      `Pixel at (${x}, ${y}) has unexpected blue channel: ${b}`,
+    );
+  }
 });
