@@ -17,9 +17,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - PNG decoder: sub-byte grayscale formats (bitDepth 1, 2, 4) now compute the correct scanline byte
   length (`ceil(width * bitsPerPixel / 8)`) and correctly unpack pixel values from packed bytes;
   previously the scanline was over-read and raw byte values were used directly as gray values
-- Bun compatibility: PNG/APNG/ICO deflate and TIFF Deflate compression now use `node:zlib` fallback
-  in Bun, working around Bun's broken `CompressionStream`/`DecompressionStream` that hangs
-  indefinitely
 
 ## [0.4.3] - 2025-12-28
 
