@@ -48,6 +48,228 @@ test("QOI: decode - invalid data throws", async () => {
   );
 });
 
+test("QOI: decode - truncated QOI_OP_RGB payload throws", async () => {
+  const format = new QOIFormat();
+
+  // Valid header for 1×1 image, then QOI_OP_RGB (0xFE) but only 2 of 3 payload bytes
+  // before end marker
+  const data = new Uint8Array([
+    0x71,
+    0x6f,
+    0x69,
+    0x66, // magic "qoif"
+    0,
+    0,
+    0,
+    1, // width=1
+    0,
+    0,
+    0,
+    1, // height=1
+    4, // channels=4
+    0, // colorspace=sRGB
+    0xfe, // QOI_OP_RGB
+    128,
+    64, // only 2 of 3 bytes
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1, // end marker
+  ]);
+
+  await assertRejects(
+    async () => await format.decode(data),
+    Error,
+    "Truncated QOI data",
+  );
+});
+
+test("QOI: decode - truncated QOI_OP_RGBA payload throws", async () => {
+  const format = new QOIFormat();
+
+  // Valid header for 1×1, then QOI_OP_RGBA (0xFF) but only 3 of 4 payload bytes
+  const data = new Uint8Array([
+    0x71,
+    0x6f,
+    0x69,
+    0x66, // magic
+    0,
+    0,
+    0,
+    1, // width=1
+    0,
+    0,
+    0,
+    1, // height=1
+    4,
+    0, // channels, colorspace
+    0xff, // QOI_OP_RGBA
+    128,
+    64,
+    32, // only 3 of 4 bytes
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1, // end marker
+  ]);
+
+  await assertRejects(
+    async () => await format.decode(data),
+    Error,
+    "Truncated QOI data",
+  );
+});
+
+test("QOI: decode - truncated QOI_OP_LUMA payload throws", async () => {
+  const format = new QOIFormat();
+
+  // Valid header for 1×1, then QOI_OP_LUMA tag (0x80) but missing second byte
+  const data = new Uint8Array([
+    0x71,
+    0x6f,
+    0x69,
+    0x66, // magic
+    0,
+    0,
+    0,
+    1, // width=1
+    0,
+    0,
+    0,
+    1, // height=1
+    4,
+    0, // channels, colorspace
+    0x80, // QOI_OP_LUMA (needs 1 more byte)
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1, // end marker
+  ]);
+
+  await assertRejects(
+    async () => await format.decode(data),
+    Error,
+    "Truncated QOI data",
+  );
+});
+
+test("QOI: decode - incomplete pixel stream throws", async () => {
+  const format = new QOIFormat();
+
+  // Header says 2×2 (4 pixels), but data stream only produces 1 pixel
+  const data = new Uint8Array([
+    0x71,
+    0x6f,
+    0x69,
+    0x66, // magic
+    0,
+    0,
+    0,
+    2, // width=2
+    0,
+    0,
+    0,
+    2, // height=2
+    4,
+    0, // channels, colorspace
+    0xfe,
+    128,
+    64,
+    32, // QOI_OP_RGB: 1 pixel
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1, // end marker
+  ]);
+
+  await assertRejects(
+    async () => await format.decode(data),
+    Error,
+    "Incomplete QOI image",
+  );
+});
+
+test("QOI: decode - invalid end marker throws", async () => {
+  const format = new QOIFormat();
+
+  // Valid header for 1×1 image with a valid pixel, but wrong end marker
+  const data = new Uint8Array([
+    0x71,
+    0x6f,
+    0x69,
+    0x66, // magic
+    0,
+    0,
+    0,
+    1, // width=1
+    0,
+    0,
+    0,
+    1, // height=1
+    4,
+    0, // channels, colorspace
+    0xfe,
+    128,
+    64,
+    32, // QOI_OP_RGB: 1 pixel
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0, // wrong end marker (all zeros)
+  ]);
+
+  await assertRejects(
+    async () => await format.decode(data),
+    Error,
+    "Invalid QOI end marker",
+  );
+});
+
+test("QOI: extractMetadata - invalid channels returns undefined", async () => {
+  const format = new QOIFormat();
+
+  // Valid QOI signature but channels=5 (invalid)
+  const data = new Uint8Array([
+    0x71,
+    0x6f,
+    0x69,
+    0x66, // magic
+    0,
+    0,
+    0,
+    1, // width
+    0,
+    0,
+    0,
+    1, // height
+    5, // channels=5 (invalid)
+    0, // colorspace
+  ]);
+
+  const metadata = await format.extractMetadata(data);
+  assertEquals(metadata, undefined);
+});
+
 test("QOI: encode and decode - single pixel", async () => {
   const format = new QOIFormat();
 

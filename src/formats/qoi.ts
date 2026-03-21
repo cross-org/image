@@ -99,6 +99,9 @@ export class QOIFormat implements ImageFormat {
       const byte = data[offset++];
 
       if (byte === QOI_OP_RGB) {
+        if (offset + 3 > dataEnd) {
+          throw new Error("Truncated QOI data: incomplete QOI_OP_RGB chunk");
+        }
         r = data[offset++];
         g = data[offset++];
         b = data[offset++];
@@ -109,6 +112,9 @@ export class QOIFormat implements ImageFormat {
         colorArray[hash * 4 + 2] = b;
         colorArray[hash * 4 + 3] = a;
       } else if (byte === QOI_OP_RGBA) {
+        if (offset + 4 > dataEnd) {
+          throw new Error("Truncated QOI data: incomplete QOI_OP_RGBA chunk");
+        }
         r = data[offset++];
         g = data[offset++];
         b = data[offset++];
@@ -135,6 +141,9 @@ export class QOIFormat implements ImageFormat {
         colorArray[hash * 4 + 2] = b;
         colorArray[hash * 4 + 3] = a;
       } else if ((byte & 0xc0) === QOI_OP_LUMA) {
+        if (offset + 1 > dataEnd) {
+          throw new Error("Truncated QOI data: incomplete QOI_OP_LUMA chunk");
+        }
         const byte2 = data[offset++];
         const dg = (byte & 0x3f) - 32;
         r = (r + dg - 8 + ((byte2 >> 4) & 0x0f)) & 0xff;
@@ -166,6 +175,23 @@ export class QOIFormat implements ImageFormat {
       rgba[di + 2] = b;
       rgba[di + 3] = a;
       pixelIndex++;
+    }
+
+    if (pixelIndex < pixelCount) {
+      throw new Error(
+        `Incomplete QOI image: decoded ${pixelIndex} of ${pixelCount} pixels`,
+      );
+    }
+
+    // Verify the 8-byte end marker
+    const markerStart = data.length - 8;
+    for (let i = 0; i < 7; i++) {
+      if (data[markerStart + i] !== 0x00) {
+        throw new Error("Invalid QOI end marker");
+      }
+    }
+    if (data[markerStart + 7] !== 0x01) {
+      throw new Error("Invalid QOI end marker");
     }
 
     return Promise.resolve({ width, height, data: rgba });
@@ -320,6 +346,8 @@ export class QOIFormat implements ImageFormat {
     if (!this.canDecode(data)) return Promise.resolve(undefined);
 
     const channels = data[12];
+
+    if (channels !== 3 && channels !== 4) return Promise.resolve(undefined);
 
     return Promise.resolve({
       format: "qoi",
