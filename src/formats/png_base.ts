@@ -80,8 +80,13 @@ export abstract class PNGBase {
     colorType: number,
   ): Uint8Array {
     const rgba = new Uint8Array(width * height * 4);
-    const bytesPerPixel = this.getBytesPerPixel(colorType, bitDepth);
-    const scanlineLength = width * bytesPerPixel;
+    const bitsPerPixel = this.getBitsPerPixel(colorType, bitDepth);
+    // bytesPerPixel for PNG filter predictor: floor(bpp/8), min 1 (sub-byte formats use 1)
+    const bytesPerPixel = Math.max(1, Math.floor(bitsPerPixel / 8));
+    // Correct scanline byte count: ceil(width * bitsPerPixel / 8) handles sub-byte formats
+    const scanlineLength = Math.ceil(width * bitsPerPixel / 8);
+    // Number of bytes per channel (1 for 8-bit, 2 for 16-bit)
+    const channelSize = bitDepth >= 8 ? bitDepth >> 3 : 1;
     let dataPos = 0;
     const scanlines: Uint8Array[] = [];
 
@@ -105,24 +110,47 @@ export abstract class PNGBase {
       // Convert to RGBA
       for (let x = 0; x < width; x++) {
         const outIdx = (y * width + x) * 4;
-        if (colorType === 6) { // RGBA
-          rgba[outIdx] = scanline[x * 4];
-          rgba[outIdx + 1] = scanline[x * 4 + 1];
-          rgba[outIdx + 2] = scanline[x * 4 + 2];
-          rgba[outIdx + 3] = scanline[x * 4 + 3];
-        } else if (colorType === 2) { // RGB
-          rgba[outIdx] = scanline[x * 3];
-          rgba[outIdx + 1] = scanline[x * 3 + 1];
-          rgba[outIdx + 2] = scanline[x * 3 + 2];
-          rgba[outIdx + 3] = 255;
-        } else if (colorType === 0) { // Grayscale
-          const gray = scanline[x];
+        if (bitDepth < 8 && (colorType === 0 || colorType === 3)) {
+          // Sub-byte grayscale or indexed-color: multiple pixels packed per byte
+          const pixelsPerByte = 8 / bitDepth;
+          const byteIndex = Math.floor(x / pixelsPerByte);
+          const bitShift = bitDepth * (pixelsPerByte - 1 - (x % pixelsPerByte));
+          const mask = (1 << bitDepth) - 1;
+          const gray = Math.round(
+            ((scanline[byteIndex] >> bitShift) & mask) * (255 / mask),
+          );
           rgba[outIdx] = gray;
           rgba[outIdx + 1] = gray;
           rgba[outIdx + 2] = gray;
           rgba[outIdx + 3] = 255;
         } else {
-          throw new Error(`Unsupported PNG color type: ${colorType}`);
+          // Use bytesPerPixel as stride; channelSize offsets within each pixel
+          const pixelOffset = x * bytesPerPixel;
+          if (colorType === 6) { // RGBA
+            rgba[outIdx] = scanline[pixelOffset];
+            rgba[outIdx + 1] = scanline[pixelOffset + channelSize];
+            rgba[outIdx + 2] = scanline[pixelOffset + channelSize * 2];
+            rgba[outIdx + 3] = scanline[pixelOffset + channelSize * 3];
+          } else if (colorType === 4) { // Grayscale + Alpha
+            const gray = scanline[pixelOffset];
+            rgba[outIdx] = gray;
+            rgba[outIdx + 1] = gray;
+            rgba[outIdx + 2] = gray;
+            rgba[outIdx + 3] = scanline[pixelOffset + channelSize];
+          } else if (colorType === 2) { // RGB
+            rgba[outIdx] = scanline[pixelOffset];
+            rgba[outIdx + 1] = scanline[pixelOffset + channelSize];
+            rgba[outIdx + 2] = scanline[pixelOffset + channelSize * 2];
+            rgba[outIdx + 3] = 255;
+          } else if (colorType === 0) { // Grayscale
+            const gray = scanline[pixelOffset];
+            rgba[outIdx] = gray;
+            rgba[outIdx + 1] = gray;
+            rgba[outIdx + 2] = gray;
+            rgba[outIdx + 3] = 255;
+          } else {
+            throw new Error(`Unsupported PNG color type: ${colorType}`);
+          }
         }
       }
     }
