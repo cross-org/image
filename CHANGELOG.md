@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Pixel-offset corruption in runtime decoders: Fixed buffer offset handling when decoding images
+  using runtime APIs (ImageDecoder/OffscreenCanvas) in JPEG, WebP, GIF, TIFF, HEIC, and AVIF
+  formats. Previously, creating `new Uint8Array(imageData.data.buffer)` incorrectly assumed pixel
+  data started at offset 0, causing corruption when re-encoding
 ### Added
 
 - PGM format support (Netpbm Portable GrayMap): decode P2 (ASCII) and P5 (binary), encode as P5
