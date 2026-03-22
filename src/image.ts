@@ -44,6 +44,9 @@ import { DNGFormat } from "./formats/dng.ts";
 import { PAMFormat } from "./formats/pam.ts";
 import { PCXFormat } from "./formats/pcx.ts";
 import { PPMFormat } from "./formats/ppm.ts";
+import { PGMFormat } from "./formats/pgm.ts";
+import { PBMFormat } from "./formats/pbm.ts";
+import { QOIFormat } from "./formats/qoi.ts";
 import { ASCIIFormat } from "./formats/ascii.ts";
 import { HEICFormat } from "./formats/heic.ts";
 import { AVIFFormat } from "./formats/avif.ts";
@@ -67,6 +70,9 @@ export class Image {
     new PAMFormat(),
     new PCXFormat(),
     new PPMFormat(),
+    new PGMFormat(),
+    new PBMFormat(),
+    new QOIFormat(),
     new ASCIIFormat(),
     new HEICFormat(),
     new AVIFFormat(),

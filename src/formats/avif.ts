@@ -183,7 +183,11 @@ export class AVIFFormat implements ImageFormat {
         return {
           width: canvas.width,
           height: canvas.height,
-          rgba: new Uint8Array(imageData.data.buffer),
+          rgba: new Uint8Array(
+            imageData.data.buffer,
+            imageData.data.byteOffset,
+            imageData.data.byteLength,
+          ),
         };
       } catch (error) {
         throw new Error(`AVIF decoding with ImageDecoder failed: ${error}`);
