@@ -71,6 +71,7 @@ export abstract class PNGBase {
 
   /**
    * Unfilter PNG scanlines and convert to RGBA
+   * @param palette RGBA palette for indexed color (color type 3): flat array [R,G,B,A, R,G,B,A, ...]
    */
   protected unfilterAndConvert(
     data: Uint8Array,
@@ -78,8 +79,21 @@ export abstract class PNGBase {
     height: number,
     bitDepth: number,
     colorType: number,
+    palette?: Uint8Array,
   ): Uint8Array {
     const rgba = new Uint8Array(width * height * 4);
+    const bytesPerPixel = this.getBytesPerPixel(colorType, bitDepth);
+
+    // For packed (sub-byte) formats (grayscale color type 0 and indexed color type 3 with
+    // bitDepth < 8), the scanline width in bytes is ceil(width * bitDepth / 8), not
+    // width * bytesPerPixel.
+    const scanlineLength = bitDepth < 8 && (colorType === 0 || colorType === 3)
+      ? Math.ceil(width * bitDepth / 8)
+      : width * bytesPerPixel;
+
+    // Filter prediction uses bytesPerPixel=1 for sub-byte bit depths
+    const filterBpp = bitDepth < 8 ? 1 : bytesPerPixel;
+
     const bitsPerPixel = this.getBitsPerPixel(colorType, bitDepth);
     // bytesPerPixel for PNG filter predictor: floor(bpp/8), min 1 (sub-byte formats use 1)
     const bytesPerPixel = Math.max(1, Math.floor(bitsPerPixel / 8));
@@ -102,7 +116,7 @@ export abstract class PNGBase {
         scanline,
         y > 0 ? scanlines[y - 1] : null,
         filterType,
-        bytesPerPixel,
+        filterBpp,
       );
 
       scanlines.push(scanline);
@@ -123,6 +137,33 @@ export abstract class PNGBase {
           rgba[outIdx + 1] = gray;
           rgba[outIdx + 2] = gray;
           rgba[outIdx + 3] = 255;
+        } else if (colorType === 3) { // Indexed (palette)
+          if (!palette) {
+            throw new Error(
+              "PNG color type 3 (indexed) requires a PLTE chunk",
+            );
+          }
+          let index: number;
+          if (bitDepth === 8) {
+            index = scanline[x];
+          } else {
+            // Unpack sub-byte pixel index from packed scanline byte
+            const byteIdx = Math.floor((x * bitDepth) / 8);
+            const bitShift = 8 - bitDepth - ((x * bitDepth) % 8);
+            const mask = (1 << bitDepth) - 1;
+            index = (scanline[byteIdx] >> bitShift) & mask;
+          }
+          if (index >= palette.length / 4) {
+            throw new Error(
+              `PNG indexed color: palette index ${index} out of range (palette has ${
+                palette.length / 4
+              } entries)`,
+            );
+          }
+          rgba[outIdx] = palette[index * 4];
+          rgba[outIdx + 1] = palette[index * 4 + 1];
+          rgba[outIdx + 2] = palette[index * 4 + 2];
+          rgba[outIdx + 3] = palette[index * 4 + 3];
         } else {
           // Use bytesPerPixel as stride; channelSize offsets within each pixel
           const pixelOffset = x * bytesPerPixel;

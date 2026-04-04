@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Indexed PNG (color type 3) decoding support:
+  - PLTE palette chunk parsing for up to 256 RGB colors
+  - tRNS chunk support for per-entry palette transparency
+  - Sub-byte bit depths (1, 2, 4 bits per pixel) in addition to 8-bit indexed color
 ### Fixed
 
 - PNG decoder: 16-bit per-channel images (bitDepth=16) now decode correctly; the pixel stride was

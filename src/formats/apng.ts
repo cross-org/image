@@ -114,6 +114,8 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     let colorType = 0;
     const metadata: ImageMetadata = {};
     const frames: ImageFrame[] = [];
+    let plte: Uint8Array | undefined;
+    let trns: Uint8Array | undefined;
 
     // First pass: parse structure and extract metadata
     const chunkList: Array<{
@@ -144,6 +146,10 @@ export class APNGFormat extends PNGBase implements ImageFormat {
         height = this.readUint32(chunkData, 4);
         bitDepth = chunkData[8];
         colorType = chunkData[9];
+      } else if (type === "PLTE") {
+        plte = chunkData;
+      } else if (type === "tRNS") {
+        trns = chunkData;
       } else if (type === "acTL") {
         // Animation control chunk - we'll use frame count later if needed
         // const numFrames = this.readUint32(chunkData, 0);
@@ -166,6 +172,37 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     }
 
     validateImageDimensions(width, height);
+
+    // Build RGBA palette for indexed color (color type 3)
+    let palette: Uint8Array | undefined;
+    if (colorType === 3) {
+      if (!plte) {
+        throw new Error("PNG color type 3 (indexed) requires a PLTE chunk");
+      }
+      if (plte.length % 3 !== 0) {
+        throw new Error(
+          `PNG PLTE chunk length must be a multiple of 3 (got ${plte.length})`,
+        );
+      }
+      const numColors = plte.length / 3;
+      if (numColors > 256) {
+        throw new Error(
+          `PNG PLTE chunk must not exceed 256 entries (got ${numColors})`,
+        );
+      }
+      if (bitDepth !== 1 && bitDepth !== 2 && bitDepth !== 4 && bitDepth !== 8) {
+        throw new Error(
+          `PNG color type 3 (indexed) requires bit depth 1, 2, 4, or 8 (got ${bitDepth})`,
+        );
+      }
+      palette = new Uint8Array(numColors * 4);
+      for (let i = 0; i < numColors; i++) {
+        palette[i * 4] = plte[i * 3];
+        palette[i * 4 + 1] = plte[i * 3 + 1];
+        palette[i * 4 + 2] = plte[i * 3 + 2];
+        palette[i * 4 + 3] = trns && i < trns.length ? trns[i] : 255;
+      }
+    }
 
     // Second pass: decode frames
     let currentFrameControl: {
@@ -191,6 +228,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
             currentFrameControl.height,
             bitDepth,
             colorType,
+            palette,
           );
 
           frames.push({
@@ -263,6 +301,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
             currentFrameControl.height,
             bitDepth,
             colorType,
+            palette,
           );
 
           frames.push({
@@ -284,6 +323,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
             height,
             bitDepth,
             colorType,
+            palette,
           );
 
           frames.push({
@@ -449,6 +489,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     height: number,
     bitDepth: number,
     colorType: number,
+    palette?: Uint8Array,
   ): Promise<Uint8Array> {
     // Concatenate chunks
     const idatData = this.concatenateArrays(chunks);
@@ -463,6 +504,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       height,
       bitDepth,
       colorType,
+      palette,
     );
 
     return rgba;
