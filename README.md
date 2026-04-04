@@ -11,8 +11,8 @@ JPEG, WebP, GIF, and more—all without native dependencies.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), Bun and Browsers.
-- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM, PPM, PCX, ASCII,
-  HEIC, and AVIF support
+- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM, PPM, PGM, PBM,
+  PCX, QOI, ASCII, HEIC, and AVIF support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
 - 🎛️ **Image processing** - Chainable filters including `brightness`, `contrast`, `saturation`,
   `hue`, `exposure`, `blur`, `sharpen`, `sepia`, and more
@@ -129,7 +129,10 @@ await Bun.write("output.jpg", jpeg);
 | DNG    | ✅ Full                   | Linear DNG (Uncompressed RGBA)                                                                 |
 | PAM    | ✅ Full                   | Netpbm PAM format                                                                              |
 | PPM    | ✅ Full                   | Netpbm PPM format (P3/P6)                                                                      |
+| PGM    | ✅ Full                   | Netpbm PGM format (P2/P5 grayscale)                                                            |
+| PBM    | ✅ Full                   | Netpbm PBM format (P1/P4 monochrome)                                                           |
 | PCX    | ✅ Full                   | ZSoft PCX (RLE compressed)                                                                     |
+| QOI    | ✅ Full                   | QOI — Quite OK Image (fast lossless)                                                           |
 | ASCII  | ✅ Full                   | Text-based ASCII art                                                                           |
 | JPEG   | ⚠️ Baseline & Progressive | Pure-JS baseline & progressive DCT: decode with spectral selection; encode with 2-scan (DC+AC) |
 | WebP   | ⚠️ Lossless               | Pure-JS lossless VP8L                                                                          |

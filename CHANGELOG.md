@@ -13,6 +13,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - PLTE palette chunk parsing for up to 256 RGB colors
   - tRNS chunk support for per-entry palette transparency
   - Sub-byte bit depths (1, 2, 4 bits per pixel) in addition to 8-bit indexed color
+### Fixed
+
+- PNG decoder: 16-bit per-channel images (bitDepth=16) now decode correctly; the pixel stride was
+  using a fixed 8-bit offset (`x*4`, `x*3`, `x`) causing pixel-offset corruption in 16-bit RGBA,
+  RGB, and grayscale images
+- PNG decoder: colorType 4 (grayscale+alpha) images are now supported instead of throwing an
+  "Unsupported PNG color type: 4" error
+- PNG decoder: sub-byte grayscale formats (bitDepth 1, 2, 4) now compute the correct scanline byte
+  length (`ceil(width * bitsPerPixel / 8)`) and correctly unpack pixel values from packed bytes;
+  previously the scanline was over-read and raw byte values were used directly as gray values
+- Pixel-offset corruption in runtime decoders: Fixed buffer offset handling when decoding images
+  using runtime APIs (ImageDecoder/OffscreenCanvas) in JPEG, WebP, GIF, TIFF, HEIC, and AVIF
+  formats. Previously, creating `new Uint8Array(imageData.data.buffer)` incorrectly assumed pixel
+  data started at offset 0, causing corruption when re-encoding
+### Added
+
+- PGM format support (Netpbm Portable GrayMap): decode P2 (ASCII) and P5 (binary), encode as P5
+  binary with luminance-preserving grayscale conversion
+- PBM format support (Netpbm Portable BitMap): decode P1 (ASCII) and P4 (binary packed-bit), encode
+  as P4 binary with luminance threshold
+- QOI format support (Quite OK Image): full pure-JS encode and decode including all chunk types
+  (INDEX, DIFF, LUMA, RUN, RGB, RGBA)
 
 ## [0.4.3] - 2025-12-28
 
