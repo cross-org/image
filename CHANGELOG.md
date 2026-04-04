@@ -34,6 +34,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   silently ignoring extra alpha values
 - PNG/APNG: PLTE/tRNS palette building logic extracted to shared `buildPalette` helper in `PNGBase`
   to avoid duplication
+- Bun CI: PNG/APNG deflate and TIFF Deflate encode tests timed out in certain Bun versions due to
+  `new Response(data).body` wrapping causing hangs in `CompressionStream`/`DecompressionStream`;
+  switched to `ReadableStream` with manual `controller.enqueue` which is reliable across all
+  runtimes (Deno, Bun, Node.js)
 
 ### Added
 
