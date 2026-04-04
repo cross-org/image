@@ -176,32 +176,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     // Build RGBA palette for indexed color (color type 3)
     let palette: Uint8Array | undefined;
     if (colorType === 3) {
-      if (!plte) {
-        throw new Error("PNG color type 3 (indexed) requires a PLTE chunk");
-      }
-      if (plte.length % 3 !== 0) {
-        throw new Error(
-          `PNG PLTE chunk length must be a multiple of 3 (got ${plte.length})`,
-        );
-      }
-      const numColors = plte.length / 3;
-      if (numColors > 256) {
-        throw new Error(
-          `PNG PLTE chunk must not exceed 256 entries (got ${numColors})`,
-        );
-      }
-      if (bitDepth !== 1 && bitDepth !== 2 && bitDepth !== 4 && bitDepth !== 8) {
-        throw new Error(
-          `PNG color type 3 (indexed) requires bit depth 1, 2, 4, or 8 (got ${bitDepth})`,
-        );
-      }
-      palette = new Uint8Array(numColors * 4);
-      for (let i = 0; i < numColors; i++) {
-        palette[i * 4] = plte[i * 3];
-        palette[i * 4 + 1] = plte[i * 3 + 1];
-        palette[i * 4 + 2] = plte[i * 3 + 2];
-        palette[i * 4 + 3] = trns && i < trns.length ? trns[i] : 255;
-      }
+      palette = this.buildPalette(plte, trns, bitDepth);
     }
 
     // Second pass: decode frames
