@@ -1,0 +1,27 @@
+name: Bun CompressionStream Repro
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bun_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: antongolub/action-setup-bun@v1.13.2
+        with:
+          bun-version: v1.x
+
+      - name: Print Bun version
+        run: bun --version
+
+      - name: Run tests
+        run: bun test
