@@ -1,4 +1,4 @@
-import { deflateSync, inflateSync } from "node:zlib";
+import { deflateData, inflateData } from "../utils/deflate.ts";
 import type { ImageMetadata } from "../types.ts";
 
 // Constants for unit conversions
@@ -54,16 +54,14 @@ export abstract class PNGBase {
    * Decompress PNG data using deflate
    */
   protected inflate(data: Uint8Array): Promise<Uint8Array> {
-    const result = inflateSync(data);
-    return Promise.resolve(result instanceof Uint8Array ? result : new Uint8Array(result));
+    return inflateData(data);
   }
 
   /**
    * Compress PNG data using deflate
    */
   protected deflate(data: Uint8Array): Promise<Uint8Array> {
-    const result = deflateSync(data);
-    return Promise.resolve(result instanceof Uint8Array ? result : new Uint8Array(result));
+    return deflateData(data);
   }
 
   /**

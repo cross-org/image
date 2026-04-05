@@ -2,7 +2,7 @@
  * Deflate compression/decompression for TIFF
  * Compression code: 8 (Adobe-style Deflate)
  */
-import { deflateSync, inflateSync } from "node:zlib";
+import { deflateData, inflateData } from "./deflate.ts";
 
 /**
  * Compress data using Deflate
@@ -10,8 +10,7 @@ import { deflateSync, inflateSync } from "node:zlib";
  * @returns Compressed data
  */
 export function deflateCompress(data: Uint8Array): Promise<Uint8Array> {
-  const result = deflateSync(data);
-  return Promise.resolve(result instanceof Uint8Array ? result : new Uint8Array(result));
+  return deflateData(data);
 }
 
 /**
@@ -22,6 +21,5 @@ export function deflateCompress(data: Uint8Array): Promise<Uint8Array> {
 export function deflateDecompress(
   data: Uint8Array,
 ): Promise<Uint8Array> {
-  const result = inflateSync(data);
-  return Promise.resolve(result instanceof Uint8Array ? result : new Uint8Array(result));
+  return inflateData(data);
 }

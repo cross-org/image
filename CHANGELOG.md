@@ -34,9 +34,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   silently ignoring extra alpha values
 - PNG/APNG: PLTE/tRNS palette building logic extracted to shared `buildPalette` helper in `PNGBase`
   to avoid duplication
-- Bun CI: PNG/APNG and TIFF Deflate encode/decode tests timed out in Bun CI; replaced
-  `CompressionStream`/`DecompressionStream` with synchronous `node:zlib` (`deflateSync`/
-  `inflateSync`) which is reliable across Deno, Bun, and Node.js
+- Bun CI: PNG/APNG and TIFF Deflate encode/decode tests timed out in Bun CI due to
+  `CompressionStream`/`DecompressionStream` hanging; introduced shared `src/utils/deflate.ts` that
+  uses `node:zlib` (`deflateSync`/`inflateSync`) on Node/Bun/Deno and falls back to
+  `CompressionStream`/`DecompressionStream` in browser environments
 
 ### Added
 
