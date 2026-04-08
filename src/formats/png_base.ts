@@ -1,3 +1,4 @@
+import { deflateData, inflateData } from "../utils/deflate.ts";
 import type { ImageMetadata } from "../types.ts";
 
 // Constants for unit conversions
@@ -52,21 +53,15 @@ export abstract class PNGBase {
   /**
    * Decompress PNG data using deflate
    */
-  protected async inflate(data: Uint8Array): Promise<Uint8Array> {
-    const stream = new Response(data as unknown as BodyInit).body!
-      .pipeThrough(new DecompressionStream("deflate"));
-    const decompressed = await new Response(stream).arrayBuffer();
-    return new Uint8Array(decompressed);
+  protected inflate(data: Uint8Array): Promise<Uint8Array> {
+    return inflateData(data);
   }
 
   /**
    * Compress PNG data using deflate
    */
-  protected async deflate(data: Uint8Array): Promise<Uint8Array> {
-    const stream = new Response(data as unknown as BodyInit).body!
-      .pipeThrough(new CompressionStream("deflate"));
-    const compressed = await new Response(stream).arrayBuffer();
-    return new Uint8Array(compressed);
+  protected deflate(data: Uint8Array): Promise<Uint8Array> {
+    return deflateData(data);
   }
 
   /**
@@ -82,18 +77,6 @@ export abstract class PNGBase {
     palette?: Uint8Array,
   ): Uint8Array {
     const rgba = new Uint8Array(width * height * 4);
-    const bytesPerPixel = this.getBytesPerPixel(colorType, bitDepth);
-
-    // For packed (sub-byte) formats (grayscale color type 0 and indexed color type 3 with
-    // bitDepth < 8), the scanline width in bytes is ceil(width * bitDepth / 8), not
-    // width * bytesPerPixel.
-    const scanlineLength = bitDepth < 8 && (colorType === 0 || colorType === 3)
-      ? Math.ceil(width * bitDepth / 8)
-      : width * bytesPerPixel;
-
-    // Filter prediction uses bytesPerPixel=1 for sub-byte bit depths
-    const filterBpp = bitDepth < 8 ? 1 : bytesPerPixel;
-
     const bitsPerPixel = this.getBitsPerPixel(colorType, bitDepth);
     // bytesPerPixel for PNG filter predictor: floor(bpp/8), min 1 (sub-byte formats use 1)
     const bytesPerPixel = Math.max(1, Math.floor(bitsPerPixel / 8));
@@ -116,7 +99,7 @@ export abstract class PNGBase {
         scanline,
         y > 0 ? scanlines[y - 1] : null,
         filterType,
-        filterBpp,
+        bytesPerPixel,
       );
 
       scanlines.push(scanline);
@@ -124,8 +107,8 @@ export abstract class PNGBase {
       // Convert to RGBA
       for (let x = 0; x < width; x++) {
         const outIdx = (y * width + x) * 4;
-        if (bitDepth < 8 && (colorType === 0 || colorType === 3)) {
-          // Sub-byte grayscale or indexed-color: multiple pixels packed per byte
+        if (bitDepth < 8 && colorType === 0) {
+          // Sub-byte grayscale: multiple pixels packed per byte
           const pixelsPerByte = 8 / bitDepth;
           const byteIndex = Math.floor(x / pixelsPerByte);
           const bitShift = bitDepth * (pixelsPerByte - 1 - (x % pixelsPerByte));
@@ -545,6 +528,53 @@ export abstract class PNGBase {
       default:
         throw new Error(`Unknown color type: ${colorType}`);
     }
+  }
+
+  /**
+   * Build an RGBA palette from PLTE and optional tRNS chunks.
+   * Validates chunk integrity and throws on invalid data.
+   * @param plte Raw PLTE chunk data (RGB triplets)
+   * @param trns Optional tRNS chunk data (alpha values per palette entry)
+   * @param bitDepth Image bit depth (must be 1, 2, 4, or 8 for indexed color)
+   * @returns Flat RGBA palette (4 bytes per entry)
+   */
+  protected buildPalette(
+    plte: Uint8Array | undefined,
+    trns: Uint8Array | undefined,
+    bitDepth: number,
+  ): Uint8Array {
+    if (!plte) {
+      throw new Error("PNG color type 3 (indexed) requires a PLTE chunk");
+    }
+    if (plte.length % 3 !== 0) {
+      throw new Error(
+        `PNG PLTE chunk length must be a multiple of 3 (got ${plte.length})`,
+      );
+    }
+    const numColors = plte.length / 3;
+    if (numColors > 256) {
+      throw new Error(
+        `PNG PLTE chunk must not exceed 256 entries (got ${numColors})`,
+      );
+    }
+    if (bitDepth !== 1 && bitDepth !== 2 && bitDepth !== 4 && bitDepth !== 8) {
+      throw new Error(
+        `PNG color type 3 (indexed) requires bit depth 1, 2, 4, or 8 (got ${bitDepth})`,
+      );
+    }
+    if (trns !== undefined && trns.length > numColors) {
+      throw new Error(
+        `PNG tRNS chunk has ${trns.length} entries but palette only has ${numColors} entries`,
+      );
+    }
+    const palette = new Uint8Array(numColors * 4);
+    for (let i = 0; i < numColors; i++) {
+      palette[i * 4] = plte[i * 3];
+      palette[i * 4 + 1] = plte[i * 3 + 1];
+      palette[i * 4 + 2] = plte[i * 3 + 2];
+      palette[i * 4 + 3] = trns && i < trns.length ? trns[i] : 255;
+    }
+    return palette;
   }
 
   /**

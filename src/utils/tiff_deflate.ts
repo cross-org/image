@@ -2,17 +2,15 @@
  * Deflate compression/decompression for TIFF
  * Compression code: 8 (Adobe-style Deflate)
  */
+import { deflateData, inflateData } from "./deflate.ts";
 
 /**
  * Compress data using Deflate
  * @param data Uncompressed data
  * @returns Compressed data
  */
-export async function deflateCompress(data: Uint8Array): Promise<Uint8Array> {
-  const stream = new Response(data as unknown as BodyInit).body!
-    .pipeThrough(new CompressionStream("deflate"));
-  const compressed = await new Response(stream).arrayBuffer();
-  return new Uint8Array(compressed);
+export function deflateCompress(data: Uint8Array): Promise<Uint8Array> {
+  return deflateData(data);
 }
 
 /**
@@ -20,11 +18,8 @@ export async function deflateCompress(data: Uint8Array): Promise<Uint8Array> {
  * @param data Compressed data
  * @returns Decompressed data
  */
-export async function deflateDecompress(
+export function deflateDecompress(
   data: Uint8Array,
 ): Promise<Uint8Array> {
-  const stream = new Response(data as unknown as BodyInit).body!
-    .pipeThrough(new DecompressionStream("deflate"));
-  const decompressed = await new Response(stream).arrayBuffer();
-  return new Uint8Array(decompressed);
+  return inflateData(data);
 }

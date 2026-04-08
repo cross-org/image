@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - PLTE palette chunk parsing for up to 256 RGB colors
   - tRNS chunk support for per-entry palette transparency
   - Sub-byte bit depths (1, 2, 4 bits per pixel) in addition to 8-bit indexed color
+
 ### Fixed
 
 - PNG decoder: 16-bit per-channel images (bitDepth=16) now decode correctly; the pixel stride was
@@ -27,6 +28,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   using runtime APIs (ImageDecoder/OffscreenCanvas) in JPEG, WebP, GIF, TIFF, HEIC, and AVIF
   formats. Previously, creating `new Uint8Array(imageData.data.buffer)` incorrectly assumed pixel
   data started at offset 0, causing corruption when re-encoding
+- Fixed PNG indexed color (type 3) with sub-byte bit depths (1, 2, 4) incorrectly using grayscale
+  conversion instead of palette lookup
+- PNG/APNG decoder: tRNS chunk with more entries than palette entries now throws an error instead of
+  silently ignoring extra alpha values
+- PNG/APNG: PLTE/tRNS palette building logic extracted to shared `buildPalette` helper in `PNGBase`
+  to avoid duplication
+- Bun CI: PNG/APNG and TIFF Deflate encode/decode tests timed out in Bun CI due to
+  `CompressionStream`/`DecompressionStream` hanging; introduced shared `src/utils/deflate.ts` that
+  uses `node:zlib` (`deflateSync`/`inflateSync`) on Node/Bun/Deno and falls back to
+  `CompressionStream`/`DecompressionStream` in browser environments
+
 ### Added
 
 - PGM format support (Netpbm Portable GrayMap): decode P2 (ASCII) and P5 (binary), encode as P5

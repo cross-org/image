@@ -592,6 +592,25 @@ test("PNG: indexed color (type 3) - out-of-range palette index throws", async ()
     Error,
     "out of range",
   );
+});
+
+test("PNG: indexed color (type 3) - tRNS with more entries than palette throws", async () => {
+  const format = new PNGFormat();
+
+  // 2-color palette but tRNS with 3 alpha entries (too many)
+  const palette: [number, number, number][] = [
+    [255, 0, 0],
+    [0, 255, 0],
+  ];
+  const pngData = await buildIndexedPNG(1, 1, 8, palette, [128, 255, 64], [0]);
+
+  await assertRejects(
+    async () => await format.decode(pngData),
+    Error,
+    "tRNS",
+  );
+});
+
 // Test PNG colorType 4 (grayscale+alpha, 8-bit) decoding.
 // This was previously unsupported and threw an error.
 // Binary: 2x1 PNG, colorType=4 (grayscale+alpha), bitDepth=8
