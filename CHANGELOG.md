@@ -51,7 +51,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `number[]` — reduces peak memory by ~9× when decompressing large GIFs
 - Performance: TIFF encoder (`encode` and `encodeFrames`) now builds pixel data directly from
   compressed `Uint8Array` chunks rather than copying bytes into a `number[]` — reduces peak memory
-  by ~9× when encoding large TIFF images
+  usage when encoding large TIFF images
 - Fixed misleading comment in `adjustHue`: normalization produces 0–360, not −180 to 180
 - PNG decoder: 16-bit per-channel images (bitDepth=16) now decode correctly; the pixel stride was
   using a fixed 8-bit offset (`x*4`, `x*3`, `x`) causing pixel-offset corruption in 16-bit RGBA,
