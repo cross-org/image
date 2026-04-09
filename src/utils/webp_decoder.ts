@@ -21,16 +21,12 @@
  */
 
 import { validateImageDimensions } from "./security.ts";
+import { readUint32LE } from "./byte_utils.ts";
 import type { ImageDecoderOptions } from "../types.ts";
 
 // Helper to read little-endian values
 function readUint24LE(data: Uint8Array, offset: number): number {
   return data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16);
-}
-
-function readUint32LE(data: Uint8Array, offset: number): number {
-  return data[offset] | (data[offset + 1] << 8) |
-    (data[offset + 2] << 16) | (data[offset + 3] << 24);
 }
 
 // Huffman tree node
