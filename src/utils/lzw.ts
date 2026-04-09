@@ -71,7 +71,21 @@ export class LZWDecoder {
   }
 
   decompress(): Uint8Array {
-    const output: number[] = [];
+    // Use a growable Uint8Array buffer to avoid the ~9× peak memory of number[]
+    let capacity = 4096;
+    let buf = new Uint8Array(capacity);
+    let len = 0;
+
+    const append = (entry: Uint8Array) => {
+      if (len + entry.length > capacity) {
+        while (len + entry.length > capacity) capacity *= 2;
+        const next = new Uint8Array(capacity);
+        next.set(buf.subarray(0, len));
+        buf = next;
+      }
+      buf.set(entry, len);
+      len += entry.length;
+    };
 
     while (true) {
       // Check if we need to increase code size for this read
@@ -97,7 +111,7 @@ export class LZWDecoder {
 
       if (code < this.dict.length && this.dict[code]) {
         const entry = this.dict[code];
-        for (const b of entry) output.push(b);
+        append(entry);
 
         if (this.prevCode !== null && this.prevCode < this.dict.length) {
           const prevEntry = this.dict[this.prevCode];
@@ -119,14 +133,14 @@ export class LZWDecoder {
           this.dict[this.nextCode] = newEntry;
           this.nextCode++;
 
-          for (const b of newEntry) output.push(b);
+          append(newEntry);
         }
       }
 
       this.prevCode = code;
     }
 
-    return new Uint8Array(output);
+    return buf.slice(0, len);
   }
 }
 
