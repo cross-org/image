@@ -136,12 +136,13 @@ await Image.decode(bytes, "png");
 
 ## Supported Formats
 
-@cross/image supports 15 image formats with varying levels of pure-JS implementation:
+@cross/image supports 18 image formats with varying levels of pure-JS implementation:
 
-- **PNG, APNG, BMP, ICO, GIF, DNG, PAM, PPM, PCX, ASCII** - Full pure-JS implementation
+- **PNG, APNG, BMP, ICO, GIF, DNG, PAM, PPM, PGM, PBM, PCX, QOI, ASCII** - Full pure-JS
+  implementation
 - **JPEG** - Pure-JS baseline & progressive DCT
 - **WebP** - Pure-JS lossless, native API for lossy VP8
-- **TIFF** - Pure-JS uncompressed + LZW, native API for other compressions
+- **TIFF** - Pure-JS uncompressed, LZW, PackBits & Deflate; native API for JPEG compression
 - **HEIC, AVIF** - Runtime-based implementation (requires ImageDecoder/OffscreenCanvas API)
 
 See the [Format Support](formats.md) page for detailed compatibility information.

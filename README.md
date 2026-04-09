@@ -199,8 +199,8 @@ const imageWithWarnings = await Image.decode(data, {
 ```
 
 **Note:** When using `Image.decode()`, the library automatically tries runtime-optimized decoders
-
-## CMYK Color Space Support
+(ImageDecoder API) first, falling back to the pure JS decoder with tolerant mode for maximum
+compatibility.
 
 The library provides utilities for working with CMYK (Cyan, Magenta, Yellow, Key/Black) color space,
 commonly used in professional printing and color manipulation.
@@ -377,9 +377,6 @@ const parsed = parseDataUrl(dataUrl);
 const roundtrip = await Image.decode(parsed.bytes, "png");
 console.log(roundtrip.width, roundtrip.height);
 ```
-
-(ImageDecoder API) first, falling back to the pure JS decoder with tolerant mode for maximum
-compatibility.
 
 ## Fault-Tolerant Decoding for Other Formats
 
