@@ -97,7 +97,7 @@ export class LZWDecoder {
 
       if (code < this.dict.length && this.dict[code]) {
         const entry = this.dict[code];
-        output.push(...entry);
+        for (const b of entry) output.push(b);
 
         if (this.prevCode !== null && this.prevCode < this.dict.length) {
           const prevEntry = this.dict[this.prevCode];
@@ -119,7 +119,7 @@ export class LZWDecoder {
           this.dict[this.nextCode] = newEntry;
           this.nextCode++;
 
-          output.push(...newEntry);
+          for (const b of newEntry) output.push(b);
         }
       }
 

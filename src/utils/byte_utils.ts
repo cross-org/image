@@ -19,8 +19,8 @@ export function readUint16LE(data: Uint8Array, offset: number): number {
  * Read a 32-bit unsigned integer in little-endian format
  */
 export function readUint32LE(data: Uint8Array, offset: number): number {
-  return data[offset] | (data[offset + 1] << 8) |
-    (data[offset + 2] << 16) | (data[offset + 3] << 24);
+  return (data[offset] | (data[offset + 1] << 8) |
+    (data[offset + 2] << 16) | (data[offset + 3] << 24)) >>> 0;
 }
 
 /**

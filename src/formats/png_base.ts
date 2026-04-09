@@ -13,8 +13,8 @@ export abstract class PNGBase {
    * Read a 32-bit unsigned integer (big-endian)
    */
   protected readUint32(data: Uint8Array, offset: number): number {
-    return (data[offset] << 24) | (data[offset + 1] << 16) |
-      (data[offset + 2] << 8) | data[offset + 3];
+    return ((data[offset] << 24) | (data[offset + 1] << 16) |
+      (data[offset + 2] << 8) | data[offset + 3]) >>> 0;
   }
 
   /**
