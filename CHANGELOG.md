@@ -44,7 +44,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `yPelsPerMeter` DPI fields, consistent with `decode()` — previously a negative stored DPI was
   returned as a large positive value
 - Performance: JPEG IDCT now uses a precomputed 8×8 cosine table instead of calling `Math.cos` per
-  coefficient — eliminates ~200 M `Math.cos` calls when decoding a 2000×2000 JPEG
+  coefficient — eliminates ~200M `Math.cos` calls when decoding a 2000×2000 JPEG
 - Performance: `medianFilter` now allocates the four channel-value arrays once outside the pixel loop
   instead of per-pixel — reduces GC pressure on large images
 - Fixed misleading comment in `adjustHue`: normalization produces 0–360, not −180 to 180
