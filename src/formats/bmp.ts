@@ -257,8 +257,8 @@ export class BMPFormat implements ImageFormat {
 
       // DPI information (pixels per meter)
       if (headerSize >= 40) {
-        const xPelsPerMeter = readUint32LE(data, 38);
-        const yPelsPerMeter = readUint32LE(data, 42);
+        const xPelsPerMeter = readInt32LE(data, 38);
+        const yPelsPerMeter = readInt32LE(data, 42);
 
         if (xPelsPerMeter > 0) {
           metadata.dpiX = Math.round(xPelsPerMeter * 0.0254);

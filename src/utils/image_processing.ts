@@ -300,7 +300,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
  */
 export function adjustHue(data: Uint8Array, degrees: number): Uint8Array {
   const result = new Uint8Array(data.length);
-  // Normalize rotation to -180 to 180 range
+  // Normalize rotation to 0–360 range
   const rotation = ((degrees % 360) + 360) % 360;
 
   for (let i = 0; i < data.length; i += 4) {
@@ -723,13 +723,17 @@ export function medianFilter(
 ): Uint8Array {
   const result = new Uint8Array(data.length);
   const clampedRadius = Math.max(1, Math.floor(radius));
+  const rValues: number[] = [];
+  const gValues: number[] = [];
+  const bValues: number[] = [];
+  const aValues: number[] = [];
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const rValues: number[] = [];
-      const gValues: number[] = [];
-      const bValues: number[] = [];
-      const aValues: number[] = [];
+      rValues.length = 0;
+      gValues.length = 0;
+      bValues.length = 0;
+      aValues.length = 0;
 
       // Collect values in kernel window
       for (let ky = -clampedRadius; ky <= clampedRadius; ky++) {

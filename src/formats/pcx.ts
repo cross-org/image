@@ -1,4 +1,5 @@
 import type { ImageData, ImageDecoderOptions, ImageFormat, ImageMetadata } from "../types.ts";
+import { validateImageDimensions } from "../utils/security.ts";
 
 /**
  * PCX format handler
@@ -51,6 +52,12 @@ export class PCXFormat implements ImageFormat {
 
     if (width <= 0 || height <= 0) {
       return Promise.reject(new Error("Invalid PCX dimensions"));
+    }
+
+    try {
+      validateImageDimensions(width, height);
+    } catch (e) {
+      return Promise.reject(e);
     }
 
     // Decode RLE data

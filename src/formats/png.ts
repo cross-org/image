@@ -57,6 +57,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
 
     // Parse chunks
     while (pos < data.length) {
+      if (pos + 8 > data.length) break;
       const length = this.readUint32(data, pos);
       pos += 4;
       const type = String.fromCharCode(
