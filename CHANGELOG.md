@@ -47,6 +47,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   coefficient — eliminates ~200M `Math.cos` calls when decoding a 2000×2000 JPEG
 - Performance: `medianFilter` now allocates the four channel-value arrays once outside the pixel
   loop instead of per-pixel — reduces GC pressure on large images
+- Performance: LZW decoder (`src/utils/lzw.ts`) now uses a growable `Uint8Array` buffer instead of
+  `number[]` — reduces peak memory by ~9× when decompressing large GIFs
+- Performance: TIFF encoder (`encode` and `encodeFrames`) now builds pixel data directly from
+  compressed `Uint8Array` chunks rather than copying bytes into a `number[]` — reduces peak memory
+  by ~9× when encoding large TIFF images
 - Fixed misleading comment in `adjustHue`: normalization produces 0–360, not −180 to 180
 - PNG decoder: 16-bit per-channel images (bitDepth=16) now decode correctly; the pixel stride was
   using a fixed 8-bit offset (`x*4`, `x*3`, `x`) causing pixel-offset corruption in 16-bit RGBA,

@@ -272,24 +272,9 @@ export class TIFFFormat implements ImageFormat {
       compressionCode = 1;
     }
 
-    const result: number[] = [];
-
-    // Header (8 bytes)
-    // Little-endian byte order
-    result.push(0x49, 0x49); // "II"
-    result.push(0x2a, 0x00); // 42
-
-    // IFD offset (will be after header and pixel data)
-    const ifdOffset = 8 + pixelData.length;
-    this.writeUint32LE(result, ifdOffset);
-
-    // Pixel data
-    for (let i = 0; i < pixelData.length; i++) {
-      result.push(pixelData[i]);
-    }
-
-    // IFD (Image File Directory)
-    const ifdStart = result.length;
+    // IFD section is built into a number[] (small) then concatenated with pixel data
+    const ifdBytes: number[] = [];
+    const ifdStart = 8 + pixelData.length; // absolute file offset where the IFD begins
 
     // Count number of entries (including metadata)
     // Grayscale: 10 entries (no ExtraSamples)
@@ -301,75 +286,75 @@ export class TIFFFormat implements ImageFormat {
     if (metadata?.copyright) numEntries++;
     if (metadata?.creationDate) numEntries++;
 
-    this.writeUint16LE(result, numEntries);
+    this.writeUint16LE(ifdBytes, numEntries);
 
     // Calculate offsets for variable-length data
     let dataOffset = ifdStart + 2 + numEntries * 12 + 4;
 
     // IFD entries (12 bytes each)
     // ImageWidth (0x0100)
-    this.writeIFDEntry(result, 0x0100, 4, 1, width);
+    this.writeIFDEntry(ifdBytes, 0x0100, 4, 1, width);
 
     // ImageHeight (0x0101)
-    this.writeIFDEntry(result, 0x0101, 4, 1, height);
+    this.writeIFDEntry(ifdBytes, 0x0101, 4, 1, height);
 
     // BitsPerSample (0x0102) - 8 bits per channel
     if (grayscale) {
       // Single value for grayscale
-      this.writeIFDEntry(result, 0x0102, 3, 1, 8);
+      this.writeIFDEntry(ifdBytes, 0x0102, 3, 1, 8);
     } else if (rgb) {
       // 3 values for RGB
-      this.writeIFDEntry(result, 0x0102, 3, 3, dataOffset);
+      this.writeIFDEntry(ifdBytes, 0x0102, 3, 3, dataOffset);
       dataOffset += 6; // 3 x 2-byte values
     } else {
       // 4 values for RGBA
-      this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
+      this.writeIFDEntry(ifdBytes, 0x0102, 3, 4, dataOffset);
       dataOffset += 8; // 4 x 2-byte values
     }
 
     // Compression (0x0103) - 1 = uncompressed, 5 = LZW
-    this.writeIFDEntry(result, 0x0103, 3, 1, compressionCode);
+    this.writeIFDEntry(ifdBytes, 0x0103, 3, 1, compressionCode);
 
     // PhotometricInterpretation (0x0106) - 1 = BlackIsZero (grayscale), 2 = RGB, 5 = CMYK
-    this.writeIFDEntry(result, 0x0106, 3, 1, grayscale ? 1 : (cmyk ? 5 : 2));
+    this.writeIFDEntry(ifdBytes, 0x0106, 3, 1, grayscale ? 1 : (cmyk ? 5 : 2));
 
     // StripOffsets (0x0111)
-    this.writeIFDEntry(result, 0x0111, 4, 1, 8);
+    this.writeIFDEntry(ifdBytes, 0x0111, 4, 1, 8);
 
     // SamplesPerPixel (0x0115) - 1 for grayscale, 3 for RGB, 4 for RGBA
-    this.writeIFDEntry(result, 0x0115, 3, 1, samplesPerPixel);
+    this.writeIFDEntry(ifdBytes, 0x0115, 3, 1, samplesPerPixel);
 
     // RowsPerStrip (0x0116)
-    this.writeIFDEntry(result, 0x0116, 4, 1, height);
+    this.writeIFDEntry(ifdBytes, 0x0116, 4, 1, height);
 
     // StripByteCounts (0x0117)
-    this.writeIFDEntry(result, 0x0117, 4, 1, pixelData.length);
+    this.writeIFDEntry(ifdBytes, 0x0117, 4, 1, pixelData.length);
 
     // XResolution (0x011a)
     const xResOffset = dataOffset;
-    this.writeIFDEntry(result, 0x011a, 5, 1, xResOffset);
+    this.writeIFDEntry(ifdBytes, 0x011a, 5, 1, xResOffset);
     dataOffset += 8;
 
     // YResolution (0x011b)
     const yResOffset = dataOffset;
-    this.writeIFDEntry(result, 0x011b, 5, 1, yResOffset);
+    this.writeIFDEntry(ifdBytes, 0x011b, 5, 1, yResOffset);
     dataOffset += 8;
 
     // ExtraSamples (0x0152) - 2 = unassociated alpha (only for RGBA)
     if (!grayscale && !rgb) {
-      this.writeIFDEntry(result, 0x0152, 3, 1, 2);
+      this.writeIFDEntry(ifdBytes, 0x0152, 3, 1, 2);
     }
 
     // Optional metadata entries
     if (metadata?.description) {
       const descBytes = new TextEncoder().encode(metadata.description + "\0");
-      this.writeIFDEntry(result, 0x010e, 2, descBytes.length, dataOffset);
+      this.writeIFDEntry(ifdBytes, 0x010e, 2, descBytes.length, dataOffset);
       dataOffset += descBytes.length;
     }
 
     if (metadata?.author) {
       const authorBytes = new TextEncoder().encode(metadata.author + "\0");
-      this.writeIFDEntry(result, 0x013b, 2, authorBytes.length, dataOffset);
+      this.writeIFDEntry(ifdBytes, 0x013b, 2, authorBytes.length, dataOffset);
       dataOffset += authorBytes.length;
     }
 
@@ -377,7 +362,7 @@ export class TIFFFormat implements ImageFormat {
       const copyrightBytes = new TextEncoder().encode(
         metadata.copyright + "\0",
       );
-      this.writeIFDEntry(result, 0x8298, 2, copyrightBytes.length, dataOffset);
+      this.writeIFDEntry(ifdBytes, 0x8298, 2, copyrightBytes.length, dataOffset);
       dataOffset += copyrightBytes.length;
     }
 
@@ -389,48 +374,48 @@ export class TIFFFormat implements ImageFormat {
         String(date.getSeconds()).padStart(2, "0")
       }\0`;
       const dateBytes = new TextEncoder().encode(dateStr);
-      this.writeIFDEntry(result, 0x0132, 2, dateBytes.length, dataOffset);
+      this.writeIFDEntry(ifdBytes, 0x0132, 2, dateBytes.length, dataOffset);
       dataOffset += dateBytes.length;
     }
 
     // Next IFD offset (0 = no more IFDs)
-    this.writeUint32LE(result, 0);
+    this.writeUint32LE(ifdBytes, 0);
 
     // Write variable-length data
     // BitsPerSample values (only for RGB and RGBA, not for grayscale)
     if (rgb) {
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
     } else if (!grayscale) {
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
     }
 
     // XResolution value (rational)
     const dpiX = metadata?.dpiX ?? DEFAULT_DPI;
-    this.writeUint32LE(result, dpiX);
-    this.writeUint32LE(result, 1);
+    this.writeUint32LE(ifdBytes, dpiX);
+    this.writeUint32LE(ifdBytes, 1);
 
     // YResolution value (rational)
     const dpiY = metadata?.dpiY ?? DEFAULT_DPI;
-    this.writeUint32LE(result, dpiY);
-    this.writeUint32LE(result, 1);
+    this.writeUint32LE(ifdBytes, dpiY);
+    this.writeUint32LE(ifdBytes, 1);
 
     // Write metadata strings
     if (metadata?.description) {
       const descBytes = new TextEncoder().encode(metadata.description + "\0");
       for (const byte of descBytes) {
-        result.push(byte);
+        ifdBytes.push(byte);
       }
     }
 
     if (metadata?.author) {
       const authorBytes = new TextEncoder().encode(metadata.author + "\0");
       for (const byte of authorBytes) {
-        result.push(byte);
+        ifdBytes.push(byte);
       }
     }
 
@@ -439,7 +424,7 @@ export class TIFFFormat implements ImageFormat {
         metadata.copyright + "\0",
       );
       for (const byte of copyrightBytes) {
-        result.push(byte);
+        ifdBytes.push(byte);
       }
     }
 
@@ -452,11 +437,24 @@ export class TIFFFormat implements ImageFormat {
       }\0`;
       const dateBytes = new TextEncoder().encode(dateStr);
       for (const byte of dateBytes) {
-        result.push(byte);
+        ifdBytes.push(byte);
       }
     }
 
-    return Promise.resolve(new Uint8Array(result));
+    // Assemble output: 8-byte TIFF header + pixel data + IFD section
+    // This avoids copying pixelData into a number[] (which would use ~9× the memory)
+    const out = new Uint8Array(8 + pixelData.length + ifdBytes.length);
+    out[0] = 0x49;
+    out[1] = 0x49;
+    out[2] = 0x2a;
+    out[3] = 0x00; // "II" + magic 42
+    out[4] = ifdStart & 0xff;
+    out[5] = (ifdStart >>> 8) & 0xff;
+    out[6] = (ifdStart >>> 16) & 0xff;
+    out[7] = (ifdStart >>> 24) & 0xff;
+    out.set(pixelData, 8);
+    out.set(new Uint8Array(ifdBytes), 8 + pixelData.length);
+    return Promise.resolve(out);
   }
 
   /**
@@ -559,23 +557,15 @@ export class TIFFFormat implements ImageFormat {
       throw new Error("No frames to encode");
     }
 
-    const result: number[] = [];
-
-    // Header (8 bytes)
-    // Little-endian byte order
-    result.push(0x49, 0x49); // "II"
-    result.push(0x2a, 0x00); // 42
-
-    // First IFD offset (will be calculated after writing all pixel data)
-    const firstIFDOffsetPos = result.length;
-    this.writeUint32LE(result, 0); // Placeholder
+    // IFD section is built into a number[] (small) — pixel frames are kept as Uint8Arrays
+    // and concatenated at the end to avoid ~9× peak memory of number[]
+    const ifdBytes: number[] = [];
 
     let currentOffset = 8;
-    const ifdOffsets: number[] = [];
     const pixelDataOffsets: number[] = [];
     const compressedFrames: Uint8Array[] = [];
 
-    // Write all pixel data first, caching the compressed results
+    // Compress all frames and cache the results
     for (const frame of imageData.frames) {
       pixelDataOffsets.push(currentOffset);
 
@@ -592,19 +582,20 @@ export class TIFFFormat implements ImageFormat {
       }
 
       compressedFrames.push(pixelData);
-      for (let i = 0; i < pixelData.length; i++) {
-        result.push(pixelData[i]);
-      }
       currentOffset += pixelData.length;
     }
+
+    // Total pixel data size; IFD section starts right after
+    const totalPixelDataSize = currentOffset - 8;
+    const ifdSectionStart = 8 + totalPixelDataSize;
 
     // Write IFDs
     for (let i = 0; i < imageData.frames.length; i++) {
       const frame = imageData.frames[i];
       const isLastIFD = i === imageData.frames.length - 1;
 
-      ifdOffsets.push(currentOffset);
-      const ifdStart = result.length;
+      // Absolute file offset of the current IFD
+      const ifdStart = ifdSectionStart + ifdBytes.length;
 
       // Count number of entries (including metadata only for first page)
       let numEntries = 12; // Base entries (including ExtraSamples)
@@ -615,17 +606,17 @@ export class TIFFFormat implements ImageFormat {
         if (imageData.metadata.creationDate) numEntries++;
       }
 
-      this.writeUint16LE(result, numEntries);
+      this.writeUint16LE(ifdBytes, numEntries);
 
       // Calculate offsets for variable-length data
       let dataOffset = ifdStart + 2 + numEntries * 12 + 4;
 
       // IFD entries
-      this.writeIFDEntry(result, 0x0100, 4, 1, frame.width); // ImageWidth
-      this.writeIFDEntry(result, 0x0101, 4, 1, frame.height); // ImageHeight
+      this.writeIFDEntry(ifdBytes, 0x0100, 4, 1, frame.width); // ImageWidth
+      this.writeIFDEntry(ifdBytes, 0x0101, 4, 1, frame.height); // ImageHeight
 
       // BitsPerSample
-      this.writeIFDEntry(result, 0x0102, 3, 4, dataOffset);
+      this.writeIFDEntry(ifdBytes, 0x0102, 3, 4, dataOffset);
       dataOffset += 8;
 
       // Compression
@@ -639,35 +630,35 @@ export class TIFFFormat implements ImageFormat {
       } else {
         compressionCode = 1;
       }
-      this.writeIFDEntry(result, 0x0103, 3, 1, compressionCode);
+      this.writeIFDEntry(ifdBytes, 0x0103, 3, 1, compressionCode);
 
       // PhotometricInterpretation
-      this.writeIFDEntry(result, 0x0106, 3, 1, 2);
+      this.writeIFDEntry(ifdBytes, 0x0106, 3, 1, 2);
 
       // StripOffsets
-      this.writeIFDEntry(result, 0x0111, 4, 1, pixelDataOffsets[i]);
+      this.writeIFDEntry(ifdBytes, 0x0111, 4, 1, pixelDataOffsets[i]);
 
       // SamplesPerPixel
-      this.writeIFDEntry(result, 0x0115, 3, 1, 4);
+      this.writeIFDEntry(ifdBytes, 0x0115, 3, 1, 4);
 
       // RowsPerStrip
-      this.writeIFDEntry(result, 0x0116, 4, 1, frame.height);
+      this.writeIFDEntry(ifdBytes, 0x0116, 4, 1, frame.height);
 
       // StripByteCounts — use the cached compressed length from the first pass
-      this.writeIFDEntry(result, 0x0117, 4, 1, compressedFrames[i].length);
+      this.writeIFDEntry(ifdBytes, 0x0117, 4, 1, compressedFrames[i].length);
 
       // XResolution
       const xResOffset = dataOffset;
-      this.writeIFDEntry(result, 0x011a, 5, 1, xResOffset);
+      this.writeIFDEntry(ifdBytes, 0x011a, 5, 1, xResOffset);
       dataOffset += 8;
 
       // YResolution
       const yResOffset = dataOffset;
-      this.writeIFDEntry(result, 0x011b, 5, 1, yResOffset);
+      this.writeIFDEntry(ifdBytes, 0x011b, 5, 1, yResOffset);
       dataOffset += 8;
 
       // ExtraSamples (0x0152) - 2 = unassociated alpha
-      this.writeIFDEntry(result, 0x0152, 3, 1, 2);
+      this.writeIFDEntry(ifdBytes, 0x0152, 3, 1, 2);
 
       // Metadata (only for first page)
       if (i === 0 && imageData.metadata) {
@@ -675,7 +666,7 @@ export class TIFFFormat implements ImageFormat {
           const descBytes = new TextEncoder().encode(
             imageData.metadata.description + "\0",
           );
-          this.writeIFDEntry(result, 0x010e, 2, descBytes.length, dataOffset);
+          this.writeIFDEntry(ifdBytes, 0x010e, 2, descBytes.length, dataOffset);
           dataOffset += descBytes.length;
         }
 
@@ -683,7 +674,7 @@ export class TIFFFormat implements ImageFormat {
           const authorBytes = new TextEncoder().encode(
             imageData.metadata.author + "\0",
           );
-          this.writeIFDEntry(result, 0x013b, 2, authorBytes.length, dataOffset);
+          this.writeIFDEntry(ifdBytes, 0x013b, 2, authorBytes.length, dataOffset);
           dataOffset += authorBytes.length;
         }
 
@@ -692,7 +683,7 @@ export class TIFFFormat implements ImageFormat {
             imageData.metadata.copyright + "\0",
           );
           this.writeIFDEntry(
-            result,
+            ifdBytes,
             0x8298,
             2,
             copyrightBytes.length,
@@ -709,35 +700,33 @@ export class TIFFFormat implements ImageFormat {
             String(date.getMinutes()).padStart(2, "0")
           }:${String(date.getSeconds()).padStart(2, "0")}\0`;
           const dateBytes = new TextEncoder().encode(dateStr);
-          this.writeIFDEntry(result, 0x0132, 2, dateBytes.length, dataOffset);
+          this.writeIFDEntry(ifdBytes, 0x0132, 2, dateBytes.length, dataOffset);
           dataOffset += dateBytes.length;
         }
       }
 
       // Next IFD offset
       const nextIFDOffset = isLastIFD ? 0 : dataOffset;
-      this.writeUint32LE(result, nextIFDOffset);
-
-      currentOffset = dataOffset;
+      this.writeUint32LE(ifdBytes, nextIFDOffset);
 
       // Write variable-length data
       // BitsPerSample values (must be written first to match offset calculation)
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
-      this.writeUint16LE(result, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
+      this.writeUint16LE(ifdBytes, 8);
 
       // XResolution value (rational)
       const dpiX = (i === 0 && imageData.metadata?.dpiX) ||
         DEFAULT_DPI;
-      this.writeUint32LE(result, dpiX);
-      this.writeUint32LE(result, 1);
+      this.writeUint32LE(ifdBytes, dpiX);
+      this.writeUint32LE(ifdBytes, 1);
 
       // YResolution value (rational)
       const dpiY = (i === 0 && imageData.metadata?.dpiY) ||
         DEFAULT_DPI;
-      this.writeUint32LE(result, dpiY);
-      this.writeUint32LE(result, 1);
+      this.writeUint32LE(ifdBytes, dpiY);
+      this.writeUint32LE(ifdBytes, 1);
 
       // Write metadata strings (only for first page)
       if (i === 0 && imageData.metadata) {
@@ -746,7 +735,7 @@ export class TIFFFormat implements ImageFormat {
             imageData.metadata.description + "\0",
           );
           for (const byte of descBytes) {
-            result.push(byte);
+            ifdBytes.push(byte);
           }
         }
 
@@ -755,7 +744,7 @@ export class TIFFFormat implements ImageFormat {
             imageData.metadata.author + "\0",
           );
           for (const byte of authorBytes) {
-            result.push(byte);
+            ifdBytes.push(byte);
           }
         }
 
@@ -764,7 +753,7 @@ export class TIFFFormat implements ImageFormat {
             imageData.metadata.copyright + "\0",
           );
           for (const byte of copyrightBytes) {
-            result.push(byte);
+            ifdBytes.push(byte);
           }
         }
 
@@ -777,22 +766,30 @@ export class TIFFFormat implements ImageFormat {
           }:${String(date.getSeconds()).padStart(2, "0")}\0`;
           const dateBytes = new TextEncoder().encode(dateStr);
           for (const byte of dateBytes) {
-            result.push(byte);
+            ifdBytes.push(byte);
           }
         }
       }
-
-      currentOffset = result.length;
     }
 
-    // Write first IFD offset to header
-    const firstIFDOffset = ifdOffsets[0];
-    result[firstIFDOffsetPos] = firstIFDOffset & 0xff;
-    result[firstIFDOffsetPos + 1] = (firstIFDOffset >>> 8) & 0xff;
-    result[firstIFDOffsetPos + 2] = (firstIFDOffset >>> 16) & 0xff;
-    result[firstIFDOffsetPos + 3] = (firstIFDOffset >>> 24) & 0xff;
-
-    return Promise.resolve(new Uint8Array(result));
+    // Assemble output: 8-byte TIFF header + all compressed pixel data + IFD section
+    // This avoids copying pixel frames into a number[] (which would use ~9× the memory)
+    const out = new Uint8Array(8 + totalPixelDataSize + ifdBytes.length);
+    out[0] = 0x49;
+    out[1] = 0x49;
+    out[2] = 0x2a;
+    out[3] = 0x00; // "II" + magic 42
+    out[4] = ifdSectionStart & 0xff;
+    out[5] = (ifdSectionStart >>> 8) & 0xff;
+    out[6] = (ifdSectionStart >>> 16) & 0xff;
+    out[7] = (ifdSectionStart >>> 24) & 0xff;
+    let pixelPos = 8;
+    for (const frame of compressedFrames) {
+      out.set(frame, pixelPos);
+      pixelPos += frame.length;
+    }
+    out.set(new Uint8Array(ifdBytes), 8 + totalPixelDataSize);
+    return Promise.resolve(out);
   }
 
   /**
