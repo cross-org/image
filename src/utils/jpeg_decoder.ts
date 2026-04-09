@@ -137,6 +137,20 @@ interface JPEGDecoderOptions extends ImageDecoderOptions {
   extractCoefficients?: boolean;
 }
 
+/**
+ * Precomputed IDCT cosine table: IDCT_COS[k][n] = cos((2n+1)*k*PI/16)
+ * Eliminates all Math.cos calls from the IDCT hot path.
+ */
+const IDCT_COS: Float64Array[] = Array.from(
+  { length: 8 },
+  (_, k) =>
+    Float64Array.from(
+      { length: 8 },
+      (_, n) => Math.cos((2 * n + 1) * k * Math.PI / 16),
+    ),
+);
+const IDCT_SCALE = 1 / Math.sqrt(2);
+
 export class JPEGDecoder {
   private data: Uint8Array;
   private pos: number = 0;
@@ -959,8 +973,7 @@ export class JPEGDecoder {
   }
 
   private idct(block: number[] | Int32Array): void {
-    // Simplified 2D IDCT
-    // This is a basic implementation - not optimized
+    // 2D IDCT using precomputed cosine table — no Math.cos in the hot path
     const temp = new Float32Array(64);
 
     // 1D IDCT on rows
@@ -970,9 +983,8 @@ export class JPEGDecoder {
       for (let j = 0; j < 8; j++) {
         let sum = 0;
         for (let k = 0; k < 8; k++) {
-          const c = k === 0 ? 1 / Math.sqrt(2) : 1;
-          sum += c * block[offset + k] *
-            Math.cos((2 * j + 1) * k * Math.PI / 16);
+          const c = k === 0 ? IDCT_SCALE : 1;
+          sum += c * block[offset + k] * IDCT_COS[k][j];
         }
         temp[offset + j] = sum / 2;
       }
@@ -983,8 +995,8 @@ export class JPEGDecoder {
       for (let i = 0; i < 8; i++) {
         let sum = 0;
         for (let k = 0; k < 8; k++) {
-          const c = k === 0 ? 1 / Math.sqrt(2) : 1;
-          sum += c * temp[k * 8 + j] * Math.cos((2 * i + 1) * k * Math.PI / 16);
+          const c = k === 0 ? IDCT_SCALE : 1;
+          sum += c * temp[k * 8 + j] * IDCT_COS[k][i];
         }
         // Level shift and clamp
         block[i * 8 + j] = Math.max(

@@ -29,6 +29,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `src/utils/gif_decoder.ts` — prevents call-stack overflow
   (`RangeError: Maximum call stack
   size exceeded`) on adversarial GIF input
+- Security: PCX decoder now calls `validateImageDimensions` after computing width/height from the
+  header — prevents excessively large unchecked allocations on crafted input
+- Correctness: TIFF multi-frame encoder (`encodeFrames`) now caches compressed frame data from the
+  first pass and reuses it when writing `StripByteCounts` — previously the data was re-compressed
+  independently, producing a byte-count that could differ from the actual strip data and making the
+  TIFF unreadable
+- Correctness: ICO DIB decoder now uses `Math.floor` when computing `actualHeight` from the stored
+  double-height field — previously an odd stored height (e.g. 5) produced a non-integer value (2.5)
+  that caused `validateImageDimensions` to throw on valid ICO files
+- Correctness: PNG `decode()` loop now checks `pos + 8 > data.length` before reading each chunk
+  header — prevents silent mis-decoding of truncated PNG files
+- Correctness: BMP `extractMetadata` now uses `readInt32LE` (signed) for the `xPelsPerMeter` /
+  `yPelsPerMeter` DPI fields, consistent with `decode()` — previously a negative stored DPI was
+  returned as a large positive value
+- Performance: JPEG IDCT now uses a precomputed 8×8 cosine table instead of calling `Math.cos` per
+  coefficient — eliminates ~200M `Math.cos` calls when decoding a 2000×2000 JPEG
+- Performance: `medianFilter` now allocates the four channel-value arrays once outside the pixel
+  loop instead of per-pixel — reduces GC pressure on large images
+- Fixed misleading comment in `adjustHue`: normalization produces 0–360, not −180 to 180
 - PNG decoder: 16-bit per-channel images (bitDepth=16) now decode correctly; the pixel stride was
   using a fixed 8-bit offset (`x*4`, `x*3`, `x`) causing pixel-offset corruption in 16-bit RGBA,
   RGB, and grayscale images

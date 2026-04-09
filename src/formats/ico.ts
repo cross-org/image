@@ -141,11 +141,11 @@ export class ICOFormat implements ImageFormat {
     const bitDepth = readUint16LE(data, 14);
     const compression = readUint32LE(data, 16);
 
-    // Validate dimensions
-    validateImageDimensions(width, Math.abs(height) / 2); // DIB height includes both XOR and AND mask data
-
     // ICO files store height as 2x actual height (for AND mask)
-    const actualHeight = Math.abs(height) / 2;
+    const actualHeight = Math.floor(Math.abs(height) / 2);
+
+    // Validate dimensions
+    validateImageDimensions(width, actualHeight); // DIB height includes both XOR and AND mask data
 
     // Only support uncompressed DIBs
     if (compression !== 0) {

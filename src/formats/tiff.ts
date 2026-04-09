@@ -573,8 +573,9 @@ export class TIFFFormat implements ImageFormat {
     let currentOffset = 8;
     const ifdOffsets: number[] = [];
     const pixelDataOffsets: number[] = [];
+    const compressedFrames: Uint8Array[] = [];
 
-    // Write all pixel data first
+    // Write all pixel data first, caching the compressed results
     for (const frame of imageData.frames) {
       pixelDataOffsets.push(currentOffset);
 
@@ -590,6 +591,7 @@ export class TIFFFormat implements ImageFormat {
         pixelData = frame.data;
       }
 
+      compressedFrames.push(pixelData);
       for (let i = 0; i < pixelData.length; i++) {
         result.push(pixelData[i]);
       }
@@ -651,18 +653,8 @@ export class TIFFFormat implements ImageFormat {
       // RowsPerStrip
       this.writeIFDEntry(result, 0x0116, 4, 1, frame.height);
 
-      // StripByteCounts
-      let pixelDataSize: number;
-      if (compression === "lzw") {
-        pixelDataSize = new TIFFLZWEncoder().compress(frame.data).length;
-      } else if (compression === "packbits") {
-        pixelDataSize = packBitsCompress(frame.data).length;
-      } else if (compression === "deflate") {
-        pixelDataSize = (await deflateCompress(frame.data)).length;
-      } else {
-        pixelDataSize = frame.data.length;
-      }
-      this.writeIFDEntry(result, 0x0117, 4, 1, pixelDataSize);
+      // StripByteCounts — use the cached compressed length from the first pass
+      this.writeIFDEntry(result, 0x0117, 4, 1, compressedFrames[i].length);
 
       // XResolution
       const xResOffset = dataOffset;
