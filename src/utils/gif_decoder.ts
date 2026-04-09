@@ -72,7 +72,7 @@ export class GIFDecoder {
       const blockSize = this.readByte();
       if (blockSize === 0) break;
       const blockData = this.readBytes(blockSize);
-      blocks.push(...blockData);
+      for (const b of blockData) blocks.push(b);
     }
     return new Uint8Array(blocks);
   }

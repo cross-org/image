@@ -16,6 +16,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Security: `readUint32LE` in `src/utils/byte_utils.ts` now returns a proper unsigned 32-bit value
+  (`>>> 0`) — prevents signed-integer overflow in BMP, ICO, and TIFF decoders that could allow
+  crafted files to bypass bounds checks
+- Security: `readUint32LE` in `src/utils/webp_decoder.ts` removed in favour of the shared
+  `readUint32LE` from `src/utils/byte_utils.ts` (which includes the `>>> 0` fix) — prevents a large
+  WebP chunk size from wrapping to a negative value and silently short-circuiting the parse loop
+- Security: `readUint32` (big-endian) in `src/formats/png_base.ts` now returns a proper unsigned
+  32-bit value (`>>> 0`) — prevents a near-infinite parse loop on crafted PNGs with a high-bit chunk
+  length (CPU-based DoS)
+- Security: LZW decoder `output.push(...entry)` replaced with a `for`-loop in `src/utils/lzw.ts` and
+  `src/utils/gif_decoder.ts` — prevents call-stack overflow
+  (`RangeError: Maximum call stack
+  size exceeded`) on adversarial GIF input
 - PNG decoder: 16-bit per-channel images (bitDepth=16) now decode correctly; the pixel stride was
   using a fixed 8-bit offset (`x*4`, `x*3`, `x`) causing pixel-offset corruption in 16-bit RGBA,
   RGB, and grayscale images
