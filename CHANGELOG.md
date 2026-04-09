@@ -17,8 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Security: `readUint32LE` in `src/utils/byte_utils.ts` now returns a proper unsigned 32-bit value
-  (`>>> 0`) — prevents signed-integer overflow in BMP, ICO, TIFF, and WebP decoders that could
-  allow crafted files to bypass bounds checks
+  (`>>> 0`) — prevents signed-integer overflow in BMP, ICO, and TIFF decoders that could allow
+  crafted files to bypass bounds checks
 - Security: `readUint32` (big-endian) in `src/formats/png_base.ts` now returns a proper unsigned
   32-bit value (`>>> 0`) — prevents a near-infinite parse loop on crafted PNGs with a high-bit
   chunk length (CPU-based DoS)
