@@ -280,6 +280,51 @@ const pcx = await image.encode("pcx");
 await Deno.writeFile("output.pcx", pcx);
 ```
 
+### QOI (Quite OK Image)
+
+Fast lossless format with simple encoding.
+
+```ts
+import { Image } from "jsr:@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.decode(data);
+
+// Encode as QOI
+const qoi = await image.encode("qoi");
+await Deno.writeFile("output.qoi", qoi);
+```
+
+### PGM (Portable GrayMap)
+
+Netpbm grayscale format; RGB is converted to grayscale using luma weighting.
+
+```ts
+import { Image } from "jsr:@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.decode(data);
+
+// Encode as PGM (binary P5 format)
+const pgm = await image.encode("pgm");
+await Deno.writeFile("output.pgm", pgm);
+```
+
+### PBM (Portable BitMap)
+
+Netpbm monochrome format; pixels at or above luma 128 become white.
+
+```ts
+import { Image } from "jsr:@cross/image";
+
+const data = await Deno.readFile("input.png");
+const image = await Image.decode(data);
+
+// Encode as PBM (binary P4 format)
+const pbm = await image.encode("pbm");
+await Deno.writeFile("output.pbm", pbm);
+```
+
 ## Format Conversion Examples
 
 ### PNG to JPEG
