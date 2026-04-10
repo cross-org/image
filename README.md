@@ -202,6 +202,7 @@ const imageWithWarnings = await Image.decode(data, {
 (ImageDecoder API) first, falling back to the pure JS decoder with tolerant mode for maximum
 compatibility.
 
+## CMYK Color Space Support
 The library provides utilities for working with CMYK (Cyan, Magenta, Yellow, Key/Black) color space,
 commonly used in professional printing and color manipulation.
 
