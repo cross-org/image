@@ -60,6 +60,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
       if (pos + 8 > data.length) break;
       const length = this.readUint32(data, pos);
       pos += 4;
+      const typePos = pos;
       const type = String.fromCharCode(
         data[pos],
         data[pos + 1],
@@ -69,7 +70,13 @@ export class PNGFormat extends PNGBase implements ImageFormat {
       pos += 4;
       const chunkData = data.slice(pos, pos + length);
       pos += length;
-      pos += 4; // Skip CRC
+      const storedCrc = this.readUint32(data, pos);
+      pos += 4;
+
+      // Verify CRC (covers chunk type + chunk data)
+      if (storedCrc !== this.crc32(data.slice(typePos, typePos + 4 + length))) {
+        throw new Error(`PNG chunk '${type}' has invalid CRC`);
+      }
 
       if (type === "IHDR") {
         width = this.readUint32(chunkData, 0);
@@ -217,6 +224,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
 
       const length = this.readUint32(data, pos);
       pos += 4;
+      const typePos = pos;
       const type = String.fromCharCode(
         data[pos],
         data[pos + 1],
@@ -229,7 +237,13 @@ export class PNGFormat extends PNGBase implements ImageFormat {
 
       const chunkData = data.slice(pos, pos + length);
       pos += length;
-      pos += 4; // Skip CRC
+      const storedCrc = this.readUint32(data, pos);
+      pos += 4;
+
+      // Verify CRC (covers chunk type + chunk data)
+      if (storedCrc !== this.crc32(data.slice(typePos, typePos + 4 + length))) {
+        throw new Error(`PNG chunk '${type}' has invalid CRC`);
+      }
 
       if (type === "IHDR") {
         width = this.readUint32(chunkData, 0);

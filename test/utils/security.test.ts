@@ -159,11 +159,11 @@ test("Security - PNG decoder rejects oversized images", async () => {
     0, // Compression: 0
     0, // Filter: 0
     0, // Interlace: 0
-    // CRC (not validated in this test)
-    0,
-    0,
-    0,
-    0,
+    // CRC for type "IHDR" + data above
+    227,
+    230,
+    167,
+    180,
   ]);
 
   await assertRejects(

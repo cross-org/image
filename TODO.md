@@ -29,42 +29,33 @@ chunks, with only the small IFD section in a `number[]`.
 
 ### L1 — `src/formats/png.ts` — PNG chunk CRCs are never verified during decode
 
-Chunk CRCs are silently skipped. A corrupt PNG file can decode with subtly wrong pixel data and no
+~~Chunk CRCs are silently skipped. A corrupt PNG file can decode with subtly wrong pixel data and no
 error. The encode path correctly computes CRCs; parity with the decode path would improve
-reliability.
+reliability.~~ **Fixed:** CRC is now verified for every chunk in the PNG and APNG decode/extractMetadata loops; corrupt or crafted files throw `"PNG chunk '<type>' has invalid CRC"`.
 
 ---
 
 ### L2 — `src/formats/pam.ts:136-144` — PAM decoder silently rejects valid DEPTH values without documentation
 
-The PAM format supports DEPTH 1 (grayscale), 2 (grayscale+alpha), and 3 (RGB). The implementation
+~~The PAM format supports DEPTH 1 (grayscale), 2 (grayscale+alpha), and 3 (RGB). The implementation
 only handles DEPTH=4 (RGBA) and MAXVAL=255, throwing a generic error for everything else. This is an
-intentional limitation but is not documented in the JSDoc, so callers receive a confusing error.
-
-**Fix:** Document the DEPTH/MAXVAL constraints in the JSDoc and consider a more descriptive error
-message such as `"Only DEPTH=4 MAXVAL=255 PAM files are supported"`.
+intentional limitation but is not documented in the JSDoc, so callers receive a confusing error.~~
+**Fixed:** The `decode()` JSDoc now explicitly documents the DEPTH 4 / MAXVAL 255 / TUPLTYPE RGB_ALPHA constraint, and the error messages are descriptive.
 
 ---
 
 ### L3 — `src/utils/image_processing.ts:106-135` — `adjustBrightness` rebuilds the LUT on every call
 
-The 767-entry brightness lookup table depends only on `amount`. It is re-created on every call. For
-batch-processing many frames at the same brightness level this is unnecessary work.
-
-**Fix:** Accept the LUT as an optional pre-built parameter, or cache by `amount` with a simple
-`Map`.
+~~The 767-entry brightness lookup table depends only on `amount`. It is re-created on every call. For
+batch-processing many frames at the same brightness level this is unnecessary work.~~ **Fixed:** The clamp LUT is now a module-level `Uint8Array` constant computed once at load time; the per-call code only derives the integer offset from `amount`.
 
 ---
 
 ### L4 — `src/utils/gif_decoder.ts:342-344` — Background color uses `|| 0` fallback instead of explicit bounds check
 
-```ts
-const bgR = colorTable[backgroundColorIndex * 3] || 0;
-```
-
-If `backgroundColorIndex * 3` is out of range, `colorTable[oob]` returns `undefined`, and
+~~If `backgroundColorIndex * 3` is out of range, `colorTable[oob]` returns `undefined`, and
 `undefined || 0` silently returns 0 (black). This is functionally safe for most images but hides a
-potential header-parsing error. An explicit bounds check and warning would aid debugging.
+potential header-parsing error. An explicit bounds check and warning would aid debugging.~~ **Fixed:** Replaced the three `|| 0` lookups with a single `bgOffset + 2 < colorTable.length` bounds check.
 
 ---
 
