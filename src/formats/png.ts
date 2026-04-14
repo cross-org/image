@@ -68,13 +68,18 @@ export class PNGFormat extends PNGBase implements ImageFormat {
         data[pos + 3],
       );
       pos += 4;
+
+      if (pos + length + 4 > data.length) break;
+
       const chunkData = data.slice(pos, pos + length);
       pos += length;
       const storedCrc = this.readUint32(data, pos);
       pos += 4;
 
       // Verify CRC (covers chunk type + chunk data)
-      if (storedCrc !== this.crc32(data.slice(typePos, typePos + 4 + length))) {
+      if (
+        storedCrc !== this.crc32(data.subarray(typePos, typePos + 4 + length))
+      ) {
         throw new Error(`PNG chunk '${type}' has invalid CRC`);
       }
 
@@ -241,7 +246,9 @@ export class PNGFormat extends PNGBase implements ImageFormat {
       pos += 4;
 
       // Verify CRC (covers chunk type + chunk data)
-      if (storedCrc !== this.crc32(data.slice(typePos, typePos + 4 + length))) {
+      if (
+        storedCrc !== this.crc32(data.subarray(typePos, typePos + 4 + length))
+      ) {
         throw new Error(`PNG chunk '${type}' has invalid CRC`);
       }
 

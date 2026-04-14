@@ -122,8 +122,8 @@ export function adjustBrightness(
   const clampedAmount = Math.max(-1, Math.min(1, amount));
   const adjust = clampedAmount * 255;
 
-  // Use bitwise OR for fast rounding (equivalent to Math.round for positive numbers)
-  const adjustInt = (adjust + 0.5) | 0;
+  // Use symmetric rounding so negative and positive brightness adjustments behave consistently
+  const adjustInt = Math.round(adjust);
 
   for (let i = 0; i < data.length; i += 4) {
     result[i] = _BRIGHTNESS_LUT[data[i] + adjustInt + BRIGHTNESS_LUT_OFFSET]; // R
