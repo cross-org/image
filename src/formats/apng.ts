@@ -137,7 +137,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       );
       pos += 4;
 
-      if (pos + length + 4 > data.length) break;
+      if (length > data.length - pos - 4) break;
 
       const chunkData = data.slice(pos, pos + length);
       const chunkPos = pos;
@@ -544,7 +544,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       );
       pos += 4;
 
-      if (pos + length + 4 > data.length) break;
+      if (length > data.length - pos - 4) break;
 
       const chunkData = data.slice(pos, pos + length);
       pos += length;
