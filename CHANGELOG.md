@@ -58,6 +58,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   RGB, and grayscale images
 - PNG decoder: colorType 4 (grayscale+alpha) images are now supported instead of throwing an
   "Unsupported PNG color type: 4" error
+- Correctness: PNG and APNG chunk CRC values are now verified during decode — crafted or corrupted
+  files that previously decoded silently with wrong pixel data now throw a descriptive error
+- Robustness: GIF background-color index lookup now uses an explicit bounds check instead of `|| 0`
+  — prevents silently mapping an out-of-range palette index to black
+- Performance: `adjustBrightness` clamp LUT is now computed once at module load time instead of on
+  every call — eliminates repeated 767-entry array allocation and initialisation
 - PNG decoder: sub-byte grayscale formats (bitDepth 1, 2, 4) now compute the correct scanline byte
   length (`ceil(width * bitsPerPixel / 8)`) and correctly unpack pixel values from packed bytes;
   previously the scanline was over-read and raw byte values were used directly as gray values

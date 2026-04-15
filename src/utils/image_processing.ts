@@ -18,6 +18,17 @@ function isLittleEndian(): boolean {
 // Cache the endianness check result
 const IS_LITTLE_ENDIAN = isLittleEndian();
 
+// Pre-computed clamp lookup table for adjustBrightness.
+// Covers the range [-255, 511] offset by 255 so the index is always non-negative.
+// Index: (pixelValue + adjustInt + 255), result: clamped value in [0, 255].
+const BRIGHTNESS_LUT_SIZE = 767;
+const BRIGHTNESS_LUT_OFFSET = 255;
+const _BRIGHTNESS_LUT = new Uint8Array(BRIGHTNESS_LUT_SIZE);
+for (let _i = 0; _i < BRIGHTNESS_LUT_SIZE; _i++) {
+  const _v = _i - BRIGHTNESS_LUT_OFFSET;
+  _BRIGHTNESS_LUT[_i] = _v < 0 ? 0 : (_v > 255 ? 255 : _v);
+}
+
 /**
  * Composite one image on top of another at a specified position
  * @param base Base image data (RGBA)
@@ -111,23 +122,13 @@ export function adjustBrightness(
   const clampedAmount = Math.max(-1, Math.min(1, amount));
   const adjust = clampedAmount * 255;
 
-  // Pre-compute lookup table for clamping
-  // Range: -255 to 511 (data value 0-255 + adjust -255 to 255), offset by 255 for zero-based index
-  const LUT_SIZE = 767;
-  const LUT_OFFSET = 255;
-  const lut = new Uint8Array(LUT_SIZE);
-  for (let i = 0; i < LUT_SIZE; i++) {
-    const value = i - LUT_OFFSET;
-    lut[i] = value < 0 ? 0 : (value > 255 ? 255 : value);
-  }
-
-  // Use bitwise OR for fast rounding (equivalent to Math.round for positive numbers)
-  const adjustInt = (adjust + 0.5) | 0;
+  // Use symmetric rounding so negative and positive brightness adjustments behave consistently
+  const adjustInt = Math.round(adjust);
 
   for (let i = 0; i < data.length; i += 4) {
-    result[i] = lut[data[i] + adjustInt + LUT_OFFSET]; // R
-    result[i + 1] = lut[data[i + 1] + adjustInt + LUT_OFFSET]; // G
-    result[i + 2] = lut[data[i + 2] + adjustInt + LUT_OFFSET]; // B
+    result[i] = _BRIGHTNESS_LUT[data[i] + adjustInt + BRIGHTNESS_LUT_OFFSET]; // R
+    result[i + 1] = _BRIGHTNESS_LUT[data[i + 1] + adjustInt + BRIGHTNESS_LUT_OFFSET]; // G
+    result[i + 2] = _BRIGHTNESS_LUT[data[i + 2] + adjustInt + BRIGHTNESS_LUT_OFFSET]; // B
     result[i + 3] = data[i + 3]; // A
   }
 

@@ -339,9 +339,10 @@ export class GIFDecoder {
     const rgba = new Uint8Array(canvasWidth * canvasHeight * 4);
 
     // Fill with background color
-    const bgR = colorTable[backgroundColorIndex * 3] || 0;
-    const bgG = colorTable[backgroundColorIndex * 3 + 1] || 0;
-    const bgB = colorTable[backgroundColorIndex * 3 + 2] || 0;
+    const bgOffset = backgroundColorIndex * 3;
+    const bgR = bgOffset + 2 < colorTable.length ? colorTable[bgOffset] : 0;
+    const bgG = bgOffset + 2 < colorTable.length ? colorTable[bgOffset + 1] : 0;
+    const bgB = bgOffset + 2 < colorTable.length ? colorTable[bgOffset + 2] : 0;
 
     for (let i = 0; i < rgba.length; i += 4) {
       rgba[i] = bgR;

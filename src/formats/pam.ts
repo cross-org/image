@@ -43,6 +43,11 @@ export class PAMFormat implements ImageFormat {
 
   /**
    * Decode PAM image data to RGBA
+   *
+   * **Supported subset:** only PAM files with `DEPTH 4`, `MAXVAL 255`, and
+   * `TUPLTYPE RGB_ALPHA` are supported. Files with other DEPTH or MAXVAL values
+   * will throw a descriptive error.
+   *
    * @param data Raw PAM image data
    * @returns Decoded image data with RGBA pixels
    */
