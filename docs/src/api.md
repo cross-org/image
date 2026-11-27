@@ -120,6 +120,10 @@ const tiffData = await Image.encodeFrames("tiff", multiPageTiff, {
 });
 ```
 
+**Note:** Multi-page TIFF encoding keeps all compressed pages in memory and always writes 8-bit RGBA
+pages. See [TIFF multi-page encoding limitations](implementation/tiff-implementation.md) for
+details.
+
 #### `Image.saveFrames(format: string, imageData: MultiFrameImageData, options?: unknown): Promise<Uint8Array>` ⚠️ Deprecated
 
 **Deprecated:** Use `encodeFrames()` instead. This method will be removed in a future version.

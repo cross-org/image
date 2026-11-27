@@ -121,7 +121,7 @@ await Bun.write("output.jpg", jpeg);
 
 | Format | Pure-JS                   | Notes                                                                                          |
 | ------ | ------------------------- | ---------------------------------------------------------------------------------------------- |
-| PNG    | ✅ Full                   | Complete pure-JS implementation                                                                |
+| PNG    | ✅ Full                   | Complete pure-JS implementation, including Adam7 interlaced decode                             |
 | APNG   | ✅ Full                   | Animated PNG with multi-frame                                                                  |
 | BMP    | ✅ Full                   | Complete pure-JS implementation                                                                |
 | ICO    | ✅ Full                   | Windows Icon format                                                                            |

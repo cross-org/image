@@ -7,8 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-27
+
 ### Added
 
+- PNG/APNG: Adam7 interlaced decoding (all color types and bit depths); previously the interlace
+  flag was ignored and interlaced files decoded to scrambled pixels
+- PGM format support (Netpbm Portable GrayMap): decode P2 (ASCII) and P5 (binary), encode as P5
+  binary with luminance-preserving grayscale conversion
+- PBM format support (Netpbm Portable BitMap): decode P1 (ASCII) and P4 (binary packed-bit), encode
+  as P4 binary with luminance threshold
+- QOI format support (Quite OK Image): full pure-JS encode and decode including all chunk types
+  (INDEX, DIFF, LUMA, RUN, RGB, RGBA)
 - Indexed PNG (color type 3) decoding support:
   - PLTE palette chunk parsing for up to 256 RGB colors
   - tRNS chunk support for per-entry palette transparency
@@ -79,17 +89,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to avoid duplication
 - Bun CI: PNG/APNG and TIFF Deflate encode/decode tests timed out in Bun CI due to
   `CompressionStream`/`DecompressionStream` hanging; introduced shared `src/utils/deflate.ts` that
-  uses `node:zlib` (`deflateSync`/`inflateSync`) on Node/Bun/Deno and falls back to
-  `CompressionStream`/`DecompressionStream` in browser environments
-
-### Added
-
-- PGM format support (Netpbm Portable GrayMap): decode P2 (ASCII) and P5 (binary), encode as P5
-  binary with luminance-preserving grayscale conversion
-- PBM format support (Netpbm Portable BitMap): decode P1 (ASCII) and P4 (binary packed-bit), encode
-  as P4 binary with luminance threshold
-- QOI format support (Quite OK Image): full pure-JS encode and decode including all chunk types
-  (INDEX, DIFF, LUMA, RUN, RGB, RGBA)
+  uses `node:zlib` (`deflateSync`/`inflateSync`) on Bun and uses
+  `CompressionStream`/`DecompressionStream` everywhere else
+- PNG: missing IDAT, truncated image data, and invalid scanline filter types now throw instead of
+  silently returning zero-filled pixels; unknown interlace methods are rejected
+- PNG decoder keeps only two scanline buffers instead of every scanline, reducing peak memory
+- APNG: truncated or corrupt files now throw a descriptive `Error` instead of a `TypeError`; a
+  missing trailing IEND is tolerated; `fcTL` frame regions are validated against the canvas
+- BMP: truncated pixel data now throws instead of silently decoding as black pixels
+- Tests: adversarial suite (`test/adversarial.test.ts`) covering truncation, random corruption, and
+  crafted headers for every pure-JS format, plus an LZW long-entry regression test
+- Docs: documented TIFF multi-page encoding limitations
+- Build: bumped dev dependency `@deno/dnt` to ^0.44.0
 
 ## [0.4.3] - 2025-12-28
 

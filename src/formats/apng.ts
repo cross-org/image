@@ -112,6 +112,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     let height = 0;
     let bitDepth = 0;
     let colorType = 0;
+    let interlace = 0;
     const metadata: ImageMetadata = {};
     const frames: ImageFrame[] = [];
     let plte: Uint8Array | undefined;
@@ -159,6 +160,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
         height = this.readUint32(chunkData, 4);
         bitDepth = chunkData[8];
         colorType = chunkData[9];
+        interlace = chunkData[12];
       } else if (type === "PLTE") {
         plte = chunkData;
       } else if (type === "tRNS") {
@@ -184,7 +186,16 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       throw new Error("Invalid APNG: missing IHDR chunk");
     }
 
+    // Tolerate a missing IEND (e.g. truncated trailer): flush the last frame as if IEND was present
+    if (chunkList.length === 0 || chunkList[chunkList.length - 1].type !== "IEND") {
+      chunkList.push({ type: "IEND", data: new Uint8Array(0), pos: data.length });
+    }
+
     validateImageDimensions(width, height);
+
+    if (interlace !== 0 && interlace !== 1) {
+      throw new Error(`Unsupported PNG interlace method: ${interlace}`);
+    }
 
     // Build RGBA palette for indexed color (color type 3)
     let palette: Uint8Array | undefined;
@@ -217,6 +228,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
             bitDepth,
             colorType,
             palette,
+            interlace,
           );
 
           frames.push({
@@ -235,6 +247,9 @@ export class APNGFormat extends PNGBase implements ImageFormat {
         }
 
         // Parse frame control
+        if (chunk.data.length < 26) {
+          throw new Error("Invalid APNG: fcTL chunk is too short");
+        }
         const _fcSeq = this.readUint32(chunk.data, 0);
         const fcWidth = this.readUint32(chunk.data, 4);
         const fcHeight = this.readUint32(chunk.data, 8);
@@ -244,6 +259,15 @@ export class APNGFormat extends PNGBase implements ImageFormat {
         const delayDen = this.readUint16(chunk.data, 22);
         const disposeOp = chunk.data[24];
         const blendOp = chunk.data[25];
+
+        if (
+          fcWidth === 0 || fcHeight === 0 ||
+          fcXOffset + fcWidth > width || fcYOffset + fcHeight > height
+        ) {
+          throw new Error(
+            `Invalid APNG: frame region ${fcWidth}x${fcHeight} at (${fcXOffset}, ${fcYOffset}) exceeds canvas ${width}x${height}`,
+          );
+        }
 
         const delay = delayDen === 0 ? delayNum * 10 : Math.round((delayNum / delayDen) * 1000);
 
@@ -290,6 +314,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
             bitDepth,
             colorType,
             palette,
+            interlace,
           );
 
           frames.push({
@@ -312,6 +337,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
             bitDepth,
             colorType,
             palette,
+            interlace,
           );
 
           frames.push({
@@ -328,6 +354,10 @@ export class APNGFormat extends PNGBase implements ImageFormat {
         }
         break;
       }
+    }
+
+    if (frames.length === 0) {
+      throw new Error("Invalid APNG: no decodable frames (file may be truncated)");
     }
 
     return {
@@ -478,6 +508,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
     bitDepth: number,
     colorType: number,
     palette?: Uint8Array,
+    interlace = 0,
   ): Promise<Uint8Array> {
     // Concatenate chunks
     const idatData = this.concatenateArrays(chunks);
@@ -493,6 +524,7 @@ export class APNGFormat extends PNGBase implements ImageFormat {
       bitDepth,
       colorType,
       palette,
+      interlace,
     );
 
     return rgba;

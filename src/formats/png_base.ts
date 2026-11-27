@@ -4,6 +4,12 @@ import type { ImageMetadata } from "../types.ts";
 // Constants for unit conversions
 const INCHES_PER_METER = 39.3701;
 
+// Adam7 interlace pass parameters (PNG spec section 8.2)
+const ADAM7_X_START = [0, 4, 0, 2, 0, 1, 0];
+const ADAM7_Y_START = [0, 0, 4, 0, 2, 0, 1];
+const ADAM7_X_STEP = [8, 8, 4, 4, 2, 2, 1];
+const ADAM7_Y_STEP = [8, 8, 8, 4, 4, 2, 2];
+
 /**
  * Base class for PNG and APNG format handlers
  * Contains shared utility methods for PNG chunk manipulation and metadata parsing
@@ -67,6 +73,7 @@ export abstract class PNGBase {
   /**
    * Unfilter PNG scanlines and convert to RGBA
    * @param palette RGBA palette for indexed color (color type 3): flat array [R,G,B,A, R,G,B,A, ...]
+   * @param interlace Interlace method from IHDR (0 = none, 1 = Adam7)
    */
   protected unfilterAndConvert(
     data: Uint8Array,
@@ -75,38 +82,114 @@ export abstract class PNGBase {
     bitDepth: number,
     colorType: number,
     palette?: Uint8Array,
+    interlace = 0,
   ): Uint8Array {
     const rgba = new Uint8Array(width * height * 4);
+
+    if (interlace === 0) {
+      this.decodePass(
+        data,
+        0,
+        rgba,
+        width,
+        width,
+        height,
+        0,
+        0,
+        1,
+        1,
+        bitDepth,
+        colorType,
+        palette,
+      );
+    } else if (interlace === 1) {
+      let pos = 0;
+      for (let p = 0; p < 7; p++) {
+        const xStart = ADAM7_X_START[p];
+        const yStart = ADAM7_Y_START[p];
+        const xStep = ADAM7_X_STEP[p];
+        const yStep = ADAM7_Y_STEP[p];
+        const passWidth = Math.ceil((width - xStart) / xStep);
+        const passHeight = Math.ceil((height - yStart) / yStep);
+        // Passes that contain no pixels are omitted from the data stream entirely
+        if (passWidth <= 0 || passHeight <= 0) continue;
+        pos = this.decodePass(
+          data,
+          pos,
+          rgba,
+          width,
+          passWidth,
+          passHeight,
+          xStart,
+          yStart,
+          xStep,
+          yStep,
+          bitDepth,
+          colorType,
+          palette,
+        );
+      }
+    } else {
+      throw new Error(`Unsupported PNG interlace method: ${interlace}`);
+    }
+
+    return rgba;
+  }
+
+  /**
+   * Unfilter one (sub-)image and scatter its pixels into the RGBA output.
+   * For non-interlaced images this is the whole image (start 0, step 1);
+   * for Adam7 it is called once per pass.
+   * @returns Position in `data` directly after this pass
+   */
+  private decodePass(
+    data: Uint8Array,
+    startPos: number,
+    rgba: Uint8Array,
+    width: number,
+    passWidth: number,
+    passHeight: number,
+    xStart: number,
+    yStart: number,
+    xStep: number,
+    yStep: number,
+    bitDepth: number,
+    colorType: number,
+    palette?: Uint8Array,
+  ): number {
     const bitsPerPixel = this.getBitsPerPixel(colorType, bitDepth);
     // bytesPerPixel for PNG filter predictor: floor(bpp/8), min 1 (sub-byte formats use 1)
     const bytesPerPixel = Math.max(1, Math.floor(bitsPerPixel / 8));
     // Correct scanline byte count: ceil(width * bitsPerPixel / 8) handles sub-byte formats
-    const scanlineLength = Math.ceil(width * bitsPerPixel / 8);
+    const scanlineLength = Math.ceil(passWidth * bitsPerPixel / 8);
     // Number of bytes per channel (1 for 8-bit, 2 for 16-bit)
     const channelSize = bitDepth >= 8 ? bitDepth >> 3 : 1;
-    let dataPos = 0;
-    const scanlines: Uint8Array[] = [];
 
-    for (let y = 0; y < height; y++) {
+    if (startPos + passHeight * (scanlineLength + 1) > data.length) {
+      throw new Error("PNG image data is truncated");
+    }
+
+    let dataPos = startPos;
+    // Two rolling scanline buffers instead of keeping every scanline in memory
+    const bufA = new Uint8Array(scanlineLength);
+    const bufB = new Uint8Array(scanlineLength);
+    let prevLine: Uint8Array | null = null;
+    let scanline = bufA;
+
+    for (let py = 0; py < passHeight; py++) {
       const filterType = data[dataPos++];
-      const scanline = new Uint8Array(scanlineLength);
-
-      for (let x = 0; x < scanlineLength; x++) {
-        scanline[x] = data[dataPos++];
+      if (filterType > 4) {
+        throw new Error(`Invalid PNG filter type: ${filterType}`);
       }
+      scanline.set(data.subarray(dataPos, dataPos + scanlineLength));
+      dataPos += scanlineLength;
 
-      this.unfilterScanline(
-        scanline,
-        y > 0 ? scanlines[y - 1] : null,
-        filterType,
-        bytesPerPixel,
-      );
+      this.unfilterScanline(scanline, prevLine, filterType, bytesPerPixel);
 
-      scanlines.push(scanline);
-
+      const y = yStart + py * yStep;
       // Convert to RGBA
-      for (let x = 0; x < width; x++) {
-        const outIdx = (y * width + x) * 4;
+      for (let x = 0; x < passWidth; x++) {
+        const outIdx = (y * width + xStart + x * xStep) * 4;
         if (bitDepth < 8 && colorType === 0) {
           // Sub-byte grayscale: multiple pixels packed per byte
           const pixelsPerByte = 8 / bitDepth;
@@ -177,9 +260,13 @@ export abstract class PNGBase {
           }
         }
       }
+
+      // Rotate buffers: current line becomes previous line
+      prevLine = scanline;
+      scanline = scanline === bufA ? bufB : bufA;
     }
 
-    return rgba;
+    return dataPos;
   }
 
   /**

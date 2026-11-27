@@ -21,9 +21,10 @@ nav_order: 3
 - **Tests:** `test/formats/tiff.test.ts`, `test/formats/tiff_cmyk.test.ts`, and multi-page tests in
   `test/*`.
 - **Notes:** LZW uses MSB-first bit packing with 9→12-bit codes; PackBits uses run-length encoding
-  (RLE); Deflate uses native JavaScript CompressionStream/DecompressionStream. Multi-page layout
-  writes pixel data then IFDs. Fallbacks maintain compatibility for rare compressions like JPEG.
-  CMYK color space uses standard subtractive color model conversion formulas.
+  (RLE); Deflate uses CompressionStream/DecompressionStream (with a `node:zlib` fallback on Bun).
+  Multi-page layout writes pixel data then IFDs. Fallbacks maintain compatibility for rare
+  compressions like JPEG. CMYK color space uses standard subtractive color model conversion
+  formulas.
 
 ## Compression Methods
 
@@ -34,6 +35,22 @@ nav_order: 3
 - **Deflate (8):** Adobe-style Deflate compression using native JavaScript APIs, good
   general-purpose compression
 - **JPEG (6, 7):** Falls back to runtime ImageDecoder for decoding only
+
+## Multi-page Encoding Limitations
+
+`Image.encodeFrames("tiff", ...)` (and `TIFFFormat.encodeFrames`) has these characteristics:
+
+- **Memory:** every page is compressed up front and kept in memory until the file is assembled, so
+  peak memory is roughly the sum of all compressed pages plus the final output buffer. For very
+  large or many-page documents, encode in batches or reduce page size.
+- **Color:** pages are always written as 8-bit RGBA; the `grayscale` and `cmyk` options apply to
+  single-image `encode()` only.
+- **Layout:** each page is written as a single strip (`RowsPerStrip` = page height). Some readers
+  handle very large single strips poorly.
+- **Metadata:** description, author, copyright, and creation date are written to the first page
+  only.
+- **Size:** classic TIFF uses 32-bit offsets, so total output must stay below 4 GiB (BigTIFF is not
+  supported).
 
 ## References
 
