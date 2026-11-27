@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-28
+
+### Fixed
+
+- npm build: `deno task build:npm` failed type-checking the Bun-only `import("node:zlib")` in
+  `src/utils/deflate.ts` (no Node typings in the dnt build), so 0.5.0 was never published to npm;
+  the specifier is now non-literal so type-checkers and browser bundlers skip it
+
 ## [0.5.0] - 2026-11-27
 
 ### Added

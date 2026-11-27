@@ -43,7 +43,8 @@ Additional checks:
   `TypeError`/`RangeError`, never silent zero-filled pixels); call `validateImageDimensions` before
   allocating. Add new pure-JS formats to `PURE_JS_FORMATS` in `test/adversarial.test.ts`
 - Binary test fixtures go in `test/fixtures/<format>/`, read with `readFile` from `@cross/fs/io`
-- Releases: bump `version` in deno.json and move `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD`
+- Releases: bump `version` in deno.json, move `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD`, and
+  run `deno task build:npm` (npm publish type-checks without Node typings; CI does not)
 - If CI flips lint_docs=true: run deno doc --lint mod.ts
 - Keep this file lean
 - Keep temporary tests and files in a folder called `local_test/`, which is gitignored

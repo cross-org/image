@@ -24,7 +24,10 @@ async function getBunZlib(): Promise<NodeZlib | null> {
   if (!isBun) return null;
   if (_zlib !== undefined) return _zlib;
   try {
-    const m = await import("node:zlib");
+    // Non-literal specifier: keeps type-checkers without Node typings (dnt npm build)
+    // and browser bundlers from trying to resolve `node:zlib`; only loaded on Bun.
+    const specifier = "node:zlib";
+    const m = await import(specifier);
     _zlib = m as unknown as NodeZlib;
   } catch {
     _zlib = null;
