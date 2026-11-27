@@ -67,26 +67,25 @@ check.
 
 ### L6 — `test/` — No adversarial / fuzzing input tests
 
-All tests use well-formed images or programmatically generated valid inputs. There are no tests for
-truncated files, wrong-length headers, or near-limit dimensions that exercise the security
-validation paths in `validateImageDimensions` and the format decoders.
-
-**Fix:** Add a dedicated `test/security.test.ts` (or equivalent) with crafted inputs for each of the
-issues above, asserting that a clean `Error` is thrown rather than a crash or silent mis-decode.
+~~All tests use well-formed images or programmatically generated valid inputs. There are no tests
+for truncated files, wrong-length headers, or near-limit dimensions.~~ **Fixed:**
+`test/adversarial.test.ts` truncates and corrupts every pure-JS format and crafts near-limit
+headers, asserting a well-formed image or a plain `Error`. It surfaced and fixed APNG `TypeError`s,
+PNG/BMP silent zero-fill on truncation, and ignored PNG interlacing.
 
 ---
 
 ### L7 — `test/` — No regression test for the LZW call-stack overflow (C3)
 
-No test exercises the `push(...entry)` code path with a GIF whose LZW dictionary entry grows large
-enough to stress the call stack. This makes it easy to reintroduce the bug.
+~~No test exercises long LZW dictionary entries.~~ **Fixed:** `test/adversarial.test.ts` decodes a 2
+MB uniform LZW stream and a 1024×1024 uniform GIF.
 
 ---
 
 ### L8 — `docs/` — TIFF multi-frame encode limitations are undocumented
 
-The API docs for `encodeFrames` do not warn about any performance characteristics or limitations of
-encoding large TIFF files.
+~~The API docs for `encodeFrames` do not warn about limitations.~~ **Fixed:** documented in
+`docs/src/implementation/tiff-implementation.md` and linked from `docs/src/api.md`.
 
 ---
 

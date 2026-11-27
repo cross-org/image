@@ -9,7 +9,7 @@ Repo CI inputs (`.github/workflows/tests.yaml`):
 
 - Deno: entrypoint=mod.ts, lint_docs=false, allow_outdated=false
 - Bun: jsr deps set; no npm deps
-- Node: jsr deps set; no npm deps; test_target: test/*.test.ts
+- Node: jsr deps set; no npm deps; test_target: test/_.test.ts test/**/_.test.ts
 
 Source of truth:
 [Deno](https://github.com/cross-org/workflows/blob/main/.github/workflows/deno-ci.yml),
@@ -20,11 +20,12 @@ Source of truth:
 
 Run: `deno task precommit`
 
-This runs: `deno fmt --check && deno lint && deno check mod.ts && deno check test/*.test.ts`
+This runs:
+`deno fmt --check && deno lint && deno check mod.ts && deno check test/*.test.ts && deno check test/**/*.test.ts && deno test -A test/`
 
 Additional checks:
 
-- Deno: deno test -A; deno run -A jsr:@check/deps (no outdated deps)
+- Deno: deno task check-deps (no outdated deps)
 - Bun: tests run with bun test after jsr/npm deps install
 - Node (18/20/22): tests run with tsx; ESM required (package.json {"type":"module"})
 
@@ -38,6 +39,11 @@ Additional checks:
 - New deps must resolve via JSR/NPM across Deno/Bun/Node
 - **Consider performance:** avoid unnecessary allocations, prefer typed arrays, minimize loops, and
   benchmark critical paths
+- **Decoders must fail cleanly:** malformed/truncated input throws a plain `Error` (never
+  `TypeError`/`RangeError`, never silent zero-filled pixels); call `validateImageDimensions` before
+  allocating. Add new pure-JS formats to `PURE_JS_FORMATS` in `test/adversarial.test.ts`
+- Binary test fixtures go in `test/fixtures/<format>/`, read with `readFile` from `@cross/fs/io`
+- Releases: bump `version` in deno.json and move `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD`
 - If CI flips lint_docs=true: run deno doc --lint mod.ts
 - Keep this file lean
 - Keep temporary tests and files in a folder called `local_test/`, which is gitignored

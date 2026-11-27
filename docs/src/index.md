@@ -14,8 +14,8 @@ JPEG, WebP, GIF, and more—all without native dependencies.
 - 🚀 **Pure JavaScript** - No native dependencies
 - 🔌 **Pluggable formats** - Easy to extend with custom formats
 - 📦 **Cross-runtime** - Works on Deno, Node.js (18+), Bun and browsers
-- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM, PPM, PCX, ASCII,
-  HEIC, and AVIF support
+- 🎨 **Multiple formats** - PNG, APNG, JPEG, WebP, GIF, TIFF, BMP, ICO, DNG, PAM, PPM, PGM, PBM,
+  PCX, QOI, ASCII, HEIC, and AVIF support
 - ✂️ **Image manipulation** - Resize, crop, composite, and more
 - 🎛️ **Image processing** - Chainable filters including `brightness`, `contrast`, `saturation`,
   `exposure`, `blur`, `sharpen`, `sepia`, and more

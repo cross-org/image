@@ -50,6 +50,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
     let height = 0;
     let bitDepth = 0;
     let colorType = 0;
+    let interlace = 0;
     const chunks: { type: string; data: Uint8Array }[] = [];
     const metadata: ImageMetadata = {};
     let plte: Uint8Array | undefined;
@@ -88,6 +89,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
         height = this.readUint32(chunkData, 4);
         bitDepth = chunkData[8];
         colorType = chunkData[9];
+        interlace = chunkData[12];
       } else if (type === "PLTE") {
         plte = chunkData;
       } else if (type === "tRNS") {
@@ -118,6 +120,14 @@ export class PNGFormat extends PNGBase implements ImageFormat {
     // Validate dimensions for security (prevent integer overflow and heap exhaustion)
     validateImageDimensions(width, height);
 
+    if (interlace !== 0 && interlace !== 1) {
+      throw new Error(`Unsupported PNG interlace method: ${interlace}`);
+    }
+
+    if (chunks.length === 0) {
+      throw new Error("Invalid PNG: missing IDAT chunk");
+    }
+
     // Concatenate IDAT chunks
     const idatData = this.concatenateChunks(chunks);
 
@@ -138,6 +148,7 @@ export class PNGFormat extends PNGBase implements ImageFormat {
       bitDepth,
       colorType,
       palette,
+      interlace,
     );
 
     return {

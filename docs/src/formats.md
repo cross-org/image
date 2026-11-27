@@ -48,7 +48,7 @@ This table shows which format standards and variants are supported:
 | Format | Specification/Variant                | Support Level     | Implementation |
 | ------ | ------------------------------------ | ----------------- | -------------- |
 | PNG    | PNG 1.2 (ISO/IEC 15948)              | ✅ Full           | Pure-JS        |
-|        | - Interlaced (Adam7)                 | ❌ Not Yet        | -              |
+|        | - Interlaced (Adam7) decode          | ✅ Full           | Pure-JS        |
 |        | - Color types: Grayscale, RGB, RGBA  | ✅ Full           | Pure-JS        |
 |        | - Metadata: pHYs, tEXt, iTXt, eXIf   | ✅ Full           | Pure-JS        |
 | APNG   | APNG (Animated PNG)                  | ✅ Full           | Pure-JS        |

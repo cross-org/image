@@ -102,6 +102,11 @@ export class BMPFormat implements ImageFormat {
     const bytesPerPixel = bitDepth / 8;
     const rowSize = Math.floor((bitDepth * width + 31) / 32) * 4;
 
+    // Ensure the pixel array is fully present (the final row's padding may be omitted)
+    if (dataOffset + (absHeight - 1) * rowSize + width * bytesPerPixel > data.length) {
+      throw new Error("BMP pixel data is truncated");
+    }
+
     // Read pixel data
     const rgba = new Uint8Array(width * absHeight * 4);
 
